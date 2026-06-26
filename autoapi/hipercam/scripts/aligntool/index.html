@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>hipercam.scripts.aligntool &#8212; HiPERCAM pipeline 1.6.8.dev12+g30055e846 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/bootstrap-astropy.css?v=177ce38d" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css?v=fd3f3429" />
+    
+    <script src="../../../../_static/documentation_options.js?v=adfd3a0b"></script>
+    <script src="../../../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script type="text/javascript" src="../../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../../_static/copybutton.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="hipercam.scripts.arith" href="../arith/index.html" />
+    <link rel="prev" title="hipercam.scripts" href="../index.html" />
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../../index.html"><span id="logotext1">astro</span><span id="logotext2"></span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="../arith/index.html" title="hipercam.scripts.arith">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="../index.html" title="hipercam.scripts">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../../../../index.html">HiPERCAM pipeline 1.6.8.dev12+g30055e846 documentation</a>
+	 &#187;
+      </li>
+      <li><a href="../../../index.html" >API Reference</a> &#187;</li>
+      <li><a href="../../index.html" >hipercam</a> &#187;</li>
+      <li><a href="../index.html" accesskey="U">hipercam.scripts</a> &#187;</li>
+      
+      <li>hipercam.scripts.aligntool</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-hipercam.scripts.aligntool">
+<span id="hipercam-scripts-aligntool"></span><h1>hipercam.scripts.aligntool<a class="headerlink" href="#module-hipercam.scripts.aligntool" title="Link to this heading">¶</a></h1>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.scripts.aligntool.aligntool" title="hipercam.scripts.aligntool.aligntool"><code class="xref py py-obj docutils literal notranslate"><span class="pre">aligntool</span></code></a>([args])</p></td>
+<td><p>Measures alignment of HiperCAM CCDs w.r.t a reference image of the blue CCD.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.scripts.aligntool.aligntool">
+<span class="sig-prename descclassname"><span class="pre">hipercam.scripts.aligntool.</span></span><span class="sig-name descname"><span class="pre">aligntool</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.scripts.aligntool.aligntool" title="Link to this definition">¶</a></dt>
+<dd><p>Measures alignment of HiperCAM CCDs w.r.t a reference image of the blue CCD.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>ref     : (string)
+   name of an MCCD file to use as reference , as produced
+   by e.g. &#39;grab&#39;
+
+rccd    : (string)
+   CCD to use as reference
+
+thresh  : (float)
+    threshold for object detection, in multiples of background RMS
+
+source  : (string) [hidden]
+   Data source, five options for built-in sources:
+
+       &#39;hs&#39; : HiPERCAM server
+       &#39;hl&#39; : local HiPERCAM FITS file
+       &#39;us&#39; : ULTRACAM server
+       &#39;ul&#39; : local ULTRACAM .xml/.dat files
+       &#39;hf&#39; : list of HiPERCAM hcm FITS-format files
+
+   &#39;hf&#39; is used to look at sets of frames generated by &#39;grab&#39; or
+   converted from foreign data formats. The standard
+   start-off default for ``source`` can be set using the
+   environment variable HIPERCAM_DEFAULT_SOURCE. e.g. in bash
+   :code:`export HIPERCAM_DEFAULT_SOURCE=&quot;us&quot;` would ensure it
+   always started with the ULTRACAM server by default. If
+   unspecified, it defaults to &#39;hl&#39;.
+
+   Any instruments installed via plugins can be used as a source by
+   specifying either ``&lt;instrument&gt;:local`` or ``&lt;instrument&gt;:server``.
+
+device  : (string) [hidden]
+  Plot device. PGPLOT is used so this should be a PGPLOT-style name,
+  e.g. &#39;/xs&#39;, &#39;1/xs&#39; etc. At the moment only ones ending /xs are
+  supported.
+
+width   : (float) [hidden]
+   plot width (inches). Set = 0 to let the program choose.
+
+height  : (float) [hidden]
+   plot height (inches). Set = 0 to let the program choose. BOTH width
+   AND height must be non-zero to have any effect
+
+run     : (string) [if source == &#39;s&#39; or &#39;l&#39;]
+   run number to access, e.g. &#39;run034&#39;
+
+flist   : (string) [if source == &#39;f&#39;]
+   name of file list
+
+first   : (int) [if source=&#39;s&#39; or &#39;l&#39;]
+   exposure number to start from. 1 = first frame; set = 0 to
+   always try to get the most recent frame (if it has changed)
+
+twait   : (float) [if source == &#39;s&#39;; hidden]
+   time to wait between attempts to find a new exposure, seconds.
+
+tmax    : (float) [if source == &#39;s&#39;; hidden]
+   maximum time to wait between attempts to find a new exposure, seconds.
+
+pause   : (float) [hidden]
+   seconds to pause between frames (defaults to 0)
+
+ccd     : (string)
+   CCD to measure aligment of.
+
+bias    : (string)
+   Name of bias frame to subtract, &#39;none&#39; to ignore.
+
+msub    : (bool)
+   subtract the median from each window before scaling for the
+   image display or not. This happens after any bias subtraction.
+
+iset    : (string) [single character]
+   determines how the intensities are determined. There are three
+   options: &#39;a&#39; for automatic simply scales from the minimum to the
+   maximum value found on a per CCD basis. &#39;d&#39; for direct just takes
+   two numbers from the user. &#39;p&#39; for percentile dtermines levels
+   based upon percentiles determined from the entire CCD on a per CCD
+   basis.
+
+ilo     : (float) [if iset=&#39;d&#39;]
+   lower intensity level
+
+ihi     : (float) [if iset=&#39;d&#39;]
+   upper intensity level
+
+plo     : (float) [if iset=&#39;p&#39;]
+   lower percentile level
+
+phi     : (float) [if iset=&#39;p&#39;]
+   upper percentile level
+
+small_spots : (bool) [hidden]
+    use the small spots for alignment instead of the big spots
+</pre></div>
+</div>
+</dd></dl>
+
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><h3>Table of Contents</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../news.html">HiPERCAM pipeline news</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../observers.html">Observer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../commands.html">HiPERCAM commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api/api.html">The API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../installation.html">Getting the software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../files.html">Useful files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../plugins.html">Writing an instrument plugin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api/bugs.html">Reporting problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../makingmovies.html">Making HiPERCAM movies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../phaseII.html">HiPERCAM Phase II</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">hipercam</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../../aperture/index.html">hipercam.aperture</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../ccd/index.html">hipercam.ccd</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../core/index.html">hipercam.core</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../defect/index.html">hipercam.defect</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../extraction/index.html">hipercam.extraction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../fitting/index.html">hipercam.fitting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../fringe/index.html">hipercam.fringe</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../group/index.html">hipercam.group</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../hcam/index.html">hipercam.hcam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../header/index.html">hipercam.header</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../hlog/index.html">hipercam.hlog</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../instruments/index.html">hipercam.instruments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../mpl/index.html">hipercam.mpl</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../pgp/index.html">hipercam.pgp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../psf_reduction/index.html">hipercam.psf_reduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../reduction/index.html">hipercam.reduction</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../index.html">hipercam.scripts</a><ul class="current">
+<li class="toctree-l4 current"><a class="current reference internal" href="#">hipercam.scripts.aligntool</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../arith/index.html">hipercam.scripts.arith</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../atanalysis/index.html">hipercam.scripts.atanalysis</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../atbytes/index.html">hipercam.scripts.atbytes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../averun/index.html">hipercam.scripts.averun</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../calsearch/index.html">hipercam.scripts.calsearch</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../carith/index.html">hipercam.scripts.carith</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../combine/index.html">hipercam.scripts.combine</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../exploss/index.html">hipercam.scripts.exploss</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../filtid/index.html">hipercam.scripts.filtid</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../fits2hcm/index.html">hipercam.scripts.fits2hcm</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../flagcloud/index.html">hipercam.scripts.flagcloud</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../ftargets/index.html">hipercam.scripts.ftargets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../genred/index.html">hipercam.scripts.genred</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../grab/index.html">hipercam.scripts.grab</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../harchive/index.html">hipercam.scripts.harchive</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../hfilter/index.html">hipercam.scripts.hfilter</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../hinfo/index.html">hipercam.scripts.hinfo</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../hist/index.html">hipercam.scripts.hist</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../hlog2col/index.html">hipercam.scripts.hlog2col</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../hlog2fits/index.html">hipercam.scripts.hlog2fits</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../hlogger/index.html">hipercam.scripts.hlogger</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../hls/index.html">hipercam.scripts.hls</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../hmeta/index.html">hipercam.scripts.hmeta</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../hpackage/index.html">hipercam.scripts.hpackage</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../hplot/index.html">hipercam.scripts.hplot</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../joinup/index.html">hipercam.scripts.joinup</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../jtrawl/index.html">hipercam.scripts.jtrawl</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../logsearch/index.html">hipercam.scripts.logsearch</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../ltimes/index.html">hipercam.scripts.ltimes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../ltrans/index.html">hipercam.scripts.ltrans</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../makebias/index.html">hipercam.scripts.makebias</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../makedark/index.html">hipercam.scripts.makedark</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../makeflat/index.html">hipercam.scripts.makeflat</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../makefringe/index.html">hipercam.scripts.makefringe</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../makemovie/index.html">hipercam.scripts.makemovie</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../makestuff/index.html">hipercam.scripts.makestuff</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../mstats/index.html">hipercam.scripts.mstats</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../ncal/index.html">hipercam.scripts.ncal</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../nrtplot/index.html">hipercam.scripts.nrtplot</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../pbands/index.html">hipercam.scripts.pbands</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../pfolder/index.html">hipercam.scripts.pfolder</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../plog/index.html">hipercam.scripts.plog</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../psfaper/index.html">hipercam.scripts.psfaper</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../redanal/index.html">hipercam.scripts.redanal</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../redplt/index.html">hipercam.scripts.redplt</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../reduce/index.html">hipercam.scripts.reduce</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../rtplot/index.html">hipercam.scripts.rtplot</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../rupdate/index.html">hipercam.scripts.rupdate</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../setaper/index.html">hipercam.scripts.setaper</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../setdefect/index.html">hipercam.scripts.setdefect</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../setfringe/index.html">hipercam.scripts.setfringe</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../shiftadd/index.html">hipercam.scripts.shiftadd</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../splice/index.html">hipercam.scripts.splice</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../stats/index.html">hipercam.scripts.stats</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../tanalysis/index.html">hipercam.scripts.tanalysis</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../tbytes/index.html">hipercam.scripts.tbytes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../uls/index.html">hipercam.scripts.uls</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../spooler/index.html">hipercam.spooler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../target/index.html">hipercam.target</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../tests/index.html">hipercam.tests</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../ucam/index.html">hipercam.ucam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../utils/index.html">hipercam.utils</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../window/index.html">hipercam.window</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="../index.html"
+                          title="previous chapter">hipercam.scripts</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="../arith/index.html"
+                          title="next chapter">hipercam.scripts.arith</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../../../_sources/autoapi/hipercam/scripts/aligntool/index.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<form action="../../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../../../../_sources/autoapi/hipercam/scripts/aligntool/index.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2017, T.R. Marsh.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 7.4.7. &nbsp;
+  </p>
+</footer>
+  </body>
+</html>

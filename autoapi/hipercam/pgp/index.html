@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>hipercam.pgp &#8212; HiPERCAM pipeline 1.6.8.dev12+g30055e846 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/bootstrap-astropy.css?v=177ce38d" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=fd3f3429" />
+    
+    <script src="../../../_static/documentation_options.js?v=adfd3a0b"></script>
+    <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script type="text/javascript" src="../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="hipercam.psf_reduction" href="../psf_reduction/index.html" />
+    <link rel="prev" title="hipercam.mpl" href="../mpl/index.html" />
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../index.html"><span id="logotext1">astro</span><span id="logotext2"></span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="../psf_reduction/index.html" title="hipercam.psf_reduction">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="../mpl/index.html" title="hipercam.mpl">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../../../index.html">HiPERCAM pipeline 1.6.8.dev12+g30055e846 documentation</a>
+	 &#187;
+      </li>
+      <li><a href="../../index.html" >API Reference</a> &#187;</li>
+      <li><a href="../index.html" accesskey="U">hipercam</a> &#187;</li>
+      
+      <li>hipercam.pgp</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-hipercam.pgp">
+<span id="hipercam-pgp"></span><h1>hipercam.pgp<a class="headerlink" href="#module-hipercam.pgp" title="Link to this heading">¶</a></h1>
+<p>PGPLOT plotting functions.</p>
+<p>PGPLOT is a venerable plotting package that is still good when it comes to
+speed hence it has a place in the hipercam package although I anticipate
+replacing it in the long term.</p>
+<section id="attributes">
+<h2>Attributes<a class="headerlink" href="#attributes" title="Link to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.pgp.Params" title="hipercam.pgp.Params"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Params</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.pgp.Device" title="hipercam.pgp.Device"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Device</span></code></a></p></td>
+<td><p>Sub-class of PGdevice that after opening the plot device,</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.pgp.pWin" title="hipercam.pgp.pWin"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pWin</span></code></a>(win[, label])</p></td>
+<td><p>Plots boundary of a <code class="xref py py-class docutils literal notranslate"><span class="pre">Winhead</span></code> as a line. (PGPLOT)</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.pgp.pWind" title="hipercam.pgp.pWind"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pWind</span></code></a>(wind, vmin, vmax[, label])</p></td>
+<td><p>Plots <code class="xref py py-class docutils literal notranslate"><span class="pre">Window</span></code> as an image with a line border. (PGPLOT).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.pgp.pCcd" title="hipercam.pgp.pCcd"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pCcd</span></code></a>(ccd[, iset, plo, phi, dlo, dhi, tlabel, xlo, ...])</p></td>
+<td><p>Plots <code class="xref py py-class docutils literal notranslate"><span class="pre">CCD</span></code> as a set of <code class="xref py py-class docutils literal notranslate"><span class="pre">Window</span></code> objects correctly</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">¶</a></h2>
+<dl class="py data">
+<dt class="sig sig-object py" id="hipercam.pgp.Params">
+<span class="sig-prename descclassname"><span class="pre">hipercam.pgp.</span></span><span class="sig-name descname"><span class="pre">Params</span></span><a class="headerlink" href="#hipercam.pgp.Params" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.pgp.Device">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.pgp.</span></span><span class="sig-name descname"><span class="pre">Device</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.pgp.Device" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">PGdevice</span></code></p>
+<p>Sub-class of PGdevice that after opening the plot device,
+re-defines colour indices according to a standardised set in
+core.CIS</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.pgp.pWin">
+<span class="sig-prename descclassname"><span class="pre">hipercam.pgp.</span></span><span class="sig-name descname"><span class="pre">pWin</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">win</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.pgp.pWin" title="Link to this definition">¶</a></dt>
+<dd><p>Plots boundary of a <code class="xref py py-class docutils literal notranslate"><span class="pre">Winhead</span></code> as a line. (PGPLOT)
+Plots to the current device with current line width, colour
+etc. This changes the fill-area style and the colour index.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>win : :class:`Winhead`
+     the :class:`Winhead` to plot
+
+label : string
+     label to plot at lower-left corner of Winhead
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.pgp.pWind">
+<span class="sig-prename descclassname"><span class="pre">hipercam.pgp.</span></span><span class="sig-name descname"><span class="pre">pWind</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wind</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vmin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vmax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.pgp.pWind" title="Link to this definition">¶</a></dt>
+<dd><p>Plots <code class="xref py py-class docutils literal notranslate"><span class="pre">Window</span></code> as an image with a line border. (PGPLOT).</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>wind : Window
+     the :class:`Window` to plot
+
+vmin : float
+     value at minimum of scale
+
+vmax : float
+     value at maximum of scale
+
+label : string
+     label to plot at lower-left corner of Winhead
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.pgp.pCcd">
+<span class="sig-prename descclassname"><span class="pre">hipercam.pgp.</span></span><span class="sig-name descname"><span class="pre">pCcd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ccd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'p'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plo</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phi</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">95.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dlo</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dhi</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tlabel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xlo</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xhi</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ylo</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">yhi</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.pgp.pCcd" title="Link to this definition">¶</a></dt>
+<dd><p>Plots <code class="xref py py-class docutils literal notranslate"><span class="pre">CCD</span></code> as a set of <code class="xref py py-class docutils literal notranslate"><span class="pre">Window</span></code> objects correctly
+positioned with respect to each other.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>ccd : (CCD)
+     the :class:`CCD` to plot
+
+iset : (string)
+     how to set the intensity scale to be used. &#39;p&#39; for percentiles (set
+     using plo and phi); &#39;a&#39; automatic for min/max range; &#39;d&#39; for direct
+     value set using dlo and dhi.
+
+plo : (float)
+     lower percentile limit to use (if iset=&#39;p&#39;)
+
+phi : (float)
+     upper percentile limit to use (if iset=&#39;p&#39;)
+
+dlo : (float)
+     value to use for lower intensity limit (if iset=&#39;d&#39;)
+
+dhi : (float)
+     value to use for upper intensity limit (if iset=&#39;d&#39;)
+
+tlabel : (string)
+     label to use for top of plot; &#39;X&#39; and &#39;Y&#39; will also be added if
+     this is not blank.
+
+xlo : (int | None)
+     use to restrict the range for computing plot limits as
+     percentiles.
+
+xhi : (int | None)
+     use to restrict the range for computing plot limits as
+     percentiles.
+
+ylo : (int | None)
+     use to restrict the range for computing plot limits as
+     percentiles.
+
+yhi : (int | None)
+     use to restrict the range for computing plot limits as
+     percentiles.
+</pre></div>
+</div>
+<p>Returns: (vmin,vmax), the intensity limits used.</p>
+</dd></dl>
+
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><h3>Table of Contents</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../news.html">HiPERCAM pipeline news</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../observers.html">Observer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../commands.html">HiPERCAM commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/api.html">The API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Getting the software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../files.html">Useful files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plugins.html">Writing an instrument plugin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/bugs.html">Reporting problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../makingmovies.html">Making HiPERCAM movies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../phaseII.html">HiPERCAM Phase II</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">hipercam</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../aperture/index.html">hipercam.aperture</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ccd/index.html">hipercam.ccd</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../core/index.html">hipercam.core</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../defect/index.html">hipercam.defect</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extraction/index.html">hipercam.extraction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../fitting/index.html">hipercam.fitting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../fringe/index.html">hipercam.fringe</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../group/index.html">hipercam.group</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../hcam/index.html">hipercam.hcam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../header/index.html">hipercam.header</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../hlog/index.html">hipercam.hlog</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../instruments/index.html">hipercam.instruments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../mpl/index.html">hipercam.mpl</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">hipercam.pgp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../psf_reduction/index.html">hipercam.psf_reduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reduction/index.html">hipercam.reduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../scripts/index.html">hipercam.scripts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../spooler/index.html">hipercam.spooler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../target/index.html">hipercam.target</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../tests/index.html">hipercam.tests</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ucam/index.html">hipercam.ucam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../utils/index.html">hipercam.utils</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../window/index.html">hipercam.window</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="../mpl/index.html"
+                          title="previous chapter">hipercam.mpl</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="../psf_reduction/index.html"
+                          title="next chapter">hipercam.psf_reduction</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../../_sources/autoapi/hipercam/pgp/index.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../../../_sources/autoapi/hipercam/pgp/index.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2017, T.R. Marsh.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 7.4.7. &nbsp;
+  </p>
+</footer>
+  </body>
+</html>

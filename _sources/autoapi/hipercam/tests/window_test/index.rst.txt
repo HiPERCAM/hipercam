@@ -1,0 +1,116 @@
+hipercam.tests.window_test
+==========================
+
+.. py:module:: hipercam.tests.window_test
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   hipercam.tests.window_test.TestWinhead
+
+
+Module Contents
+---------------
+
+.. py:class:: TestWinhead(methodName='runTest')
+
+   Bases: :py:obj:`unittest.TestCase`
+
+
+   
+   Provides simple tests of every Winhead method and attribute. If any of
+   these fail, something is badly wrong.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:method:: setUp()
+
+      
+      Hook method for setting up the test fixture before exercising it.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: test_window_llx()
+
+
+   .. py:method:: test_window_lly()
+
+
+   .. py:method:: test_window_nx()
+
+
+   .. py:method:: test_window_ny()
+
+
+   .. py:method:: test_window_xbin()
+
+
+   .. py:method:: test_window_ybin()
+
+
+   .. py:method:: test_window_clash()
+
+
+   .. py:method:: test_window_urx()
+
+
+   .. py:method:: test_window_ury()
+
+
+   .. py:method:: test_window_extent()
+
+
+   .. py:method:: test_window_inside()
+
+
+   .. py:method:: test_window_outside()
+
+
+   .. py:method:: test_window_xy()
+
+
+   .. py:method:: test_window_matches()
+
+
+   .. py:method:: test_window_copy_eq()
+
+
+   .. py:method:: test_window_ne()
+
+

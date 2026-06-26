@@ -1,0 +1,506 @@
+hipercam.utils
+==============
+
+.. py:module:: hipercam.utils
+
+.. autoapi-nested-parse::
+
+   Classes and functions of general use
+
+   ..
+       !! processed by numpydoc !!
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   hipercam.utils.Vec2D
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   hipercam.utils.add_extension
+   hipercam.utils.sub_extension
+   hipercam.utils.rgb
+   hipercam.utils.script_args
+   hipercam.utils.format_hlogger_table
+   hipercam.utils.what_flags
+   hipercam.utils.temp_dir
+
+
+Module Contents
+---------------
+
+.. py:class:: Vec2D(x=0.0, y=0.0)
+
+   
+   Simple 2D vector class.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:attribute:: x
+      :value: 0.0
+
+
+
+   .. py:attribute:: y
+      :value: 0.0
+
+
+
+   .. py:method:: length()
+
+      
+      Returns the Euclidean length
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: unit()
+
+      
+      Returns a unit vector version of the vector
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __iadd__(vec)
+
+      
+      +=: in place addition
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __add__(vec)
+
+      
+      +: addition
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __isub__(vec)
+
+      
+      -=: in place subtraction
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __sub__(vec)
+
+      
+      -: subtraction
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __imul__(const)
+
+      
+      *=: in place multiplication by a constant
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __mul__(const)
+
+      
+      *: post multiplication by a constant
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __rmul__(const)
+
+      
+      *: pre multiplication by a constant
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __itruediv__(const)
+
+      
+      Divides by a constant
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __repr__()
+
+
+.. py:function:: add_extension(fname, ext)
+
+   
+   Add extension ext to a file name if it is not already there, and returns
+   the revised name
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: sub_extension(fname, ext)
+
+   
+   Subtracts extension ext from a file name if it is present, and returns
+   the revised name
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: rgb(cname)
+
+   
+   Returns the RGB tuple associated with colour name 'cname', following
+   the colour definitions used by 'reduce'.
+
+   Returns a ValueError if cname is not recognised.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: script_args(args)
+
+   
+   This is a small helper method that is used at the start of most
+   of the HiPERCAM entry point scripts such as 'reduce' and 'grab'.
+
+   If 'args' is None on entry, it is replaced by 'sys.argv'. It is then
+   assumed that the first argument is the command name or else None. The
+   command name argument is removed from args, and if not None, converted to just the
+   file part of the path. It is then returned along with the remaining list
+   of arguments in a two element tuple, i.e. (commands, args).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: format_hlogger_table(fname, table, instrument)
+
+   
+   Formats the column widths etc of the excel files produced by
+   |hlogger| ('ultracam.xlsx', 'ultraspec.xlsx' or 'hipercam.xlsx') and writes
+   it to disk. It is made available as a utility function to allow
+   the same styling to be applied to derived versions of this file.
+
+   Arguments::
+
+     fname : str
+        The file name to write to
+
+     table : pandas.DataFrame
+        DataFrame containing the data to be written that is assumed to be
+        derived from the |hlogger| file. In particular it is expected to
+        have columns called 'nlink', 'run_no' and 'night'. The latter two
+        must lie somewhere in the column range 1-26 [A-Z].
+
+     instrument : str
+        Either ultracam or ultraspec
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: what_flags(bitmask)
+
+   
+   Given a bitmask value, this routine prints which flags have been set, ignoring
+   the two catch alls, ANY_FLAG and ALL_GOOD.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: temp_dir()
+
+   
+   Generates the name of the hipercam temp directory which will be
+   used to store temporary files. Creates the directory if it does
+   not exist. The temp directory is called "tmp" and is created as a
+   subdirectory of the directory containing the command default files
+   (".hipercam" by default)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+

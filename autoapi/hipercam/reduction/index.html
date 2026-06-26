@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>hipercam.reduction &#8212; HiPERCAM pipeline 1.6.8.dev12+g30055e846 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/bootstrap-astropy.css?v=177ce38d" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=fd3f3429" />
+    
+    <script src="../../../_static/documentation_options.js?v=adfd3a0b"></script>
+    <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script type="text/javascript" src="../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="hipercam.scripts" href="../scripts/index.html" />
+    <link rel="prev" title="hipercam.psf_reduction" href="../psf_reduction/index.html" />
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../index.html"><span id="logotext1">astro</span><span id="logotext2"></span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="../scripts/index.html" title="hipercam.scripts">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="../psf_reduction/index.html" title="hipercam.psf_reduction">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../../../index.html">HiPERCAM pipeline 1.6.8.dev12+g30055e846 documentation</a>
+	 &#187;
+      </li>
+      <li><a href="../../index.html" >API Reference</a> &#187;</li>
+      <li><a href="../index.html" accesskey="U">hipercam</a> &#187;</li>
+      
+      <li>hipercam.reduction</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-hipercam.reduction">
+<span id="hipercam-reduction"></span><h1>hipercam.reduction<a class="headerlink" href="#module-hipercam.reduction" title="Link to this heading">¶</a></h1>
+<p>This contains code used in common by the script reduce.py</p>
+<section id="attributes">
+<h2>Attributes<a class="headerlink" href="#attributes" title="Link to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.reduction.NaN" title="hipercam.reduction.NaN"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NaN</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.reduction.Rfile" title="hipercam.reduction.Rfile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Rfile</span></code></a></p></td>
+<td><p>Class to read and interpret reduce setup files. Similar to</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.reduction.ProcessCCDs" title="hipercam.reduction.ProcessCCDs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ProcessCCDs</span></code></a></p></td>
+<td><p>Function object replacing old &quot;process_ccds&quot; function. It</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.reduction.Panel" title="hipercam.reduction.Panel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Panel</span></code></a></p></td>
+<td><p>Keeps track of the configuration of particular panels of plots so that</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.reduction.BaseBuffer" title="hipercam.reduction.BaseBuffer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseBuffer</span></code></a></p></td>
+<td><p>Base class for buffer classes to define a few things in common.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.reduction.LightCurve" title="hipercam.reduction.LightCurve"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LightCurve</span></code></a></p></td>
+<td><p>Container for light curves so they can be re-plotted as they come in.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.reduction.Xposition" title="hipercam.reduction.Xposition"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Xposition</span></code></a></p></td>
+<td><p>Container for X measurements so they can be re-plotted as they come in.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.reduction.Yposition" title="hipercam.reduction.Yposition"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Yposition</span></code></a></p></td>
+<td><p>Container for Y measurements so they can be re-plotted as they come in.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.reduction.Transmission" title="hipercam.reduction.Transmission"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Transmission</span></code></a></p></td>
+<td><p>Container for light curves so they can be re-plotted as they come in.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.reduction.Seeing" title="hipercam.reduction.Seeing"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Seeing</span></code></a></p></td>
+<td><p>Container for light curves so they can be re-plotted as they come in.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.reduction.LogWriter" title="hipercam.reduction.LogWriter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LogWriter</span></code></a></p></td>
+<td><p>Context manager to handle opening logfiles, writing headers to logfiles</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.reduction.setup_plots" title="hipercam.reduction.setup_plots"><code class="xref py py-obj docutils literal notranslate"><span class="pre">setup_plots</span></code></a>(rfile, ccds, nx, plot_lims[, implot, lplot])</p></td>
+<td><p>Perform initial setup of image and lightcurve plots for reduction outputs</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.reduction.setup_plot_buffers" title="hipercam.reduction.setup_plot_buffers"><code class="xref py py-obj docutils literal notranslate"><span class="pre">setup_plot_buffers</span></code></a>(rfile)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.reduction.static_vars" title="hipercam.reduction.static_vars"><code class="xref py py-obj docutils literal notranslate"><span class="pre">static_vars</span></code></a>(**kwargs)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.reduction.update_plots" title="hipercam.reduction.update_plots"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_plots</span></code></a>(results, rfile, implot, lplot, imdev, ...)</p></td>
+<td><p>Plot updater routine.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.reduction.initial_checks" title="hipercam.reduction.initial_checks"><code class="xref py py-obj docutils literal notranslate"><span class="pre">initial_checks</span></code></a>(mccd, rfile)</p></td>
+<td><p>Perform sanity checks of aperture settings, and process calibrations</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.reduction.moveApers" title="hipercam.reduction.moveApers"><code class="xref py py-obj docutils literal notranslate"><span class="pre">moveApers</span></code></a>(cnam, ccd, bccd, read, gain, ccdwin, rfile, ...)</p></td>
+<td><p>Encapsulates aperture re-positioning. 'store' is a dictionary of results</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.reduction.ccdproc" title="hipercam.reduction.ccdproc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ccdproc</span></code></a>(extraction_fn, cnam, ccds, bccds, rccds, ...)</p></td>
+<td><p>Processing steps for a sequential set of images from the same</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.reduction.extractFlux" title="hipercam.reduction.extractFlux"><code class="xref py py-obj docutils literal notranslate"><span class="pre">extractFlux</span></code></a>(cnam, ccd, bccd, rccd, read, gain, ccdwin, ...)</p></td>
+<td><p>This extracts the flux of all apertures of a given CCD.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.reduction.plotLight" title="hipercam.reduction.plotLight"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plotLight</span></code></a>(panel, tzero, results, rfile, tkeep, lbuffer)</p></td>
+<td><p>Plots one set of results in the light curve panel. Handles storage of</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.reduction.plotPosition" title="hipercam.reduction.plotPosition"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plotPosition</span></code></a>(xpanel, ypanel, tzero, results, rfile, ...)</p></td>
+<td><p>Plots one set of results in the seeing panel. Handles storage of</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.reduction.plotTrans" title="hipercam.reduction.plotTrans"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plotTrans</span></code></a>(panel, tzero, results, rfile, tkeep, tbuffer)</p></td>
+<td><p>Plots one set of results in the transmission panel. Handles storage of</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.reduction.plotSeeing" title="hipercam.reduction.plotSeeing"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plotSeeing</span></code></a>(panel, tzero, results, rfile, tkeep, sbuffer)</p></td>
+<td><p>Plots one set of results in the seeing panel. Handles storage of</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.reduction.ctrans" title="hipercam.reduction.ctrans"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ctrans</span></code></a>(cname)</p></td>
+<td><p>Translates a colour name (cname) into a PGPLOT index</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.reduction.toBool" title="hipercam.reduction.toBool"><code class="xref py py-obj docutils literal notranslate"><span class="pre">toBool</span></code></a>(rfile, section, param)</p></td>
+<td><p>Converts yes / no / true / false string responses into boolean</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">¶</a></h2>
+<dl class="py data">
+<dt class="sig sig-object py" id="hipercam.reduction.NaN">
+<span class="sig-prename descclassname"><span class="pre">hipercam.reduction.</span></span><span class="sig-name descname"><span class="pre">NaN</span></span><a class="headerlink" href="#hipercam.reduction.NaN" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.reduction.Rfile">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.reduction.</span></span><span class="sig-name descname"><span class="pre">Rfile</span></span><a class="headerlink" href="#hipercam.reduction.Rfile" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">collections.OrderedDict</span></code></p>
+<p>Class to read and interpret reduce setup files. Similar to
+configparser but a bit freer. Basically reads lots of lines like
+‘ncpu = 1’ with sections defined by lines like ‘[general]’.</p>
+<p>The script genred writes out such files.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.reduction.Rfile.read">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">read</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">readcal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.reduction.Rfile.read" title="Link to this definition">¶</a></dt>
+<dd><p>Builds an Rfile from a reduce file. A few checks for viability are
+applied.</p>
+<dl class="simple">
+<dt>readcal – can be used to turn off default reading of</dt><dd><p>calibration data (e.g. see genred)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.reduction.Rfile.crop">
+<span class="sig-name descname"><span class="pre">crop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mccd</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.reduction.Rfile.crop" title="Link to this definition">¶</a></dt>
+<dd><p>This uses a template file ‘mccd’ to try to get the calibration
+files into the same format.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.reduction.setup_plots">
+<span class="sig-prename descclassname"><span class="pre">hipercam.reduction.</span></span><span class="sig-name descname"><span class="pre">setup_plots</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rfile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ccds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot_lims</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">implot</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lplot</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.reduction.setup_plots" title="Link to this definition">¶</a></dt>
+<dd><p>Perform initial setup of image and lightcurve plots for reduction outputs</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.reduction.setup_plot_buffers">
+<span class="sig-prename descclassname"><span class="pre">hipercam.reduction.</span></span><span class="sig-name descname"><span class="pre">setup_plot_buffers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rfile</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.reduction.setup_plot_buffers" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.reduction.static_vars">
+<span class="sig-prename descclassname"><span class="pre">hipercam.reduction.</span></span><span class="sig-name descname"><span class="pre">static_vars</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.reduction.static_vars" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.reduction.update_plots">
+<span class="sig-prename descclassname"><span class="pre">hipercam.reduction.</span></span><span class="sig-name descname"><span class="pre">update_plots</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rfile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">implot</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lplot</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imdev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lcdev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pccd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ccds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">msub</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plo</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ilo</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ihi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xlo</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xhi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ylo</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">yhi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lpanel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xpanel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ypanel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tpanel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spanel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tkeep</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lbuffer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xbuffer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ybuffer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tbuffer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sbuffer</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.reduction.update_plots" title="Link to this definition">¶</a></dt>
+<dd><p>Plot updater routine.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">results</span> <span class="p">:</span> <span class="nb">list</span>
+   <span class="n">contains</span> <span class="n">tuples</span> <span class="k">with</span> <span class="n">the</span> <span class="n">results</span> <span class="k">for</span> <span class="n">groups</span> <span class="n">of</span> <span class="n">frames</span> <span class="k">for</span>
+   <span class="n">each</span> <span class="n">CCD</span><span class="o">.</span> <span class="n">See</span> <span class="n">LogWriter</span><span class="o">.</span><span class="n">write</span> <span class="k">for</span> <span class="n">more</span> <span class="n">details</span> <span class="n">on</span> <span class="n">its</span>
+   <span class="n">structure</span><span class="o">.</span>
+
+<span class="n">rfile</span> <span class="p">:</span> <span class="n">Rfile</span>
+   <span class="n">reduce</span> <span class="n">file</span> <span class="n">parameters</span>
+
+<span class="n">implot</span> <span class="p">:</span> <span class="nb">bool</span>
+   <span class="n">whether</span> <span class="n">to</span> <span class="n">plot</span> <span class="n">images</span>
+
+<span class="n">lplot</span> <span class="p">:</span> <span class="nb">bool</span>
+   <span class="n">whether</span> <span class="n">to</span> <span class="n">plot</span> <span class="n">light</span> <span class="n">curves</span>
+
+<span class="n">imdev</span> <span class="p">:</span> <span class="n">hipercam</span><span class="o">.</span><span class="n">pgp</span><span class="o">.</span><span class="n">Device</span>
+   <span class="n">represents</span> <span class="n">the</span> <span class="n">image</span> <span class="n">plot</span> <span class="n">device</span> <span class="p">(</span><span class="k">if</span> <span class="nb">any</span><span class="p">)</span>
+
+<span class="n">lcdev</span> <span class="p">:</span> <span class="n">hipercam</span><span class="o">.</span><span class="n">pgp</span><span class="o">.</span><span class="n">Device</span>
+   <span class="n">represents</span> <span class="n">the</span> <span class="n">light</span> <span class="n">curve</span> <span class="n">plot</span> <span class="n">device</span> <span class="p">(</span><span class="k">if</span> <span class="nb">any</span><span class="p">)</span>
+
+<span class="n">pccd</span> <span class="p">:</span> <span class="n">MCCD</span> <span class="p">[</span><span class="n">only</span> <span class="n">matters</span> <span class="k">if</span> <span class="n">imdev</span><span class="p">]</span>
+   <span class="n">current</span> <span class="n">debiassed</span><span class="p">,</span> <span class="n">flat</span><span class="o">-</span><span class="n">fielded</span> <span class="n">frame</span><span class="o">.</span> <span class="n">In</span> <span class="n">the</span> <span class="n">case</span> <span class="n">of</span> <span class="n">frame</span>
+   <span class="n">groups</span><span class="p">,</span> <span class="n">this</span> <span class="n">will</span> <span class="n">be</span> <span class="n">the</span> <span class="n">last</span> <span class="n">one</span> <span class="n">added</span><span class="o">.</span>
+
+<span class="n">ccds</span> <span class="p">:</span> <span class="nb">list</span> <span class="p">[</span><span class="n">only</span> <span class="n">matters</span> <span class="k">if</span> <span class="n">imdev</span><span class="p">]</span>
+   <span class="nb">list</span> <span class="n">of</span> <span class="n">CCD</span> <span class="n">labels</span> <span class="n">to</span> <span class="n">be</span> <span class="n">plotted</span>
+
+<span class="n">msub</span> <span class="p">:</span> <span class="nb">bool</span> <span class="p">[</span><span class="n">only</span> <span class="n">matters</span> <span class="k">if</span> <span class="n">imdev</span><span class="p">]</span>
+   <span class="kc">True</span> <span class="n">to</span> <span class="n">force</span> <span class="n">subtraction</span> <span class="n">of</span> <span class="n">median</span> <span class="n">value</span>
+
+<span class="n">nx</span> <span class="p">:</span> <span class="nb">int</span> <span class="p">[</span><span class="n">only</span> <span class="n">matters</span> <span class="k">if</span> <span class="n">imdev</span><span class="p">]</span>
+   <span class="n">Number</span> <span class="n">of</span> <span class="n">panels</span> <span class="ow">in</span> <span class="n">X</span> <span class="k">for</span> <span class="n">image</span> <span class="n">display</span>
+
+<span class="n">iset</span> <span class="p">:</span> <span class="n">character</span> <span class="p">[</span><span class="n">only</span> <span class="n">matters</span> <span class="k">if</span> <span class="n">imdev</span><span class="p">]</span>
+   <span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="ow">or</span> <span class="s1">&#39;p&#39;</span> <span class="n">to</span> <span class="n">define</span> <span class="n">image</span> <span class="n">display</span> <span class="n">levels</span>
+
+<span class="n">plo</span> <span class="p">:</span> <span class="nb">float</span> <span class="p">[</span><span class="n">only</span> <span class="n">matters</span> <span class="k">if</span> <span class="n">imdev</span> <span class="ow">and</span> <span class="n">iset</span> <span class="o">==</span><span class="s1">&#39;p&#39;</span><span class="p">]</span>
+   <span class="n">Lower</span> <span class="n">percentile</span> <span class="n">level</span>
+
+<span class="n">phi</span> <span class="p">:</span> <span class="nb">float</span> <span class="p">[</span><span class="n">only</span> <span class="n">matters</span> <span class="k">if</span> <span class="n">imdev</span> <span class="ow">and</span> <span class="n">iset</span> <span class="o">==</span><span class="s1">&#39;p&#39;</span><span class="p">]</span>
+   <span class="n">Upper</span> <span class="n">percentile</span> <span class="n">level</span>
+
+<span class="n">ilo</span> <span class="p">:</span> <span class="nb">float</span> <span class="p">[</span><span class="n">only</span> <span class="n">matters</span> <span class="k">if</span> <span class="n">imdev</span> <span class="ow">and</span> <span class="n">iset</span> <span class="o">==</span><span class="s1">&#39;d&#39;</span><span class="p">]</span>
+   <span class="n">Lower</span> <span class="n">intensity</span> <span class="n">level</span>
+
+<span class="n">ihi</span> <span class="p">:</span> <span class="nb">float</span> <span class="p">[</span><span class="n">only</span> <span class="n">matters</span> <span class="k">if</span> <span class="n">imdev</span> <span class="ow">and</span> <span class="n">iset</span> <span class="o">==</span><span class="s1">&#39;d&#39;</span><span class="p">]</span>
+   <span class="n">Upper</span> <span class="n">intensity</span> <span class="n">level</span>
+
+<span class="n">xlo</span> <span class="p">:</span> <span class="nb">int</span>
+   <span class="n">left</span> <span class="n">X</span><span class="o">-</span><span class="n">limit</span> <span class="k">for</span> <span class="n">determination</span> <span class="n">of</span> <span class="n">percentiles</span>
+
+<span class="n">xhi</span> <span class="p">:</span> <span class="nb">int</span>
+   <span class="n">right</span> <span class="n">X</span><span class="o">-</span><span class="n">limit</span> <span class="k">for</span> <span class="n">determination</span> <span class="n">of</span> <span class="n">percentiles</span>
+
+<span class="n">ylo</span> <span class="p">:</span> <span class="nb">int</span>
+   <span class="n">lower</span> <span class="n">Y</span><span class="o">-</span><span class="n">limit</span> <span class="k">for</span> <span class="n">determination</span> <span class="n">of</span> <span class="n">percentiles</span>
+
+<span class="n">yhi</span> <span class="p">:</span> <span class="nb">int</span>
+   <span class="n">upper</span> <span class="n">Y</span><span class="o">-</span><span class="n">limit</span> <span class="k">for</span> <span class="n">determination</span> <span class="n">of</span> <span class="n">percentiles</span>
+
+<span class="n">lpanel</span><span class="p">,</span> <span class="n">xpanel</span><span class="p">,</span> <span class="n">ypanel</span><span class="p">,</span> <span class="n">tpanel</span><span class="p">,</span> <span class="n">spanel</span><span class="p">,</span> <span class="n">tkeep</span><span class="p">,</span> <span class="n">lbuffer</span><span class="p">,</span>
+ <span class="n">xbuffer</span><span class="p">,</span> <span class="n">ybuffer</span><span class="p">,</span> <span class="n">tbuffer</span><span class="p">,</span> <span class="n">sbuffer</span> <span class="o">--</span> <span class="n">need</span> <span class="n">doing</span><span class="o">.</span>
+
+<span class="n">lbuffer</span> <span class="p">:</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">LightCurve</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.reduction.initial_checks">
+<span class="sig-prename descclassname"><span class="pre">hipercam.reduction.</span></span><span class="sig-name descname"><span class="pre">initial_checks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mccd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rfile</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.reduction.initial_checks" title="Link to this definition">¶</a></dt>
+<dd><p>Perform sanity checks of aperture settings, and process calibrations</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.reduction.ProcessCCDs">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.reduction.</span></span><span class="sig-name descname"><span class="pre">ProcessCCDs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rfile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gain</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ccdproc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pool</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.reduction.ProcessCCDs" title="Link to this definition">¶</a></dt>
+<dd><p>Function object replacing old “process_ccds” function. It
+handles some of the persistent objects &amp; arguemts required by
+that routine more gracefully.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.reduction.ProcessCCDs.rfile">
+<span class="sig-name descname"><span class="pre">rfile</span></span><a class="headerlink" href="#hipercam.reduction.ProcessCCDs.rfile" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.reduction.ProcessCCDs.read">
+<span class="sig-name descname"><span class="pre">read</span></span><a class="headerlink" href="#hipercam.reduction.ProcessCCDs.read" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.reduction.ProcessCCDs.gain">
+<span class="sig-name descname"><span class="pre">gain</span></span><a class="headerlink" href="#hipercam.reduction.ProcessCCDs.gain" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.reduction.ProcessCCDs.ccdproc">
+<span class="sig-name descname"><span class="pre">ccdproc</span></span><a class="headerlink" href="#hipercam.reduction.ProcessCCDs.ccdproc" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.reduction.ProcessCCDs.pool">
+<span class="sig-name descname"><span class="pre">pool</span></span><a class="headerlink" href="#hipercam.reduction.ProcessCCDs.pool" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.reduction.ProcessCCDs.mwins">
+<span class="sig-name descname"><span class="pre">mwins</span></span><a class="headerlink" href="#hipercam.reduction.ProcessCCDs.mwins" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.reduction.ProcessCCDs.store">
+<span class="sig-name descname"><span class="pre">store</span></span><a class="headerlink" href="#hipercam.reduction.ProcessCCDs.store" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.reduction.ProcessCCDs.__call__">
+<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pccds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bccds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mccds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nframes</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.reduction.ProcessCCDs.__call__" title="Link to this definition">¶</a></dt>
+<dd><p>Carries out the multi-processing reduction of a set of frames</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pccds</span> <span class="p">:</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">MCCDs</span>
+   <span class="n">processed</span> <span class="n">frames</span> <span class="p">(</span><span class="n">debiassed</span><span class="p">,</span> <span class="n">flat</span><span class="o">-</span><span class="n">fielded</span><span class="p">)</span><span class="o">.</span> <span class="n">The</span> <span class="n">idea</span> <span class="ow">is</span>
+   <span class="n">to</span> <span class="n">read</span> <span class="ow">in</span> <span class="n">a</span> <span class="n">few</span> <span class="n">frames</span> <span class="n">before</span> <span class="n">sending</span> <span class="n">them</span> <span class="n">off</span> <span class="n">to</span>
+   <span class="n">parallel</span> <span class="n">processing</span> <span class="ow">in</span> <span class="n">order</span> <span class="n">to</span> <span class="n">reduce</span> <span class="n">the</span> <span class="n">overheads</span>
+   <span class="n">that</span> <span class="n">are</span> <span class="n">incurred</span> <span class="n">by</span> <span class="n">processing</span> <span class="n">each</span> <span class="n">frame</span> <span class="k">as</span> <span class="n">it</span> <span class="n">comes</span>
+   <span class="ow">in</span> <span class="p">(</span><span class="n">old</span> <span class="n">method</span><span class="p">)</span><span class="o">.</span> <span class="n">All</span> <span class="n">frames</span> <span class="n">should</span> <span class="n">have</span> <span class="n">an</span> <span class="n">identical</span> <span class="nb">set</span>
+   <span class="n">of</span> <span class="n">CCDs</span> <span class="ow">in</span> <span class="n">them</span><span class="o">.</span>
+
+<span class="n">bccds</span> <span class="p">:</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">MCCDs</span>
+   <span class="n">purely</span> <span class="n">debiassed</span> <span class="n">versions</span><span class="p">,</span> <span class="n">used</span> <span class="k">for</span> <span class="n">variance</span> <span class="n">computation</span>
+
+<span class="n">mccds</span> <span class="p">:</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">MCCDs</span>
+   <span class="n">their</span> <span class="n">unprocessed</span> <span class="n">counterparts</span><span class="p">,</span> <span class="n">used</span> <span class="n">to</span> <span class="n">determine</span> <span class="n">saturation</span><span class="o">.</span>
+</pre></div>
+</div>
+<p>Returns with list of ccdproc results, one set for each CCD.
+See ‘ccdproc’ in reduce.py for definition of the return which
+should be the same for any version.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.reduction.moveApers">
+<span class="sig-prename descclassname"><span class="pre">hipercam.reduction.</span></span><span class="sig-name descname"><span class="pre">moveApers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cnam</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ccd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bccd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gain</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ccdwin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rfile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">store</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.reduction.moveApers" title="Link to this definition">¶</a></dt>
+<dd><p>Encapsulates aperture re-positioning. ‘store’ is a dictionary of results
+that will be used to start the fits from one frame to the next. It must
+start as {‘mfwhm’: -1., ‘mbeta’: -1.}. The values of these will be revised
+and extra stuff added in addition.</p>
+<p>It operates by first shifting any reference apertures, then non-linked
+apertures, and finally linked apertures. The overall sequence is quite
+complex and is described elsewhere.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>cnam : string
+    CCD label
+
+ccd : CCD
+    the processed CCD.
+
+bccd : CCD
+    debiassed only CCD.
+
+read : CCD
+    readnoise
+
+gain : CCD
+    gain, e-/ADU.
+
+ccdwin : dict
+    the Window label corresponding to each Aperture
+
+rfile : Rfile
+    reduce file configuration parameters
+
+store : dict
+    used to store various parameters needed further down the
+    line.  Initialise to {&#39;mfwhm&#39;: -1., &#39;mbeta&#39;: -1.}. For each
+    aperture in ccdaper, parameters `xe`, `ye`, `fwhm`,
+    `fwhme`, `beta`, `betae`, `dx`, `dy` will be added. They
+    represent: the uncertainty in the fitted X, Y position (ex,
+    ey), the fitted FWHM and its uncertainty (fwhm, fwhme), the
+    same for beta and its uncertainty (beta, betae), and
+    finally the change in x and y position.
+</pre></div>
+</div>
+<p>Returns: True or False to indicate whether to move onto extraction or not.
+If False, extraction will be skipped.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.reduction.ccdproc">
+<span class="sig-prename descclassname"><span class="pre">hipercam.reduction.</span></span><span class="sig-name descname"><span class="pre">ccdproc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">extraction_fn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cnam</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ccds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bccds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rccds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nframes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gain</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ccdwin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rfile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">store</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.reduction.ccdproc" title="Link to this definition">¶</a></dt>
+<dd><p>Processing steps for a sequential set of images from the same
+CCD. This is designed for parallelising the processing across CCDs
+of multi-arm cameras like ULTRACAM and HiPERCAM using
+multiprocessing. To be called <em>after</em> checking that any processing
+is needed.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">extraction_fn</span> <span class="p">:</span> <span class="n">function</span>
+   <span class="nb">callable</span> <span class="n">to</span> <span class="n">process</span> <span class="n">a</span> <span class="n">single</span> <span class="n">CCD</span><span class="o">.</span> <span class="n">For</span> <span class="n">the</span> <span class="n">signature</span> <span class="n">of</span> <span class="n">this</span> <span class="n">function</span>
+   <span class="n">see</span> <span class="n">the</span> <span class="n">docstring</span> <span class="n">to</span> <span class="n">extractFlux</span> <span class="n">below</span><span class="o">.</span>
+
+<span class="n">cnam</span> <span class="p">:</span> <span class="n">string</span>
+   <span class="n">name</span> <span class="n">of</span> <span class="n">CCD</span><span class="p">,</span> <span class="k">for</span> <span class="n">information</span> <span class="n">purposes</span> <span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">g</span><span class="o">.</span> <span class="s1">&#39;red&#39;</span><span class="p">,</span> <span class="s1">&#39;3&#39;</span><span class="p">,</span> <span class="n">etc</span><span class="p">)</span>
+
+<span class="n">ccds</span> <span class="p">:</span> <span class="n">List</span> <span class="n">of</span> <span class="n">CCDs</span>
+   <span class="n">the</span> <span class="n">CCDs</span> <span class="k">for</span> <span class="n">processing</span> <span class="n">which</span> <span class="n">should</span> <span class="n">have</span> <span class="n">been</span> <span class="n">debiassed</span><span class="p">,</span> <span class="n">flat</span>
+   <span class="n">fielded</span> <span class="ow">and</span> <span class="n">multiplied</span> <span class="n">by</span> <span class="n">the</span> <span class="n">gain</span> <span class="n">to</span> <span class="n">get</span> <span class="n">into</span> <span class="n">electrons</span><span class="o">.</span>
+
+<span class="n">bccds</span> <span class="p">:</span> <span class="n">List</span> <span class="n">of</span> <span class="n">CCDs</span>
+   <span class="n">the</span> <span class="n">CCDs</span> <span class="k">for</span> <span class="n">processing</span> <span class="n">which</span> <span class="n">should</span> <span class="n">just</span> <span class="n">have</span> <span class="n">been</span> <span class="n">debiassed</span>
+
+<span class="n">rccds</span> <span class="p">:</span> <span class="n">List</span> <span class="n">of</span> <span class="n">CCDs</span>
+   <span class="n">unprocessed</span> <span class="n">CCDs</span><span class="p">,</span> <span class="n">one</span><span class="o">-</span><span class="n">to</span><span class="o">-</span><span class="n">one</span> <span class="n">correspondence</span> <span class="k">with</span> <span class="s1">&#39;ccds&#39;</span><span class="p">,</span> <span class="n">used</span>
+   <span class="n">to</span> <span class="n">measure</span> <span class="n">saturation</span>
+
+<span class="n">nframes</span> <span class="p">:</span> <span class="n">List</span> <span class="n">of</span> <span class="n">ints</span>
+   <span class="n">frame</span> <span class="n">numbers</span> <span class="k">for</span> <span class="n">each</span> <span class="n">CCD</span>
+
+<span class="n">read</span> <span class="p">:</span> <span class="n">CCD</span>
+   <span class="n">readnoise</span> <span class="n">frame</span> <span class="n">divided</span> <span class="n">by</span> <span class="n">the</span> <span class="n">flatfield</span>
+
+<span class="n">gain</span> <span class="p">:</span> <span class="n">CCD</span>
+   <span class="n">gain</span> <span class="n">frame</span> <span class="n">dmultiplied</span> <span class="n">by</span> <span class="n">the</span> <span class="n">flatfield</span>
+
+<span class="n">ccdwin</span> <span class="p">:</span> <span class="nb">dict</span>
+   <span class="n">label</span> <span class="n">of</span> <span class="n">the</span> <span class="n">Window</span> <span class="n">enclosing</span> <span class="n">each</span> <span class="n">aperture</span>
+
+<span class="n">rfile</span> <span class="p">:</span> <span class="n">Rfile</span> <span class="nb">object</span>
+   <span class="n">reduction</span> <span class="n">control</span> <span class="n">parameters</span><span class="o">.</span> <span class="n">rfile</span><span class="o">.</span><span class="n">aper</span> <span class="n">used</span> <span class="n">to</span> <span class="n">store</span> <span class="n">the</span> <span class="n">aperture</span>
+   <span class="n">parameters</span><span class="o">.</span>
+
+<span class="n">store</span> <span class="p">:</span> <span class="nb">dict</span>
+   <span class="n">dictionary</span> <span class="n">of</span> <span class="n">results</span>
+</pre></div>
+</div>
+<p>Returns: (cnam, list[res]) where ‘res’ represents a tuple
+of results for each input CCD and contains the following:</p>
+<p>(nframe, store, ccdaper, results, mjdint, mjdfrac, mjdok, expose)</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.reduction.extractFlux">
+<span class="sig-prename descclassname"><span class="pre">hipercam.reduction.</span></span><span class="sig-name descname"><span class="pre">extractFlux</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cnam</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ccd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bccd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rccd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gain</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ccdwin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rfile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">store</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.reduction.extractFlux" title="Link to this definition">¶</a></dt>
+<dd><p>This extracts the flux of all apertures of a given CCD.</p>
+<p>The steps are (1) aperture resizing, (2) sky background estimation, (3)
+flux extraction. The apertures are assumed to be correctly positioned.</p>
+<p>It returns the results as a dictionary keyed on the aperture label. Each
+entry returns a list:</p>
+<p>[x, ex, y, ey, fwhm, efwhm, beta, ebeta, counts, countse, sky, esky,
+nsky, nrej, flag]</p>
+<p>flag = bitmask. See hipercam.core to see all the options which are
+referred to by name in the code e.g. ALL_OK. The various flags can
+signal that there no sky pixels (NO_SKY), the sky aperture was off
+the edge of the window (SKY_AT_EDGE), etc.</p>
+<p>This code:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&gt;&gt;</span> <span class="n">bset</span> <span class="o">=</span> <span class="n">flag</span> <span class="o">&amp;</span> <span class="n">TARGET_SATURATED</span>
+</pre></div>
+</div>
+<p>determines whether the data saturation flag is set for example.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cnam</span> <span class="p">:</span> <span class="n">string</span>
+   <span class="n">CCD</span> <span class="n">identifier</span> <span class="n">label</span>
+
+<span class="n">ccd</span> <span class="p">:</span> <span class="n">CCD</span>
+    <span class="n">the</span> <span class="n">fully</span> <span class="n">processed</span> <span class="n">CCD</span> <span class="p">(</span><span class="n">debiassed</span><span class="p">,</span> <span class="n">dark</span><span class="o">-</span><span class="n">corrected</span><span class="p">,</span> <span class="n">flat</span><span class="o">-</span><span class="n">fielded</span><span class="p">,</span> <span class="n">fringe</span><span class="o">-</span><span class="n">corrected</span><span class="p">)</span>
+
+<span class="n">bccd</span> <span class="p">:</span> <span class="n">CCD</span>
+    <span class="n">debiassed</span><span class="o">-</span><span class="n">only</span> <span class="n">CCD</span><span class="o">.</span> <span class="n">Used</span> <span class="ow">in</span> <span class="n">variance</span> <span class="n">computation</span><span class="o">.</span>
+
+<span class="n">rccd</span> <span class="p">:</span> <span class="n">CCD</span>
+   <span class="n">corresponding</span> <span class="n">raw</span> <span class="n">CCD</span><span class="p">,</span> <span class="n">used</span> <span class="n">to</span> <span class="n">work</span> <span class="n">out</span> <span class="n">whether</span> <span class="n">data</span> <span class="n">are</span>
+   <span class="n">saturated</span> <span class="ow">in</span> <span class="n">target</span> <span class="n">aperture</span><span class="o">.</span>
+
+<span class="n">read</span> <span class="p">:</span> <span class="n">CCD</span>
+    <span class="n">readnoise</span> <span class="n">divided</span> <span class="n">by</span> <span class="n">the</span> <span class="n">flat</span><span class="o">-</span><span class="n">field</span>
+
+<span class="n">gain</span> <span class="p">:</span> <span class="n">CCD</span>
+    <span class="n">gain</span> <span class="n">multiplied</span> <span class="n">by</span> <span class="n">the</span> <span class="n">flat</span> <span class="n">field</span>
+
+<span class="n">ccdwin</span> <span class="p">:</span> <span class="n">dictionary</span> <span class="n">of</span> <span class="n">strings</span>
+    <span class="n">the</span> <span class="n">Window</span> <span class="n">label</span> <span class="n">corresponding</span> <span class="n">to</span> <span class="n">each</span> <span class="n">Aperture</span>
+
+<span class="n">rfile</span> <span class="p">:</span> <span class="n">Rfile</span>
+    <span class="n">reduce</span> <span class="n">file</span> <span class="n">configuration</span> <span class="n">parameters</span>
+
+<span class="n">store</span> <span class="p">:</span> <span class="nb">dict</span> <span class="n">of</span> <span class="n">dicts</span>
+    <span class="n">see</span> <span class="n">moveApers</span> <span class="k">for</span> <span class="n">what</span> <span class="n">this</span> <span class="n">contains</span><span class="o">.</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.reduction.Panel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.reduction.</span></span><span class="sig-name descname"><span class="pre">Panel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xv1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xv2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">yv1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">yv2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xlabel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ylabel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tlabel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xopt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">yopt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.reduction.Panel" title="Link to this definition">¶</a></dt>
+<dd><p>Keeps track of the configuration of particular panels of plots so that
+they can be easily re-plotted and selected for additional plotting if
+need be.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.reduction.Panel.device">
+<span class="sig-name descname"><span class="pre">device</span></span><a class="headerlink" href="#hipercam.reduction.Panel.device" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.reduction.Panel.xv1">
+<span class="sig-name descname"><span class="pre">xv1</span></span><a class="headerlink" href="#hipercam.reduction.Panel.xv1" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.reduction.Panel.xv2">
+<span class="sig-name descname"><span class="pre">xv2</span></span><a class="headerlink" href="#hipercam.reduction.Panel.xv2" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.reduction.Panel.yv1">
+<span class="sig-name descname"><span class="pre">yv1</span></span><a class="headerlink" href="#hipercam.reduction.Panel.yv1" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.reduction.Panel.yv2">
+<span class="sig-name descname"><span class="pre">yv2</span></span><a class="headerlink" href="#hipercam.reduction.Panel.yv2" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.reduction.Panel.xlabel">
+<span class="sig-name descname"><span class="pre">xlabel</span></span><a class="headerlink" href="#hipercam.reduction.Panel.xlabel" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.reduction.Panel.ylabel">
+<span class="sig-name descname"><span class="pre">ylabel</span></span><a class="headerlink" href="#hipercam.reduction.Panel.ylabel" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.reduction.Panel.tlabel">
+<span class="sig-name descname"><span class="pre">tlabel</span></span><a class="headerlink" href="#hipercam.reduction.Panel.tlabel" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.reduction.Panel.xopt">
+<span class="sig-name descname"><span class="pre">xopt</span></span><a class="headerlink" href="#hipercam.reduction.Panel.xopt" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.reduction.Panel.yopt">
+<span class="sig-name descname"><span class="pre">yopt</span></span><a class="headerlink" href="#hipercam.reduction.Panel.yopt" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.reduction.Panel.x1">
+<span class="sig-name descname"><span class="pre">x1</span></span><a class="headerlink" href="#hipercam.reduction.Panel.x1" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.reduction.Panel.x2">
+<span class="sig-name descname"><span class="pre">x2</span></span><a class="headerlink" href="#hipercam.reduction.Panel.x2" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.reduction.Panel.y1">
+<span class="sig-name descname"><span class="pre">y1</span></span><a class="headerlink" href="#hipercam.reduction.Panel.y1" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.reduction.Panel.y2">
+<span class="sig-name descname"><span class="pre">y2</span></span><a class="headerlink" href="#hipercam.reduction.Panel.y2" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.reduction.Panel.plot">
+<span class="sig-name descname"><span class="pre">plot</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.reduction.Panel.plot" title="Link to this definition">¶</a></dt>
+<dd><p>Plot the Panel. After running this you can plot to the Panel. If you plot
+to another Panel, you can return to this one using ‘select’.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.reduction.Panel.select">
+<span class="sig-name descname"><span class="pre">select</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.reduction.Panel.select" title="Link to this definition">¶</a></dt>
+<dd><p>Selects this panel as the one to plot to. You can only use this if you
+have plotted the panel.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.reduction.plotLight">
+<span class="sig-prename descclassname"><span class="pre">hipercam.reduction.</span></span><span class="sig-name descname"><span class="pre">plotLight</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">panel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tzero</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">results</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rfile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tkeep</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lbuffer</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.reduction.plotLight" title="Link to this definition">¶</a></dt>
+<dd><p>Plots one set of results in the light curve panel. Handles storage of
+points for future re-plots, computing new plot limits where needed.</p>
+<p>It returns a bool which if True means that there is a need to re-plot, and
+a maximum time of a plotted point for use in adjusting the X-axis.  The
+latter is returned as None if no plot is plotted.  This is deferred since
+there may be other panels to be adjusted as well since if a plot is
+cleared, everything has to be re-built.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.reduction.plotPosition">
+<span class="sig-prename descclassname"><span class="pre">hipercam.reduction.</span></span><span class="sig-name descname"><span class="pre">plotPosition</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xpanel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ypanel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tzero</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">results</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rfile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tkeep</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xbuffer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ybuffer</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.reduction.plotPosition" title="Link to this definition">¶</a></dt>
+<dd><p>Plots one set of results in the seeing panel. Handles storage of
+points for future re-plots, computing new plot limits where needed.</p>
+<p>It returns a bool which if True means that there is a need to re-plot.
+This is deferred since there may be other panels to be adjusted as well
+since if a plot is cleared, everything has to be re-built.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.reduction.plotTrans">
+<span class="sig-prename descclassname"><span class="pre">hipercam.reduction.</span></span><span class="sig-name descname"><span class="pre">plotTrans</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">panel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tzero</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">results</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rfile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tkeep</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tbuffer</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.reduction.plotTrans" title="Link to this definition">¶</a></dt>
+<dd><p>Plots one set of results in the transmission panel. Handles storage of
+points for future re-plots, computing new plot limits where needed.</p>
+<p>It returns a bool which if True means that there is a need to re-plot.
+This is deferred since there may be other panels to be adjusted as well
+since if a plot is cleared, everything has to be re-built.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.reduction.plotSeeing">
+<span class="sig-prename descclassname"><span class="pre">hipercam.reduction.</span></span><span class="sig-name descname"><span class="pre">plotSeeing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">panel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tzero</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">results</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rfile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tkeep</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sbuffer</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.reduction.plotSeeing" title="Link to this definition">¶</a></dt>
+<dd><p>Plots one set of results in the seeing panel. Handles storage of
+points for future re-plots, computing new plot limits where needed.</p>
+<p>It returns a bool which if True means that there is a need to re-plot.
+This is deferred since there may be other panels to be adjusted as well
+since if a plot is cleared, everything has to be re-built.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.reduction.BaseBuffer">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.reduction.</span></span><span class="sig-name descname"><span class="pre">BaseBuffer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">plot_config</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.reduction.BaseBuffer" title="Link to this definition">¶</a></dt>
+<dd><p>Base class for buffer classes to define a few things in common.
+Container for light curves so they can be re-plotted as they come in.
+There should be one of these per plot line in the ‘light’ section.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.reduction.BaseBuffer.cnam">
+<span class="sig-name descname"><span class="pre">cnam</span></span><a class="headerlink" href="#hipercam.reduction.BaseBuffer.cnam" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.reduction.BaseBuffer.targ">
+<span class="sig-name descname"><span class="pre">targ</span></span><a class="headerlink" href="#hipercam.reduction.BaseBuffer.targ" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.reduction.BaseBuffer.dcol">
+<span class="sig-name descname"><span class="pre">dcol</span></span><a class="headerlink" href="#hipercam.reduction.BaseBuffer.dcol" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.reduction.BaseBuffer.ecol">
+<span class="sig-name descname"><span class="pre">ecol</span></span><a class="headerlink" href="#hipercam.reduction.BaseBuffer.ecol" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.reduction.BaseBuffer.t">
+<span class="sig-name descname"><span class="pre">t</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></em><a class="headerlink" href="#hipercam.reduction.BaseBuffer.t" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.reduction.BaseBuffer.f">
+<span class="sig-name descname"><span class="pre">f</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></em><a class="headerlink" href="#hipercam.reduction.BaseBuffer.f" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.reduction.BaseBuffer.fe">
+<span class="sig-name descname"><span class="pre">fe</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></em><a class="headerlink" href="#hipercam.reduction.BaseBuffer.fe" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.reduction.BaseBuffer.symb">
+<span class="sig-name descname"><span class="pre">symb</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></em><a class="headerlink" href="#hipercam.reduction.BaseBuffer.symb" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.reduction.BaseBuffer.trim">
+<span class="sig-name descname"><span class="pre">trim</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tkeep</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.reduction.BaseBuffer.trim" title="Link to this definition">¶</a></dt>
+<dd><p>Trims points more than tkeep minutes before the last point.
+Assumes times rise monotonically. Nothing done if tkeep &lt;= 0,
+or if the first point does not exceed tkeep by at least 1.
+The idea is to avoid doing this too often. Returns the first time</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.reduction.BaseBuffer.tstart">
+<span class="sig-name descname"><span class="pre">tstart</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.reduction.BaseBuffer.tstart" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the start time of the buffer, 0 if one is not defined</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.reduction.LightCurve">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.reduction.</span></span><span class="sig-name descname"><span class="pre">LightCurve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">plot_config</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linear</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.reduction.LightCurve" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#hipercam.reduction.BaseBuffer" title="hipercam.reduction.BaseBuffer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseBuffer</span></code></a></p>
+<p>Container for light curves so they can be re-plotted as they come in.
+There should be one of these per plot line in the ‘light’ section.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.reduction.LightCurve.comp">
+<span class="sig-name descname"><span class="pre">comp</span></span><a class="headerlink" href="#hipercam.reduction.LightCurve.comp" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.reduction.LightCurve.off">
+<span class="sig-name descname"><span class="pre">off</span></span><a class="headerlink" href="#hipercam.reduction.LightCurve.off" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.reduction.LightCurve.fac">
+<span class="sig-name descname"><span class="pre">fac</span></span><a class="headerlink" href="#hipercam.reduction.LightCurve.fac" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.reduction.LightCurve.linear">
+<span class="sig-name descname"><span class="pre">linear</span></span><a class="headerlink" href="#hipercam.reduction.LightCurve.linear" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.reduction.LightCurve.add_point">
+<span class="sig-name descname"><span class="pre">add_point</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tzero</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tmax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fmin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fmax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skipbadt</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.reduction.LightCurve.add_point" title="Link to this definition">¶</a></dt>
+<dd><p>Extracts the data to be plotted on the light curve plot for the
+given the results of a CCD group reduction as returned by a
+ProcessCCDs object. Assuming all is OK (errors &gt; 0 for both
+comparison and target), it stores (t, f, fe) for possible
+re-plotting, plots the point and returns the value of ‘f’
+plotted to help with re-scaling or None if nothing was
+plotted.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">results</span> <span class="p">:</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">results</span> <span class="k">for</span> <span class="n">each</span> <span class="n">CCD</span> <span class="n">group</span>
+   <span class="n">see</span> <span class="n">reduce</span><span class="o">.</span><span class="n">py</span> <span class="k">for</span> <span class="n">usage</span><span class="p">,</span> <span class="n">ProcessCCDs</span> <span class="k">for</span> <span class="n">more</span> <span class="n">insight</span>
+
+<span class="n">tzero</span> <span class="p">:</span> <span class="nb">float</span>
+   <span class="n">time</span> <span class="n">offset</span> <span class="n">zero</span> <span class="n">point</span>
+
+<span class="n">tmax</span> <span class="p">:</span> <span class="nb">float</span>
+   <span class="n">the</span> <span class="n">maximum</span> <span class="n">time</span> <span class="n">plotted</span> <span class="n">so</span> <span class="n">far</span> <span class="p">(</span><span class="n">minutes</span><span class="p">)</span><span class="o">.</span> <span class="kc">None</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">yet</span> <span class="nb">set</span><span class="o">.</span>
+
+<span class="n">fmin</span> <span class="p">:</span> <span class="nb">float</span>
+   <span class="n">minimum</span> <span class="n">flux</span> <span class="n">plotted</span> <span class="n">so</span> <span class="n">far</span><span class="o">.</span> <span class="kc">None</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">yet</span> <span class="nb">set</span><span class="o">.</span>
+
+<span class="n">fmax</span> <span class="p">:</span> <span class="nb">float</span>
+   <span class="n">maximum</span> <span class="n">flux</span> <span class="n">plotted</span> <span class="n">so</span> <span class="n">far</span><span class="o">.</span> <span class="kc">None</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">yet</span> <span class="nb">set</span><span class="o">.</span>
+
+<span class="n">skipbadt</span> <span class="p">:</span> <span class="nb">bool</span>
+   <span class="n">controls</span> <span class="n">whether</span> <span class="n">points</span> <span class="k">with</span> <span class="n">bad</span> <span class="n">times</span> <span class="n">are</span> <span class="n">skipped</span> <span class="ow">or</span> <span class="n">included</span><span class="o">.</span>
+   <span class="n">Unfortunately</span><span class="p">,</span> <span class="n">hipercam</span> <span class="n">flags</span> <span class="n">times</span> <span class="k">as</span> <span class="n">bad</span> <span class="n">even</span> <span class="n">when</span> <span class="n">they</span> <span class="n">are</span> <span class="ow">not</span><span class="o">.</span>
+</pre></div>
+</div>
+<p>Returns (potentially) new values of (tmax, fmin, fmax), according to
+what was plotted.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.reduction.Xposition">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.reduction.</span></span><span class="sig-name descname"><span class="pre">Xposition</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">plot_config</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.reduction.Xposition" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#hipercam.reduction.BaseBuffer" title="hipercam.reduction.BaseBuffer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseBuffer</span></code></a></p>
+<p>Container for X measurements so they can be re-plotted as they come in.
+There should be one of these per plot line in the ‘position’ section.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.reduction.Xposition.xzero">
+<span class="sig-name descname"><span class="pre">xzero</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#hipercam.reduction.Xposition.xzero" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.reduction.Xposition.add_point">
+<span class="sig-name descname"><span class="pre">add_point</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tzero</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tmax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xmin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xmax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skipbadt</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.reduction.Xposition.add_point" title="Link to this definition">¶</a></dt>
+<dd><p>Extracts the data to be plotted on the position plot.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">results</span> <span class="p">:</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">results</span> <span class="k">for</span> <span class="n">each</span> <span class="n">CCD</span> <span class="n">group</span>
+   <span class="n">see</span> <span class="n">reduce</span><span class="o">.</span><span class="n">py</span> <span class="k">for</span> <span class="n">usage</span><span class="p">,</span> <span class="n">ProcessCCDs</span> <span class="k">for</span> <span class="n">more</span> <span class="n">insight</span>
+
+<span class="n">tzero</span> <span class="p">:</span> <span class="nb">float</span>
+   <span class="n">time</span> <span class="n">offset</span> <span class="n">zero</span> <span class="n">point</span>
+
+<span class="n">tmax</span> <span class="p">:</span> <span class="nb">float</span>
+   <span class="n">the</span> <span class="n">maximum</span> <span class="n">time</span> <span class="n">plotted</span> <span class="n">so</span> <span class="n">far</span> <span class="p">(</span><span class="n">minutes</span><span class="p">)</span><span class="o">.</span> <span class="kc">None</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">yet</span> <span class="nb">set</span><span class="o">.</span>
+
+<span class="n">xmin</span> <span class="p">:</span> <span class="nb">float</span>
+   <span class="n">minimum</span> <span class="n">X</span> <span class="n">plotted</span> <span class="n">so</span> <span class="n">far</span><span class="o">.</span> <span class="kc">None</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">yet</span> <span class="nb">set</span><span class="o">.</span>
+
+<span class="n">xmax</span> <span class="p">:</span> <span class="nb">float</span>
+   <span class="n">maximum</span> <span class="n">X</span> <span class="n">plotted</span> <span class="n">so</span> <span class="n">far</span><span class="o">.</span> <span class="kc">None</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">yet</span> <span class="nb">set</span><span class="o">.</span>
+</pre></div>
+</div>
+<p>Returns (potentially) new values of (tmax, xmin, xmax), according to
+what was plotted.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.reduction.Yposition">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.reduction.</span></span><span class="sig-name descname"><span class="pre">Yposition</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">plot_config</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.reduction.Yposition" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#hipercam.reduction.BaseBuffer" title="hipercam.reduction.BaseBuffer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseBuffer</span></code></a></p>
+<p>Container for Y measurements so they can be re-plotted as they come in.
+There should be one of these per plot line in the ‘position’ section.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.reduction.Yposition.yzero">
+<span class="sig-name descname"><span class="pre">yzero</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#hipercam.reduction.Yposition.yzero" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.reduction.Yposition.add_point">
+<span class="sig-name descname"><span class="pre">add_point</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tzero</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tmax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ymin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ymax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skipbadt</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.reduction.Yposition.add_point" title="Link to this definition">¶</a></dt>
+<dd><p>Extracts the data to be plotted on the position plot.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">results</span> <span class="p">:</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">results</span> <span class="k">for</span> <span class="n">each</span> <span class="n">CCD</span> <span class="n">group</span>
+   <span class="n">see</span> <span class="n">reduce</span><span class="o">.</span><span class="n">py</span> <span class="k">for</span> <span class="n">usage</span><span class="p">,</span> <span class="n">ProcessCCDs</span> <span class="k">for</span> <span class="n">more</span> <span class="n">insight</span>
+
+<span class="n">tzero</span> <span class="p">:</span> <span class="nb">float</span>
+   <span class="n">time</span> <span class="n">offset</span> <span class="n">zero</span> <span class="n">point</span>
+
+<span class="n">tmax</span> <span class="p">:</span> <span class="nb">float</span>
+   <span class="n">the</span> <span class="n">maximum</span> <span class="n">time</span> <span class="n">plotted</span> <span class="n">so</span> <span class="n">far</span> <span class="p">(</span><span class="n">minutes</span><span class="p">)</span><span class="o">.</span> <span class="kc">None</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">yet</span> <span class="nb">set</span><span class="o">.</span>
+
+<span class="n">ymin</span> <span class="p">:</span> <span class="nb">float</span>
+   <span class="n">minimum</span> <span class="n">Y</span> <span class="n">plotted</span> <span class="n">so</span> <span class="n">far</span><span class="o">.</span> <span class="kc">None</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">yet</span> <span class="nb">set</span><span class="o">.</span>
+
+<span class="n">ymax</span> <span class="p">:</span> <span class="nb">float</span>
+   <span class="n">maximum</span> <span class="n">Y</span> <span class="n">plotted</span> <span class="n">so</span> <span class="n">far</span><span class="o">.</span> <span class="kc">None</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">yet</span> <span class="nb">set</span><span class="o">.</span>
+</pre></div>
+</div>
+<p>Returns (potentially) new values of (tmax, ymin, ymax), according to
+what was plotted.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.reduction.Transmission">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.reduction.</span></span><span class="sig-name descname"><span class="pre">Transmission</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">plot_config</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.reduction.Transmission" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#hipercam.reduction.BaseBuffer" title="hipercam.reduction.BaseBuffer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseBuffer</span></code></a></p>
+<p>Container for light curves so they can be re-plotted as they come in.
+There should be one of these per plot line in the ‘light’ section.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.reduction.Transmission.fmax">
+<span class="sig-name descname"><span class="pre">fmax</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#hipercam.reduction.Transmission.fmax" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.reduction.Transmission.add_point">
+<span class="sig-name descname"><span class="pre">add_point</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tzero</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tmax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skipbadt</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.reduction.Transmission.add_point" title="Link to this definition">¶</a></dt>
+<dd><p>Extracts the data to be plotted on the transmission plot for given the
+time and the results (for all CCDs, as returned by
+extractFlux. Assuming all is OK (errors &gt; 0), it stores (t, f, fe) for
+possible re-plotting, plots the point and returns the value of ‘f’
+plotted to help with re-scaling or None if nothing was plotted.  ‘t’
+is the time in minutes since the start of the run</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.reduction.Seeing">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.reduction.</span></span><span class="sig-name descname"><span class="pre">Seeing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">plot_config</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.reduction.Seeing" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#hipercam.reduction.BaseBuffer" title="hipercam.reduction.BaseBuffer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseBuffer</span></code></a></p>
+<p>Container for light curves so they can be re-plotted as they come in.
+There should be one of these per plot line in the ‘light’ section.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.reduction.Seeing.scale">
+<span class="sig-name descname"><span class="pre">scale</span></span><a class="headerlink" href="#hipercam.reduction.Seeing.scale" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.reduction.Seeing.add_point">
+<span class="sig-name descname"><span class="pre">add_point</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tzero</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tmax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fmax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skipbadt</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.reduction.Seeing.add_point" title="Link to this definition">¶</a></dt>
+<dd><p>Extracts the data to be plotted on the transmission plot for given the
+time and the results (for all CCDs, as returned by
+extractFlux. Assuming all is OK (errors &gt; 0), it stores (t, f, fe) for
+possible re-plotting, plots the point and returns the value of ‘f’
+plotted to help with re-scaling or None if nothing was plotted.  ‘t’
+is the time in minutes since the start of the run</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.reduction.ctrans">
+<span class="sig-prename descclassname"><span class="pre">hipercam.reduction.</span></span><span class="sig-name descname"><span class="pre">ctrans</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cname</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.reduction.ctrans" title="Link to this definition">¶</a></dt>
+<dd><p>Translates a colour name (cname) into a PGPLOT index
+which is the return value. Defaults to index 1 and prints
+a message if cname not recognised. Returns None if cname is None</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.reduction.toBool">
+<span class="sig-prename descclassname"><span class="pre">hipercam.reduction.</span></span><span class="sig-name descname"><span class="pre">toBool</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rfile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">section</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">param</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.reduction.toBool" title="Link to this definition">¶</a></dt>
+<dd><p>Converts yes / no / true / false string responses into boolean
+True / False. This is used a few times in the code to read a
+reduce file.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span> <span class="n">rfile</span> <span class="p">:</span> <span class="n">Rfile</span>
+   <span class="n">the</span> <span class="n">reduce</span> <span class="n">file</span><span class="p">,</span> <span class="n">an</span> <span class="n">Odict</span> <span class="n">of</span> <span class="n">Odicts</span>
+
+<span class="n">section</span> <span class="p">:</span> <span class="nb">str</span>
+   <span class="n">the</span> <span class="n">section</span> <span class="n">name</span>
+
+<span class="n">param</span> <span class="p">:</span> <span class="nb">str</span>
+   <span class="n">the</span> <span class="n">parameter</span>
+</pre></div>
+</div>
+<p>Returns nothing; rfile modified on exit. A ValueError is
+raised if the initial value is neither ‘yes’, ‘no’, ‘true’
+of ‘false’ (case-independent)</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.reduction.LogWriter">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.reduction.</span></span><span class="sig-name descname"><span class="pre">LogWriter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rfile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hipercam_version</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plist</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.reduction.LogWriter" title="Link to this definition">¶</a></dt>
+<dd><p>Context manager to handle opening logfiles, writing headers to logfiles
+and safe exit.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.reduction.LogWriter.rfile">
+<span class="sig-name descname"><span class="pre">rfile</span></span><a class="headerlink" href="#hipercam.reduction.LogWriter.rfile" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.reduction.LogWriter.filename">
+<span class="sig-name descname"><span class="pre">filename</span></span><a class="headerlink" href="#hipercam.reduction.LogWriter.filename" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.reduction.LogWriter.hipercam_version">
+<span class="sig-name descname"><span class="pre">hipercam_version</span></span><a class="headerlink" href="#hipercam.reduction.LogWriter.hipercam_version" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.reduction.LogWriter.plist">
+<span class="sig-name descname"><span class="pre">plist</span></span><a class="headerlink" href="#hipercam.reduction.LogWriter.plist" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.reduction.LogWriter.toffset">
+<span class="sig-name descname"><span class="pre">toffset</span></span><a class="headerlink" href="#hipercam.reduction.LogWriter.toffset" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.reduction.LogWriter.__enter__">
+<span class="sig-name descname"><span class="pre">__enter__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.reduction.LogWriter.__enter__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.reduction.LogWriter.__exit__">
+<span class="sig-name descname"><span class="pre">__exit__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.reduction.LogWriter.__exit__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.reduction.LogWriter.write_results">
+<span class="sig-name descname"><span class="pre">write_results</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.reduction.LogWriter.write_results" title="Link to this definition">¶</a></dt>
+<dd><p>Append results to open logfile.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">results</span> <span class="p">:</span> <span class="nb">list</span> <span class="n">of</span> <span class="mi">2</span><span class="o">-</span><span class="n">element</span> <span class="n">tuples</span><span class="o">.</span>
+   <span class="n">each</span> <span class="nb">tuple</span> <span class="ow">is</span> <span class="n">composed</span> <span class="n">of</span> <span class="p">(</span><span class="n">cnam</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="n">where</span> <span class="n">cnam</span> <span class="ow">is</span> <span class="n">a</span> <span class="n">CCD</span> <span class="n">label</span>
+   <span class="ow">and</span> <span class="nb">list</span> <span class="ow">is</span> <span class="n">a</span> <span class="nb">list</span> <span class="n">of</span> <span class="mi">8</span><span class="o">-</span><span class="n">element</span> <span class="n">tuples</span> <span class="n">each</span> <span class="n">of</span> <span class="n">which</span> <span class="ow">is</span> <span class="n">composed</span>
+   <span class="n">of</span> <span class="p">(</span><span class="n">nframe</span><span class="p">,</span> <span class="n">store</span><span class="p">,</span> <span class="n">ccdaper</span><span class="p">,</span> <span class="n">results</span><span class="p">,</span> <span class="n">mjdint</span><span class="p">,</span> <span class="n">mjdfrac</span><span class="p">,</span> <span class="n">mjdok</span><span class="p">,</span> <span class="n">expose</span><span class="p">)</span>
+   <span class="n">storing</span> <span class="nb">all</span> <span class="n">the</span> <span class="n">relevant</span> <span class="n">data</span> <span class="k">for</span> <span class="n">the</span> <span class="n">CCD</span> <span class="o">/</span> <span class="n">exposure</span> <span class="ow">in</span> <span class="n">question</span><span class="o">.</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.reduction.LogWriter.write_header">
+<span class="sig-name descname"><span class="pre">write_header</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.reduction.LogWriter.write_header" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><h3>Table of Contents</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../news.html">HiPERCAM pipeline news</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../observers.html">Observer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../commands.html">HiPERCAM commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/api.html">The API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Getting the software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../files.html">Useful files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plugins.html">Writing an instrument plugin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/bugs.html">Reporting problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../makingmovies.html">Making HiPERCAM movies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../phaseII.html">HiPERCAM Phase II</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">hipercam</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../aperture/index.html">hipercam.aperture</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ccd/index.html">hipercam.ccd</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../core/index.html">hipercam.core</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../defect/index.html">hipercam.defect</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extraction/index.html">hipercam.extraction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../fitting/index.html">hipercam.fitting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../fringe/index.html">hipercam.fringe</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../group/index.html">hipercam.group</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../hcam/index.html">hipercam.hcam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../header/index.html">hipercam.header</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../hlog/index.html">hipercam.hlog</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../instruments/index.html">hipercam.instruments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../mpl/index.html">hipercam.mpl</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../pgp/index.html">hipercam.pgp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../psf_reduction/index.html">hipercam.psf_reduction</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">hipercam.reduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../scripts/index.html">hipercam.scripts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../spooler/index.html">hipercam.spooler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../target/index.html">hipercam.target</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../tests/index.html">hipercam.tests</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ucam/index.html">hipercam.ucam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../utils/index.html">hipercam.utils</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../window/index.html">hipercam.window</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="../psf_reduction/index.html"
+                          title="previous chapter">hipercam.psf_reduction</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="../scripts/index.html"
+                          title="next chapter">hipercam.scripts</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../../_sources/autoapi/hipercam/reduction/index.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../../../_sources/autoapi/hipercam/reduction/index.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2017, T.R. Marsh.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 7.4.7. &nbsp;
+  </p>
+</footer>
+  </body>
+</html>

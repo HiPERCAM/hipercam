@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>hipercam.scripts.genred &#8212; HiPERCAM pipeline 1.6.8.dev12+g30055e846 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/bootstrap-astropy.css?v=177ce38d" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css?v=fd3f3429" />
+    
+    <script src="../../../../_static/documentation_options.js?v=adfd3a0b"></script>
+    <script src="../../../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script type="text/javascript" src="../../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../../_static/copybutton.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="hipercam.scripts.grab" href="../grab/index.html" />
+    <link rel="prev" title="hipercam.scripts.ftargets" href="../ftargets/index.html" />
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../../index.html"><span id="logotext1">astro</span><span id="logotext2"></span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="../grab/index.html" title="hipercam.scripts.grab">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="../ftargets/index.html" title="hipercam.scripts.ftargets">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../../../../index.html">HiPERCAM pipeline 1.6.8.dev12+g30055e846 documentation</a>
+	 &#187;
+      </li>
+      <li><a href="../../../index.html" >API Reference</a> &#187;</li>
+      <li><a href="../../index.html" >hipercam</a> &#187;</li>
+      <li><a href="../index.html" accesskey="U">hipercam.scripts</a> &#187;</li>
+      
+      <li>hipercam.scripts.genred</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-hipercam.scripts.genred">
+<span id="hipercam-scripts-genred"></span><h1>hipercam.scripts.genred<a class="headerlink" href="#module-hipercam.scripts.genred" title="Link to this heading">¶</a></h1>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.scripts.genred.genred" title="hipercam.scripts.genred.genred"><code class="xref py py-obj docutils literal notranslate"><span class="pre">genred</span></code></a>([args])</p></td>
+<td><p><a href="#id1"><span class="problematic" id="id2">``</span></a>genred apfile rfile bias dark flat fmap fpair seeing (sworst</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.scripts.genred.genred">
+<span class="sig-prename descclassname"><span class="pre">hipercam.scripts.genred.</span></span><span class="sig-name descname"><span class="pre">genred</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.scripts.genred.genred" title="Link to this definition">¶</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">genred</span> <span class="pre">apfile</span> <span class="pre">rfile</span> <span class="pre">bias</span> <span class="pre">dark</span> <span class="pre">flat</span> <span class="pre">fmap</span> <span class="pre">fpair</span> <span class="pre">seeing</span> <span class="pre">(sworst</span>
+<span class="pre">binfac)</span> <span class="pre">template</span> <span class="pre">(inst</span> <span class="pre">(nccd</span> <span class="pre">(ccd)</span> <span class="pre">nonlin</span> <span class="pre">sat</span> <span class="pre">scale</span> <span class="pre">readout</span>
+<span class="pre">gain))</span></code></p>
+<p>Generates a reduce file as needed by <a href="#id3"><span class="problematic" id="id4">|reduce|</span></a>. You
+give it the name of an aperture file, calibration frames and a few
+other parameters and it will write out a reduce file which you can
+then refine by hand. The aim is to try to get a reduce file that
+is self-consistent and works to get observing started as soon as
+possible. The parameters are not necessarily the best.</p>
+<p>It is assumed that the target is called ‘1’, the main comparison ‘2’.</p>
+<p>To avoid endless prompts, genred does not try to prompt for all
+parameters even via hidden ones (a change from its previous
+behaviour).  However, if you find yourself always making the samed
+edits to the file produced by genred, you may start wanting a way
+to alter some of the otherwise fixed parameters. You can do so by
+supplying a template file, which can just be from a previous run
+of genred where such parameters can be altered by editing with a
+standard text editor before running genred.</p>
+<p>genred recognises some standard instrument telescope combinations
+which it uses to set parameters such as the pixel scale and
+readout noise, but if you choose ‘other’, you will be prompted for
+these details. The main parameters it does prompt for are
+calibration files, and it allows you to define a “seeing” which
+then controls the setting of various profile fit parameters. This
+can be ignored by setting = 0, in which case any template
+parameters will be passed unchanged.</p>
+<p>Parameters:</p>
+<blockquote>
+<div><dl class="simple">
+<dt>apfile<span class="classifier">str</span></dt><dd><p>the input aperture file created using <a href="#id5"><span class="problematic" id="id6">|setaper|</span></a> (default
+extension .ape). This will be read for the targets. The
+main target will be assumed to have been called ‘1’, the
+main comparison ‘2’. If there is a ‘3’ it will be plotted
+relative to ‘2’; all others will be ignored for plotting
+purposes. Target ‘2’ will be used to define the position
+and transmission plots for one CCD only [user
+definable]. Target ‘1’ will be used for the seeing plot
+unless it is linked when target ‘2’ will be used instead.</p>
+</dd>
+<dt>rfile<span class="classifier">str</span></dt><dd><p>the output reduce file created by this script. The main
+target will be assumed to have been called ‘1’, the main
+comparison ‘2’. If there is a ‘3’ it will be plotted
+relative to ‘2’; all others will be ignored for plotting
+purposes.</p>
+</dd>
+<dt>bias<span class="classifier">str</span></dt><dd><p>Name of bias frame; ‘none’ to ignore.</p>
+</dd>
+<dt>dark<span class="classifier">str</span></dt><dd><p>Name of dark frame; ‘none’ to ignore.</p>
+</dd>
+<dt>flat<span class="classifier">str</span></dt><dd><p>Name of flat field frame; ‘none’ to ignore.</p>
+</dd>
+<dt>fmap<span class="classifier">str</span></dt><dd><p>Name of fringe frame; ‘none’ to ignore.</p>
+</dd>
+<dt>fpair<span class="classifier">str [if fmap not ‘none’]</span></dt><dd><p>File defining pairs to measure fringe amplitudes.</p>
+</dd>
+<dt>seeing<span class="classifier">float</span></dt><dd><p>estimate of seeing which will be used to define several of
+the profile fitting parameters. Enter 0 to ignore and use
+defaults from the template (or genred if no template)
+instead.</p>
+</dd>
+<dt>sworst<span class="classifier">float [if seeing &gt; 0]</span></dt><dd><p>worst seeing expected during run. Expands the search and
+fitting boxes which can cause difficulties if they are
+too small. It also sets the maximum target aperture radius
+which will set to ~ 1.8*sworst, converted to pixels, and the
+sky annulus radii. It has to be at least 2*seeing. Always
+remember that you can override the automated settings using
+a pre-edited template and seeing = 0.</p>
+</dd>
+<dt>binfac<span class="classifier">int [if seeing &gt; 0]</span></dt><dd><p>binning factor. e.g. 4 if using 4x4. Needed to optimise some
+profile parameters.</p>
+</dd>
+<dt>template<span class="classifier">str</span></dt><dd><p>Reduce file to use as a template for any parameters not set
+by genred. This allows one to tweak settings by running
+genred without a template, then modifying the resultant
+file and using it as a template. ‘none’ to ignore, and then
+these values will be set by genred by default. Some will be
+modified anyway (e.g. the calibration file names), and if
+seeing &gt; 0, then several of the profile fitting paramaters
+will be adapted to the value given along with the
+instrument parameters.  genred will try to keep as many of
+the ‘extraction’, ‘position’, ‘transmission’, ‘light’ etc
+lines associated with particular CCDs in this case without
+modification, and will pass readout, saturation levels etc
+unchanged from the template.</p>
+</dd>
+<dt>inst<span class="classifier">str [if template == ‘none’]</span></dt><dd><p>the instrument. ‘hipercam-gtc’, ‘ultracam-ntt’, ‘ultraspec-tnt’,
+‘ultracam-wht’, ‘ultracam-vlt’,  or ‘other’. Sets pixel scale and
+standard readnoise params.</p>
+</dd>
+<dt>nccd<span class="classifier">int [if inst == ‘other’]</span></dt><dd><p>number of CCDs.</p>
+</dd>
+<dt>ccd<span class="classifier">int [if nccd &gt; 1]</span></dt><dd><p>the CCD to use for position plots</p>
+</dd>
+<dt>nonlin<span class="classifier">list(float) [if inst == ‘other’]</span></dt><dd><p>values for warning of non linearity</p>
+</dd>
+<dt>sat<span class="classifier">list(float) [if inst == ‘other’]</span></dt><dd><p>values for warning of saturation</p>
+</dd>
+<dt>scale<span class="classifier">float [if inst == ‘other’]</span></dt><dd><p>image scale in arcsec/pixel</p>
+</dd>
+<dt>readout<span class="classifier">float | string [if inst == ‘other’]</span></dt><dd><p>readout noise, RMS ADU. Can either be a single value or an
+hcm file.</p>
+</dd>
+<dt>gain<span class="classifier">float | string [if inst == ‘other’]</span></dt><dd><p>gain, electrons per ADU. Can either be a single value or an
+hcm file.</p>
+</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><h3>Table of Contents</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../news.html">HiPERCAM pipeline news</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../observers.html">Observer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../commands.html">HiPERCAM commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api/api.html">The API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../installation.html">Getting the software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../files.html">Useful files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../plugins.html">Writing an instrument plugin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api/bugs.html">Reporting problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../makingmovies.html">Making HiPERCAM movies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../phaseII.html">HiPERCAM Phase II</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">hipercam</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../../aperture/index.html">hipercam.aperture</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../ccd/index.html">hipercam.ccd</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../core/index.html">hipercam.core</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../defect/index.html">hipercam.defect</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../extraction/index.html">hipercam.extraction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../fitting/index.html">hipercam.fitting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../fringe/index.html">hipercam.fringe</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../group/index.html">hipercam.group</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../hcam/index.html">hipercam.hcam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../header/index.html">hipercam.header</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../hlog/index.html">hipercam.hlog</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../instruments/index.html">hipercam.instruments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../mpl/index.html">hipercam.mpl</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../pgp/index.html">hipercam.pgp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../psf_reduction/index.html">hipercam.psf_reduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../reduction/index.html">hipercam.reduction</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../index.html">hipercam.scripts</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="../aligntool/index.html">hipercam.scripts.aligntool</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../arith/index.html">hipercam.scripts.arith</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../atanalysis/index.html">hipercam.scripts.atanalysis</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../atbytes/index.html">hipercam.scripts.atbytes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../averun/index.html">hipercam.scripts.averun</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../calsearch/index.html">hipercam.scripts.calsearch</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../carith/index.html">hipercam.scripts.carith</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../combine/index.html">hipercam.scripts.combine</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../exploss/index.html">hipercam.scripts.exploss</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../filtid/index.html">hipercam.scripts.filtid</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../fits2hcm/index.html">hipercam.scripts.fits2hcm</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../flagcloud/index.html">hipercam.scripts.flagcloud</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../ftargets/index.html">hipercam.scripts.ftargets</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">hipercam.scripts.genred</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../grab/index.html">hipercam.scripts.grab</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../harchive/index.html">hipercam.scripts.harchive</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../hfilter/index.html">hipercam.scripts.hfilter</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../hinfo/index.html">hipercam.scripts.hinfo</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../hist/index.html">hipercam.scripts.hist</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../hlog2col/index.html">hipercam.scripts.hlog2col</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../hlog2fits/index.html">hipercam.scripts.hlog2fits</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../hlogger/index.html">hipercam.scripts.hlogger</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../hls/index.html">hipercam.scripts.hls</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../hmeta/index.html">hipercam.scripts.hmeta</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../hpackage/index.html">hipercam.scripts.hpackage</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../hplot/index.html">hipercam.scripts.hplot</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../joinup/index.html">hipercam.scripts.joinup</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../jtrawl/index.html">hipercam.scripts.jtrawl</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../logsearch/index.html">hipercam.scripts.logsearch</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../ltimes/index.html">hipercam.scripts.ltimes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../ltrans/index.html">hipercam.scripts.ltrans</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../makebias/index.html">hipercam.scripts.makebias</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../makedark/index.html">hipercam.scripts.makedark</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../makeflat/index.html">hipercam.scripts.makeflat</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../makefringe/index.html">hipercam.scripts.makefringe</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../makemovie/index.html">hipercam.scripts.makemovie</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../makestuff/index.html">hipercam.scripts.makestuff</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../mstats/index.html">hipercam.scripts.mstats</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../ncal/index.html">hipercam.scripts.ncal</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../nrtplot/index.html">hipercam.scripts.nrtplot</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../pbands/index.html">hipercam.scripts.pbands</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../pfolder/index.html">hipercam.scripts.pfolder</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../plog/index.html">hipercam.scripts.plog</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../psfaper/index.html">hipercam.scripts.psfaper</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../redanal/index.html">hipercam.scripts.redanal</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../redplt/index.html">hipercam.scripts.redplt</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../reduce/index.html">hipercam.scripts.reduce</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../rtplot/index.html">hipercam.scripts.rtplot</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../rupdate/index.html">hipercam.scripts.rupdate</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../setaper/index.html">hipercam.scripts.setaper</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../setdefect/index.html">hipercam.scripts.setdefect</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../setfringe/index.html">hipercam.scripts.setfringe</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../shiftadd/index.html">hipercam.scripts.shiftadd</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../splice/index.html">hipercam.scripts.splice</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../stats/index.html">hipercam.scripts.stats</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../tanalysis/index.html">hipercam.scripts.tanalysis</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../tbytes/index.html">hipercam.scripts.tbytes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../uls/index.html">hipercam.scripts.uls</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../spooler/index.html">hipercam.spooler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../target/index.html">hipercam.target</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../tests/index.html">hipercam.tests</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../ucam/index.html">hipercam.ucam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../utils/index.html">hipercam.utils</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../window/index.html">hipercam.window</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="../ftargets/index.html"
+                          title="previous chapter">hipercam.scripts.ftargets</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="../grab/index.html"
+                          title="next chapter">hipercam.scripts.grab</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../../../_sources/autoapi/hipercam/scripts/genred/index.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<form action="../../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../../../../_sources/autoapi/hipercam/scripts/genred/index.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2017, T.R. Marsh.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 7.4.7. &nbsp;
+  </p>
+</footer>
+  </body>
+</html>

@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>hipercam.defect &#8212; HiPERCAM pipeline 1.6.8.dev12+g30055e846 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/bootstrap-astropy.css?v=177ce38d" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=fd3f3429" />
+    
+    <script src="../../../_static/documentation_options.js?v=adfd3a0b"></script>
+    <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script type="text/javascript" src="../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="hipercam.extraction" href="../extraction/index.html" />
+    <link rel="prev" title="hipercam.core" href="../core/index.html" />
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../index.html"><span id="logotext1">astro</span><span id="logotext2"></span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="../extraction/index.html" title="hipercam.extraction">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="../core/index.html" title="hipercam.core">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../../../index.html">HiPERCAM pipeline 1.6.8.dev12+g30055e846 documentation</a>
+	 &#187;
+      </li>
+      <li><a href="../../index.html" >API Reference</a> &#187;</li>
+      <li><a href="../index.html" accesskey="U">hipercam</a> &#187;</li>
+      
+      <li>hipercam.defect</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-hipercam.defect">
+<span id="hipercam-defect"></span><h1>hipercam.defect<a class="headerlink" href="#module-hipercam.defect" title="Link to this heading">¶</a></h1>
+<p>Defines classes to represent CCD defects. Base class Defect from
+which others are inherited. The derived classes are <code class="xref py py-class docutils literal notranslate"><span class="pre">Point</span></code>,
+<code class="xref py py-class docutils literal notranslate"><span class="pre">Line</span></code> and <code class="xref py py-class docutils literal notranslate"><span class="pre">Hot</span></code> representing point, line and hot pixel
+defects.</p>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.defect.Severity" title="hipercam.defect.Severity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Severity</span></code></a></p></td>
+<td><p>Enum class to define defect severity levels. There are</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.defect.Defect" title="hipercam.defect.Defect"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Defect</span></code></a></p></td>
+<td><p>Abstract class representing a CCD defect.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.defect.Severity">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.defect.</span></span><span class="sig-name descname"><span class="pre">Severity</span></span><a class="headerlink" href="#hipercam.defect.Severity" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">enum.Enum</span></code></p>
+<p>Enum class to define defect severity levels. There are
+two: MODERATE and SEVERE</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.defect.Severity.MODERATE">
+<span class="sig-name descname"><span class="pre">MODERATE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#hipercam.defect.Severity.MODERATE" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.defect.Severity.SEVERE">
+<span class="sig-name descname"><span class="pre">SEVERE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#hipercam.defect.Severity.SEVERE" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.defect.Defect">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.defect.</span></span><span class="sig-name descname"><span class="pre">Defect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">severity</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.defect.Defect" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+<p>Abstract class representing a CCD defect.</p>
+<p>Attributes:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">severity</span>   <span class="p">:</span> <span class="n">Severity</span>
+   <span class="n">severity</span> <span class="n">of</span> <span class="n">the</span> <span class="n">Defect</span>
+</pre></div>
+</div>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.defect.Defect.severity">
+<span class="sig-name descname"><span class="pre">severity</span></span><a class="headerlink" href="#hipercam.defect.Defect.severity" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.defect.Defect.copy">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">memo</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.defect.Defect.copy" title="Link to this definition">¶</a></dt>
+<dd><p>Returns with a copy of the Aperture</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.defect.Defect.__repr__">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">__repr__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.defect.Defect.__repr__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.defect.Defect.dist">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">dist</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.defect.Defect.dist" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the distance of a defect from a position x,y. This defines
+what is meant by the distance from a defect</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.defect.Defect.write">
+<span class="sig-name descname"><span class="pre">write</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.defect.Defect.write" title="Link to this definition">¶</a></dt>
+<dd><p>Dumps Aperture in JSON format to a file called fname</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.defect.Defect.toString">
+<span class="sig-name descname"><span class="pre">toString</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.defect.Defect.toString" title="Link to this definition">¶</a></dt>
+<dd><p>Returns Aperture as a JSON-type string</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.defect.Defect.read">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">read</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.defect.Defect.read" title="Link to this definition">¶</a></dt>
+<dd><p>Read from JSON-format file fname</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><h3>Table of Contents</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../news.html">HiPERCAM pipeline news</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../observers.html">Observer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../commands.html">HiPERCAM commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/api.html">The API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Getting the software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../files.html">Useful files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plugins.html">Writing an instrument plugin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/bugs.html">Reporting problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../makingmovies.html">Making HiPERCAM movies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../phaseII.html">HiPERCAM Phase II</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">hipercam</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../aperture/index.html">hipercam.aperture</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ccd/index.html">hipercam.ccd</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../core/index.html">hipercam.core</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">hipercam.defect</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extraction/index.html">hipercam.extraction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../fitting/index.html">hipercam.fitting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../fringe/index.html">hipercam.fringe</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../group/index.html">hipercam.group</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../hcam/index.html">hipercam.hcam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../header/index.html">hipercam.header</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../hlog/index.html">hipercam.hlog</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../instruments/index.html">hipercam.instruments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../mpl/index.html">hipercam.mpl</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../pgp/index.html">hipercam.pgp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../psf_reduction/index.html">hipercam.psf_reduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reduction/index.html">hipercam.reduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../scripts/index.html">hipercam.scripts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../spooler/index.html">hipercam.spooler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../target/index.html">hipercam.target</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../tests/index.html">hipercam.tests</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ucam/index.html">hipercam.ucam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../utils/index.html">hipercam.utils</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../window/index.html">hipercam.window</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="../core/index.html"
+                          title="previous chapter">hipercam.core</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="../extraction/index.html"
+                          title="next chapter">hipercam.extraction</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../../_sources/autoapi/hipercam/defect/index.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../../../_sources/autoapi/hipercam/defect/index.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2017, T.R. Marsh.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 7.4.7. &nbsp;
+  </p>
+</footer>
+  </body>
+</html>

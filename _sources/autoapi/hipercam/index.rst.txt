@@ -1,0 +1,5713 @@
+hipercam
+========
+
+.. py:module:: hipercam
+
+.. autoapi-nested-parse::
+
+   
+   hipercam - a reduction package for the high-speed camera HiPERCAM
+
+   :mod:`hipercam` is a package for the reduction of data from the 5-band
+   multi-window high-speed CCD camera HiPERCAM. It can access the raw data,
+   display it, slice it into individual files containing the 5 CCDs, etc. It
+   provides a combination of an API to access HiPERCAM data and high-level
+   scripts to enact certain commonly-required operations in reduction. Most users
+   will be most interested in the latter, and if that is the case for you, your
+   first port of entry is probably to look at the 'scripts' sub-package,
+   e.g. ``pydoc hipercam.scripts``.
+
+   If you are interested in the API, then read on. The code is compartmentalised
+   into several sub-modules and sub-packages, e.g. :class:`CCD` and :class:`MCCD`
+   appear in ``hipercam.ccd``, but they are also imported to the top level, so that
+   e.g.  ``pydoc hipercam.CCD`` and ``pydoc hipercam.ccd.CCD`` report back the same
+   thing. This is true for most of the sub-modules, so looking through the
+   top-level docs covers a large part of the API. However, it is rather long and
+   if you want to specialise to a restricted part of the documentation, then a
+   command like 'pydoc hipercam.ccd' can prove useful to find a more focussed
+   view of related software. There are some exceptions though where you will need
+   to drill deeper, namely the sub-packages like 'ucam' and 'hcam', and the
+   plotting modules :mod:`mpl` and :mod:`pgp`.
+
+   Perhaps the most important class of all is :class:`MCCD` which is the first
+   place to go if you have a HiPERCAM '.hcm' file you want to do something with
+   beyond the current routines (although NB '.hcm' files are just FITS files in
+   thin disguise of a changed extension and you may be able to do your own stuff
+   with standard tools for FITS files). Example code::
+
+     >> import hipercam as hcam
+     >> mccd = hcam.MCCD.read('myfile.hcm')
+     >> print(mccd)
+     >> print(mccd['1'])
+     >> print(mccd['1']['E1'])
+     >> print(mccd['1']['E1'][123,45])
+     >> mccd['1']['E1'][123,45] = 0
+     >> mccd.write('mynewfile.hcm')
+
+   which reads an hcm file in, then prints it, the CCD it contains labelled '1'
+   (a :class:`CCD` object), then the window data from this CCD labelled 'E1' (a
+   :class:`Window` object) and finally the pixel value at iy=123, ix=45 (C-like
+   starting from 0). This shows the dictionary-like interface used for
+   :class:`MCCD` and :class:`CCD` objects alike (they are both sub-classes of a
+   container class :class:`Group`). It then sets this pixel to zero and writes
+   out the result to a new file.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/hipercam/aperture/index
+   /autoapi/hipercam/ccd/index
+   /autoapi/hipercam/core/index
+   /autoapi/hipercam/defect/index
+   /autoapi/hipercam/extraction/index
+   /autoapi/hipercam/fitting/index
+   /autoapi/hipercam/fringe/index
+   /autoapi/hipercam/group/index
+   /autoapi/hipercam/hcam/index
+   /autoapi/hipercam/header/index
+   /autoapi/hipercam/hlog/index
+   /autoapi/hipercam/instruments/index
+   /autoapi/hipercam/mpl/index
+   /autoapi/hipercam/pgp/index
+   /autoapi/hipercam/psf_reduction/index
+   /autoapi/hipercam/reduction/index
+   /autoapi/hipercam/scripts/index
+   /autoapi/hipercam/spooler/index
+   /autoapi/hipercam/target/index
+   /autoapi/hipercam/tests/index
+   /autoapi/hipercam/ucam/index
+   /autoapi/hipercam/utils/index
+   /autoapi/hipercam/window/index
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   hipercam.FIELD
+   hipercam.HCAM
+   hipercam.LIST
+   hipercam.APER
+   hipercam.HRAW
+   hipercam.RED
+   hipercam.LOG
+   hipercam.DFCT
+   hipercam.SEP
+   hipercam.TBTS
+   hipercam.DMINS
+   hipercam.CNAMS
+   hipercam.CIS
+   hipercam.ALL_OK
+   hipercam.NO_FWHM
+   hipercam.NO_SKY
+   hipercam.SKY_AT_EDGE
+   hipercam.TARGET_AT_EDGE
+   hipercam.TARGET_NONLINEAR
+   hipercam.TARGET_SATURATED
+   hipercam.REDUCE_FILE_VERSION
+   hipercam.NO_EXTRACTION
+   hipercam.NO_DATA
+   hipercam.CLOUDS
+   hipercam.JUNK
+   hipercam.ANY_FLAG
+   hipercam.BAD_FLAT
+   hipercam.BAD_COLUMN
+   hipercam.BAD_TIME
+   hipercam.FLAGS
+   hipercam.OUTLIER
+   hipercam.FLAG_MESSAGES
+   hipercam.FRNG
+   hipercam.__version__
+   hipercam.__all__
+
+
+Exceptions
+----------
+
+.. autoapisummary::
+
+   hipercam.HipercamError
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   hipercam.HipercamWarning
+   hipercam.Group
+   hipercam.Agroup
+   hipercam.Winhead
+   hipercam.Window
+   hipercam.CcdWin
+   hipercam.MccdWin
+   hipercam.CCD
+   hipercam.MCCD
+   hipercam.Aperture
+   hipercam.CcdAper
+   hipercam.MccdAper
+   hipercam.Target
+   hipercam.Field
+   hipercam.Header
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   hipercam.version
+   hipercam.gregorian_to_mjd
+   hipercam.mjd_to_gregorian
+   hipercam.fday_to_hms
+   hipercam.get_ccd_info
+   hipercam.trim_ultracam
+
+
+Package Contents
+----------------
+
+.. py:data:: FIELD
+   :value: '.fld'
+
+
+.. py:data:: HCAM
+   :value: '.hcm'
+
+
+.. py:data:: LIST
+   :value: '.lis'
+
+
+.. py:data:: APER
+   :value: '.ape'
+
+
+.. py:data:: HRAW
+   :value: '.fits'
+
+
+.. py:data:: RED
+   :value: '.red'
+
+
+.. py:data:: LOG
+   :value: '.log'
+
+
+.. py:data:: DFCT
+   :value: '.dft'
+
+
+.. py:data:: SEP
+   :value: '.sep'
+
+
+.. py:data:: TBTS
+   :value: '.tbts'
+
+
+.. py:exception:: HipercamError
+
+   Bases: :py:obj:`Exception`
+
+
+   
+   Class for the hipercam package errors
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:class:: HipercamWarning
+
+   Bases: :py:obj:`astropy.utils.exceptions.AstropyUserWarning`
+
+
+   
+   Class for hipercam package warnings. Use with warnings.warn
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:data:: DMINS
+   :value: 1440.0
+
+
+.. py:data:: CNAMS
+
+.. py:data:: CIS
+   :value: ((1, 1, 1), (0, 0, 0), (0.898, 0, 0), (0.082, 0.69, 0.102), (0.012, 0.263, 0.875), (1, 0.008,...
+
+
+.. py:function:: version()
+
+   
+   Returns version number of installed HiPERCAM pipeline
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: gregorian_to_mjd(year, month, day)
+
+   
+   This returns the Modified Julian Day number corresponding to the
+   start of the Gregorian date supplied. Algorithm taken from
+   Duffet-Smith. Tested against astropy.time.Time. Designed to be
+   simple and fast.
+
+
+   :Parameters:
+
+       **year** : int
+           Year (valid range: 1582 onwards)
+
+       **month** : int
+           Month of year, 1 to 12 inclusive.
+
+       **day** : int
+           day of month (1 to 31; will not check month by month)
+
+
+
+   :Returns:
+
+       **mjd** : int
+           Modified Julian Day number
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: mjd_to_gregorian(mjd)
+
+   
+   This returns the year, month, and day corresponding to the supplied
+   MJD. From Duffet-Smith. Checked against 'gregorian_to_mjd'.
+
+
+   :Parameters:
+
+       **mjd** : int
+           Modified Julian Day number
+
+
+
+   :Returns:
+
+       Returns a tuple of (year,month,day)
+           ..
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: fday_to_hms(fday)
+
+   
+   Returns a tuple of (hours, minutes, seconds) given a fraction of a
+   day.  The hours and minutes are integers, the seconds are floating
+   point.
+
+   fday should lie in the interval [0,1)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:data:: ALL_OK
+
+.. py:data:: NO_FWHM
+
+.. py:data:: NO_SKY
+
+.. py:data:: SKY_AT_EDGE
+
+.. py:data:: TARGET_AT_EDGE
+
+.. py:data:: TARGET_NONLINEAR
+
+.. py:data:: TARGET_SATURATED
+
+.. py:data:: REDUCE_FILE_VERSION
+   :value: '20230222'
+
+
+.. py:data:: NO_EXTRACTION
+
+.. py:data:: NO_DATA
+
+.. py:data:: CLOUDS
+
+.. py:data:: JUNK
+
+.. py:data:: ANY_FLAG
+
+.. py:data:: BAD_FLAT
+
+.. py:data:: BAD_COLUMN
+
+.. py:data:: BAD_TIME
+
+.. py:data:: FLAGS
+
+.. py:data:: OUTLIER
+
+.. py:data:: FLAG_MESSAGES
+
+.. py:data:: FRNG
+   :value: '.frng'
+
+
+.. py:class:: Group(ftype, *args, **kwargs)
+
+   Bases: :py:obj:`collections.OrderedDict`
+
+
+   
+   A specialized OrderedDict that enforces string keys only and a
+   single class for the values. The objects stored as values should
+   support a `copy` method to return a deepcopy for use in the
+   :class:`Group` copy operation.
+
+   :class:`Group` is designed to amalgamate several of the classes used for
+   objects associated with CCDs such as :class:`Window` (see :class:`CCD`),
+   and :class:`Aperture` (see :class:`CcdAper`)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:attribute:: ftype
+
+
+   .. py:method:: __setitem__(key, item)
+
+      
+      Adds an item `item` keyed by `key`
+      checking that its type matches 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: copy(memo=None)
+
+      
+      Copy operation. The stored objects must have a `copy(self, memo)` method.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: check()
+
+      
+      Checks validity of a Group if its objects have a method
+      'clash' defined to check that they are compatible. This should
+      have signature 'clash(self, other)', but does not have to be
+      defined for all objects storable in Groups. See :class:`Winhead` for
+      an example of an object for which this makes sense.
+
+      If the Group fails this check, a ValueError is raised.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: get_num(num)
+
+      
+      Returns the num element of the Group (starting from 0)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __copy__()
+
+      
+      Copy operation for copy.copy
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __deepcopy__(memo)
+
+      
+      Copy operation for copy.deepcopy
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __repr__()
+
+      
+      Return repr(self).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+.. py:class:: Agroup(ftype, *args, **kwargs)
+
+   Bases: :py:obj:`Group`
+
+
+   
+   A :class:`Group` which defines arithmetic methods +=, +, etc which must be
+   supported by whatever objects the :class:`Group` contains. This allows the
+   same approach to be taken when operating on :class:`CCD` and :class:`MCCD`
+   objects which are based on this class. The objects stored in the
+   :class:`Agroup` must define a method `copy` which returns a deep copy;
+   this is required by several operators.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:method:: copy(memo=None)
+
+      
+      Copy operation.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __iadd__(other)
+
+      
+      Adds `other` to the :class:`Agroup` as 'self += other'. If `other` is
+      another :class:`Agroup` with the same object type (`ftype`) as self,
+      then the operation will be applied to each pair of objects with
+      matching keys. Otherwise `other` will be regarded as a constant object
+      to add to each object in the :class:`Agroup`.
+
+      In the first case, if self has keys that are not in `other`, then they
+      will be left untouched. Any keys in `other` not in self are ignored.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __isub__(other)
+
+      
+      Subtracts `other` from the :class:`Agroup` as 'self -= other'. If `other`
+      is another :class:`Agroup` with the same object type (`ftype`) as
+      self, then the operation will be applied to each pair of objects with
+      matching keys. Otherwise `other` will be regarded as a constant object
+      to subtract from each object in the :class:`Agroup`.
+
+      In the first case, if self has keys that are not in `other`, then they
+      will be left untouched. Any keys in `other` not in self are ignored.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __imul__(other)
+
+      
+      Multiplies the :class:`Agroup` by `other` as 'self *= other'. If `other` is
+      another :class:`Agroup` with the same object type (`ftype`) as self,
+      then the operation will be applied to each pair of objects with
+      matching keys. Otherwise `other` will be regarded as a constant object
+      to multiply each object in the :class:`Agroup`.
+
+      In the first case, if self has keys that are not in `other`, then they
+      will be left untouched. Any keys in `other` not in self are ignored.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __itruediv__(other)
+
+      
+      Divides the :class:`Agroup` by `other` as 'self /= other'. If `other` is
+      another :class:`Agroup` with the same object type (`ftype`) as self,
+      then the operation will be applied to each pair of objects with
+      matching keys. Otherwise `other` will be regarded as a constant object
+      to divide into each object in the :class:`Agroup`.
+
+      In the first case, if self has keys that are not in `other`, then they
+      will be left untouched. Any keys in `other` not in self are ignored.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __add__(other)
+
+      
+      Adds `other` to the :class:`Agroup` as '= self + other'. If `other` is
+      another :class:`Agroup` with the same object type (`ftype`) as self,
+      then the operation will be applied to each pair of objects with
+      matching keys. Otherwise `other` will be regarded as a constant object
+      to add to each object in the :class:`Agroup`.
+
+      In the first case, if self has keys that are not in `other`, then they
+      will be left untouched. Any keys in `other` not in self are ignored.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __sub__(other)
+
+      
+      Subtracts `other` from the :class:`Agroup` as '= self - other'. If `other` is
+      another :class:`Agroup` with the same object type (`ftype`) as self,
+      then the operation will be applied to each pair of objects with
+      matching keys. Otherwise `other` will be regarded as a constant object
+      to subtract from each object in the :class:`Agroup`.
+
+      In the first case, if self has keys that are not in `other`, then they
+      will be left untouched. Any keys in `other` not in self are ignored.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __mul__(other)
+
+      
+      Multiplies the :class:`Agroup` by `other` as '= self * other'. If `other`
+      is another :class:`Agroup` with the same object type (`ftype`) as
+      self, then the operation will be applied to each pair of objects with
+      matching keys. Otherwise `other` will be regarded as a constant object
+      to multiply each object in the :class:`Agroup`.
+
+      In the first case, if self has keys that are not in `other`, then they
+      will be left untouched. Any keys in `other` not in self are ignored.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __truediv__(other)
+
+      
+      Divides the :class:`Agroup` by `other` as '= self / other'. If `other` is
+      another :class:`Agroup` with the same object type (`ftype`) as self,
+      then the operation will be applied to each pair of objects with
+      matching keys. Otherwise `other` will be regarded as a constant object
+      to divide into each object in the :class:`Agroup`.
+
+      In the first case, if self has keys that are not in `other`, then they
+      will be left untouched. Any keys in `other` not in self are ignored.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __radd__(other)
+
+      
+      Adds the :class:`Agroup` to other as '= other + self'.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __rsub__(other)
+
+      
+      Subtracts the :class:`Agroup` from `other` as '= other - self'.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __rmul__(other)
+
+      
+      Multiplies the :class:`Agroup` by `other` as '= other * self'.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __rtruediv__(other)
+
+      
+      Divides a :class:`Agroup` by `other` as '= other / self'.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __repr__()
+
+      
+      Return repr(self).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+.. py:class:: Winhead(llx, lly, nx, ny, xbin, ybin, outamp, head=None, copy=False)
+
+   Bases: :py:obj:`Header`
+
+
+   
+   The header parts of a CCD window
+
+   `Winhead` objects contain everything needed to represent a
+   CCD window other than its data. This represents an arbitrary
+   rectangular region of binned pixels. The lower-left pixel of the
+   CCD is assumed to have coordinates (x,y) = (1,1). `Winhead`
+   dimensions are in binned pixels.
+
+       >>> from hipercam import Winhead
+       >>> win = Winhead(12, 6, 100, 150, 2, 3)
+       >>> print(win)
+
+   :Parameters:
+
+       **llx** : int
+               X position of lower-left pixel of window (unbinned pixels)
+           
+           lly : int
+               Y position of lower-left pixel of window (unbinned pixels)
+           
+           nx : int
+               X dimension of window, binned pixels
+           
+           ny : int
+               Y dimension of window, binned pixels
+           
+           xbin : int
+               Binning factor in X
+           
+           ybin : int
+               Binning factor in Y
+           
+           outamp : str, {'','LL','LR','UL','UR'}
+               Location of output amplifier. Options: '' == unknown; 'LL' ==
+               lower-left; 'LR' == lower-right; 'UL' == upper-left; 'UR' ==
+               upper-right. Used when trimming to remove the correct part of
+               the window.
+           
+           head : :class:`Header`, optional
+               Arbitrary header items (excluding ones such as LLX reserved
+               for containing the above parameters when reading and writing
+               Winhead objects). This will be deep copied to avoid different
+               Winheads sharing the same header. See 'copy' for how the
+               header is tranferred into the Winhead
+
+       **copy** : bool, optional
+           Controls whether the header is copied by value (True) or
+           simply by reference (False). The latter is lightweight and
+           faster but can cause unexpected behaviour especially when
+           constructing multiple Winhead (or Window) objects if one
+           repeatedly sends the same Header to each of them.
+
+   :Attributes:
+
+       **llx** : int
+           X ordinate lower-left pixel, unbinned pixels
+
+       **lly** : int
+           Y ordinate lower-left pixel, unbinned pixels
+
+       **xbin** : int
+           X-binning factor
+
+       **ybin** : int
+           Y-binning factor
+
+       **nx** : int
+           X-dimension, binned pixels
+
+       **ny** : int
+           Y-dimension, binned pixels
+
+       **outamp** : str, {'','LL','LR','UL','UR'}
+           output amplifier location
+
+       **urx** : int
+           X-ordinate of unbinned pixed at upper right
+           of Winhead (starts from 1 on the left)
+
+       **ury** : int
+           Y-ordinate of unbinned pixed at upper right
+           of Winhead (starts from 1 on the left)
+
+       **xlo** : float
+           Left-most edge of window. Will be something-point-five
+           as the centre of pixels are integers.
+
+       **xhi** : float
+           Right-most edge of window.
+
+       **ylo** : float
+           Lower edge of window
+
+       **yhi** : float
+           Upper edge of window
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:attribute:: llx
+
+
+   .. py:attribute:: lly
+
+
+   .. py:attribute:: xbin
+
+
+   .. py:attribute:: ybin
+
+
+   .. py:attribute:: outamp
+
+
+   .. py:attribute:: _nx
+
+
+   .. py:attribute:: _ny
+
+
+   .. py:property:: nx
+
+      
+      Binned X-dimension of the `Winhead`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:property:: ny
+
+      
+      Binned Y-dimension of the `Winhead`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __repr__()
+
+
+   .. py:method:: __str__()
+
+
+   .. py:method:: format(nohead=False)
+
+      
+      Used to ensure that only the Winhead format gets printed which is
+      useful in some instances. Relying on __repr__ carries the risk of
+      being overloaded. Set 'nohead' True to suppress the header in addition
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:property:: urx
+
+      
+      Unbinned X pixel at upper-right of `Winhead`
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:property:: ury
+
+      
+      Unbinned Y pixel at upper-right of `Winhead`
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:property:: xlo
+
+      
+      Left-hand edge of window (llx-0.5)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:property:: xhi
+
+      
+      Right-hand edge of window (urx+0.5)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:property:: ylo
+
+      
+      Bottom edge of window (lly-0.5)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:property:: yhi
+
+      
+      Top edge of window (ury+0.5)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: x(xpix)
+
+      
+      Given an X-pixel position, returns the physical X in the CCD.
+
+      Arguments::
+
+        xpix : (float / ndarray)
+          X-pixel position in terms of binned pixels. Centre of left-most
+          pixel is 0.
+
+      Returns the physical location measured in unbinned pixels, with the
+      centre of left-most pixels of the CCD = 1.0
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: y(ypix)
+
+      
+      Given a Y-pixel position, returns the physical Y in the CCD.
+
+      Arguments::
+
+        ypix : (float / ndarray)
+          Y-pixel position in terms of binned pixels. Centre of lowest
+          pixel is 0.
+
+      Returns the physical location measured in unbinned pixels, with the
+      centre of lowest pixels of the CCD = 1.0
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: x_pixel(x)
+
+      
+      The inverse of `x`: returns the X-pixel position given a physical
+      X location.
+
+      Arguments::
+
+        x : (float)
+          the physical location measured in unbinned pixels, with the centre
+          of left-most pixels of the CCD = 1.0
+
+      Returns the X-pixel position in terms of binned pixels. Centre of the
+      left-most pixel is 0.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: y_pixel(y)
+
+      
+      The inverse of `y`: returns the Y-pixel position given a physical
+      Y location.
+
+      Arguments::
+
+        Y : (float)
+          the physical location measured in unbinned pixels, with the centre
+          of lowest pixels of the CCD = 1.0
+
+      Returns the Y-pixel position in terms of binned pixels. Centre of the
+      lowest pixel is 0.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: extent()
+
+      
+      Returns (left,right,bottom,top) boundaries of :class:`Winhead`
+      i.e. (xlo,xhi,ylo,yhi)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: outside(win)
+
+      
+      Returns True if `self` contains the :class:Winhead `win` in such a
+      way that it could be cut down to it. This implies that even if
+      binned, its pixels are "in step", aka "synchronised", and that
+      its binning factors are integer divisors of those of `win`.
+
+      Arguments::
+
+        win  : :class:Winhead
+           the :class:Winhead that we are testing against to see if `self`
+           surrounds it.
+
+      See also :func:`inside`, :func:`window`
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: inside(win)
+
+      
+      Returns True if `win` contains `self` in such a way that it could
+      be cut down to it. This implies that even if binned, its
+      pixels are "in step", aka "synchronised", and that its bin
+      factors are integer divisors of those of `self`.
+
+      Arguments::
+
+        win  : :class:Winhead
+           the :class:Winhead that we are testing against to see if `self` in
+           inside it.
+
+      See also :func:`outside`, :func:`window`
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: xy()
+
+      
+      Returns two 2D arrays containing the x and y values at the centre
+      of each pixel defined by the :class:`Winhead`. See
+      numpy.meshgrid to see what this means.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: clash(win)
+
+      
+      Raises a ValueError if two :class: `Winhead`s are considered to
+      'clash'.  In this case this means if they have any pixels in
+      common.  This method is used in the 'check' method of the
+      :class:`Group` class to check the mutual validity of a set of
+      :class:`Winhead`.
+
+      Arguments::
+
+        win : :class:`Winhead`
+           the :class:`Winhead` that we are testing self against.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: matches(win)
+
+      
+      Tests that the :class:`Winhead` matches another. If all OK, returns
+      None, otherwise raises a ValueError reporting the two
+      :class:`Winhead`s. See also `__eq__`
+
+      Arguments::
+
+        win : :class:`Winhead`
+           the :class:`Winhead` that we are testing self against.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: copy(memo=None)
+
+      
+      Returns a copy (deepcopy) of the :class:`Winhead`
+
+      copy.copy and copy.deepcopy of a `Winhead` use this method
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: distance(x, y)
+
+      
+      Calculates the minimum distance of a point from the edge of the
+      Winhead. If the point is outside the Winhead the distance will
+      be negative; if inside it will be positive. The edge is
+      defined as the line running around the outside of the outer
+      set of pixels. For a point outside the box in both x and y,
+      the value returned is a lower limit to the distance.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: window(xlo, xhi, ylo, yhi, copy=False)
+
+      
+      Generates a new Winhead by windowing it to match the complete
+      pixels visible within the range xlo to xhi, ylo to yhi.
+
+      Arguments::
+
+         xlo : float
+            minimum X, unbinned pixels (extreme left pixels of CCD centred
+            on 1). None to ignore.
+
+         xhi : float
+            maximum X, unbinned pixels. None to ignore.
+
+         ylo : float
+            minimum Y, unbinned pixels (bottom pixels of CCD centred on 1)
+            None to ignore.
+
+         yhi : float
+            maximum Y, unbinned pixels. None to ignore
+
+         copy : bool
+            controls whether the header is copied over, or just
+            referenced.  The latter is more efficient, but if you later want
+            to change the header could propogate those changes to whatever
+            you copied.
+
+      Returns the windowed Winhead. Raises a ValueError if there are no
+      visible pixels.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __copy__()
+
+
+   .. py:method:: __deepcopy__(memo)
+
+
+   .. py:method:: __eq__(win)
+
+      
+      Defines equality. Two :class:`Winhead`s are equal if they match exactly
+      (same lower left corner, dimensions and binning factors)
+
+      Arguments::
+
+        win : :class:`Winhead`
+           the :class:Winhead that we are testing self against.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __ne__(win)
+
+      
+      Defines equality. Two :class:`Winhead`s are equal if they match
+      exactly (same lower left corner, dimensions and binning
+      factors)
+
+      Arguments::
+
+        win : :class:`Winhead`
+           the :class:Winhead that we are testing self against.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+.. py:class:: Window(win, data=None, copy=False)
+
+   Bases: :py:obj:`Winhead`
+
+
+   
+   A CCD window, headers, position and data
+
+   Constructed from a :class:`Winhead` and a :class:`numpy.ndarray`
+   which is stored in an attribute called `data`.
+
+       >>> import numpy as np
+       >>> from hipercam import Winhead, Window
+       >>> win = Winhead(12, 6, 100, 150, 2, 3, 'LL')
+       >>> data = np.ones((150,100))
+       >>> wind = Window(win,data)
+       >>> wind += 0.5
+       >>> wind *= 2
+
+   You cannot directly change the nx, ny values of a Window; you have
+   to change its data array attribute and nx and ny will be taken
+   from it.
+
+   :class:`Window` objects support various arithematical operations
+   such as subtraction or addition of constants. The end result of
+   these always has a float type for safety to avoid problems with
+   e.g. trying to make the result of adding a float to an integer an
+   integer or with the range of integers.
+
+   :Parameters:
+
+       **win** : :class:`Winhead`
+           the :class:`Winhead` defining the position and, optionally, headers
+
+       **data** : 2D numpy.ndarray
+           the data (2D). The dimensions must match those in win unless
+           data is None in which case a zero array of the correct size will
+           be created. A ValueError will be raised if not. Standard C-type
+           ordering, y-then-x assumed.
+
+       **copy** : bool
+           flag sent to :class:`Winhead` controlling whether the header is
+           copied by value or reference. 'False' is lightweight and faster
+           but when building up CCDs from multiple Windows, you should
+           probably use 'True' unless you are careful to make 'win' a
+           different object every time.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:property:: nx
+
+      
+      Returns binned X-dimension of the :class:`Window`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:property:: ny
+
+      
+      Returns binned Y-dimension of the :class:`Window`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: flatten()
+
+      
+      Return data of the :class:`Window` as a 1D array
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: rhdu(hdu)
+      :classmethod:
+
+
+      
+      Constructs a :class:`Window` from an ImageHdu. Requires header
+      parameters 'LLX', 'LLY', 'XBIN' and 'YBIN' to be defined.
+      This converts the data to float32 internally, unless it is
+      read in as float64 in the first place conversion which would
+      lose precision.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: whdu(head=None, xoff=0, yoff=0, extnam=None)
+
+      
+      Writes the :class:`Window` to an :class:`astropy.io.fits.ImageHDU`
+
+      Arguments::
+
+        head : astropy.io.fits.Header
+            Extra header items to add at the start of header in addition to
+            those already contained in the :class:`Window`.
+
+        xoff : int
+            Offset in X-direction to use for mosaicing.
+
+        yoff : int
+            Offset in Y-direction to use for mosaicing.
+
+        extnam : None | string
+            Extension name, useful in 'fv'
+
+      Returns::
+
+         hdu    : astropy.io.fits.ImageHDU
+            The HDU containing the data and the header.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:property:: size
+
+      
+      Number of pixels
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:property:: winhead
+
+      
+      A copy of the :class:`Winhead` underlying the :class:`Window` This is to
+      allow simpler reporting of problems with the format without the data
+      as well
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: set_const(val)
+
+      
+      Sets the data array to a constant
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: add_noise(readout, gain)
+
+      
+      Adds noise to a :class:`Window` according to a variance
+      calculated from V = readout**2 + counts/gain.
+      Arguments::
+
+        readout : (float)
+            RMS readout noise in counts
+
+        gain : (float)
+            Gain in electrons per count.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: min()
+
+      
+      Returns the minimum value of the :class:`Window`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: max()
+
+      
+      Returns the maximum value of the :class:`Window`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: mean()
+
+      
+      Returns the mean value of the :class:`Window`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: median()
+
+      
+      Returns the median value of the :class:`Window`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: sum()
+
+      
+      Returns the sum of the :class:`Window`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: std()
+
+      
+      Returns the standard deviation of the :class:`Window`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: percentile(q)
+
+      
+      Computes percentile(s) of a :class:`Window`.
+
+      Arguments::
+
+        q : float or sequence of floats
+          Percentile(s) to use, in range [0,100]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: add_fxy(funcs, ndiv=0)
+
+      
+      Routine to add in the results of evaluating a function or a list of
+      functions of x & y to the :class:`Window`.  Each function must take 2D
+      arrays of x and y values for each pixel of the :class:`Window` and
+      return an array of values for each point. If you have lots of things
+      to add, this routine saves some overhead by only generating the x,y
+      pixel arrays once at the start. Pixels can be subdivided ndiv per
+      unbinned pixel (ndiv == 0 simply computes the result at pixel centre)
+
+      Arguments::
+
+        funcs : (a callable or a list of callables)
+            the callable(s) must have signature::
+
+               arr = func(x,y)
+
+            where x and y are 2D arrays containing the x and y values at the
+            centre of each pixel in the :class:`Window`. Each func must have
+            a method 'offset(self, dx, dy)' which returns a copy of the
+            function displaced in centre by dx, dy unbinned pixels.
+
+        ndiv : (int)
+
+            a sub-division factor used to improve the photometric accuracy
+            when pixellation matters. The funcs are computed over a grid of
+            ndiv*ndiv points per unbinned pixel.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: copy(memo=None)
+
+      
+      Returns a copy (deepcopy) of the :class:`Window`
+
+      copy.copy and copy.deepcopy of a `Window` use this method
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: window(xlo, xhi, ylo, yhi, copy=False)
+
+      
+      Creates a new Window by windowing it down to whatever complete
+      pixels are visible in the region xlo to xhi, ylo to yhi. ValueError
+      raised if no Window left.
+
+      Arguments::
+
+         xlo : float
+            minimum X, unbinned pixels (extreme left pixels of CCD
+            centred on 1)
+
+         xhi : float
+            maximum X, unbinned pixels
+
+         ylo : float
+            minimum Y, unbinned pixels (bottom pixels of CCD centred on 1)
+
+         yhi : float
+            maximum Y, unbinned pixels
+
+         copy : bool
+            controls whether the headers in the Winhead associated
+            with this are copied by value or reference. True=copy by
+            value which can carry significant overheads, but has the
+            virtue of creating an independent object.
+
+      Returns the windowed Window.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: crop(win)
+
+      
+      Creates a new :class:Window by cropping the current :class:Window to the
+      format defined by :class:Winhead `win`. Will throw a ValueError if the
+      operation is impossible or results in no overlap. The current
+      :class:Window must lie outside `win` and must be synchronised (in
+      step) if any binning is used. If binning is used then the binning
+      factors of the :class:Window must be divisors of the binning factors
+      of those of `win`. If binning takes place it will be carried out by
+      averaging, as appropriate for cropping flat-field frames (but not star
+      fields).
+
+      Arguments::
+
+         win : (:class:Winhead)
+            the new format to apply.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: float32()
+
+      
+      Converts the data type of the array to float32.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: float64()
+
+      
+      Converts the data type of the array to float64.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: uint16()
+
+      
+      Converts the data type of the array to uint16. A warning will be issued
+      if there will be loss of precision. A ValueError is thrown if any data
+      are outside the range 0 to 65535 This is to save space on output.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: search(fwhm, x0, y0, thresh, fft, max=False, percent=50.0)
+
+      
+      Search for a target in a :class:Window. Works by convolving the image
+      with a gaussian of FWHM = fwhm, and returns the location of the
+      maximum in the smoothed image which exceeds a level `thresh` and lies
+      closest to the expected position. The convolution improves the
+      reliability of the identification of the object position and reduces
+      the chance of problems being caused by cosmic rays, although if there
+      is more overall flux in a cosmic ray than the star, it could go wrong.
+
+      This routine is intended to provide a first cut in position for more
+      precise methods to polish.
+
+      Arguments::
+
+        fwhm : float
+          Gaussian FWHM in pixels. If <= 0, there will be no convolution,
+          although this is not advisable as a useful strategy.
+
+        x0 : float
+          x-position to judge position from (CCD-coordinates). The closest
+          sufficiently high maximum will be taken.
+
+        y0 : float
+          y-position to judge position from (CCD-coordinates). The closest
+          sufficiently high maximum will be taken.
+
+        thresh : float
+          The peak counts above background in the maximum of the *smoothed*
+          image must exceed this value for a maximum to count. Use this to
+          filter out noise.
+
+        fft : bool
+          The astropy.convolution routines are used. By default FFT-based
+          convolution is applied as it scales better with fwhm, especially
+          for fwhm >> 1, however the direct method (fft=False) may be faster
+          for small fwhm values and images and has a better behaviour at the
+          edges where it extends value with the nearest pixel while the FFT
+          wraps values.
+
+       max : bool
+          If True, just go for the highest peak, i.e. ignore x0, y0. The peak
+          should still exceed the background by `thresh`
+
+       percent : float
+          percentile to use to compute the background value. < 0 and it will
+          be set to the minimum. 50% = median by default.
+
+      Returns::
+
+          a tuple of (x,y,peak): x,y is the location of the
+          brightest pixel measured in terms of CCD coordinates
+          (i.e. lower-left pixel is at (1,1)) and `peak` is the image value
+          at the peak pixel, in the *unconvolved* image. It might be useful
+          for initial estimates of peak height. If no peak is found, a
+          HipercamError will be raised.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __copy__()
+
+
+   .. py:method:: __deepcopy__(memo)
+
+
+   .. py:method:: __repr__()
+
+
+   .. py:method:: __iadd__(other)
+
+      
+      Adds `other` to the :class:`Window` as 'wind += other'. `other` can be
+      another :class:`Window`, or any object that can be added to a
+      :class:`numpy.ndarray`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __isub__(other)
+
+      
+      Subtracts `other` from the :class:`Window` as 'wind -= other`. `other` can
+      be another Window, or any object that can be subtracted from a
+      :class:`numpy.ndarray`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __imul__(other)
+
+      
+      Multiplies the :class:`Window` by `other` as 'wind *= other'. `other` can
+      be another :class:`Window`, or any object that can multiply a
+      :class:`numpy.ndarray`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __itruediv__(other)
+
+      
+      Divides `other` into the :class:`Window` as 'wind /= other`. `other` can be
+      another Window, or any object that can be divided into a
+      :class:`numpy.ndarray`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __add__(other)
+
+      
+      Adds `other` to a :class:`Window` as `wind + other`.  Here `other` can be a
+      compatible :class:`Window` (identical window) or any object that can
+      be added to a :class:`numpy.ndarray`, e.g. a float, another matching
+      array, etc.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __radd__(other)
+
+      
+      Adds `other` to a :class:`Window` as `other + wind`.  Here `other` is any
+      object that can be added to a :class:`numpy.ndarray`, e.g. a float,
+      another matching array, etc.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __sub__(other)
+
+      
+      Subtracts `other` from a :class:`Window` as `wind - other`.  Here `other`
+      can be a compatible :class:`Window` (identical window) or any object
+      that can be subtracted from a :class:`numpy.ndarray`, e.g. a float,
+      another matching array, etc.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __rsub__(other)
+
+      
+      Subtracts a :class:`Window` from `other` as `other - wind`.  Here `other`
+      is any object that can have a :class:`numpy.ndarray` subtracted from
+      it, e.g. a float, another matching array, etc.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __mul__(other)
+
+      
+      Multiplies a :class:`Window` by `other` as `wind * other`.  Here `other`
+      can be a compatible :class:`Window` (identical window) or any object
+      that can multiply a :class:`numpy.ndarray`, e.g. a float, another
+      matching array, etc.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __rmul__(other)
+
+      
+      Multiplies a :class:`Window` by `other` as `other * wind`.  Here `other` is
+      any object that can multiply a :class:`numpy.ndarray`, e.g. a float,
+      another matching array, etc.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __truediv__(other)
+
+      
+      Divides a :class:`Window` by `other` as `wind / other`.  Here `other`
+      can be a compatible :class:`Window` (identical window) or any object
+      that can divide into a :class:`numpy.ndarray`, e.g. a float, another
+      matching array, etc.
+
+      For safety, the data array of the result will have a float type.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __rtruediv__(other)
+
+      
+      Divides `other` by a :class:`Window` as `other / wind`.  Here `other` is
+      any object that can be divided by a :class:`numpy.ndarray`, e.g. a
+      float, another matching array, etc.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+.. py:class:: CcdWin(wins=Group(Winhead))
+
+   Bases: :py:obj:`Group`
+
+
+   
+   All the :class:`Winhead` objects of a single CCD.
+
+   Acts as a container for all of the window formats of a CCD.
+
+   :Parameters:
+
+       **wins** : Group(Winhead)
+           All of the :class:`Winhead` objects
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:method:: __repr__()
+
+
+   .. py:method:: toJson(fname)
+
+      
+      Dumps ccdWin in JSON format to a file
+
+      Arguments::
+
+         fname : (string)
+            name of file to dump to
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: fromJson(fname)
+      :classmethod:
+
+
+      
+      Read from JSON-format file fname
+
+      Returns a CcdWin object.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+.. py:class:: MccdWin(wins=Group(CcdWin))
+
+   Bases: :py:obj:`Group`
+
+
+   
+   All the :class:`Winhead` objects for multiple CCDs.
+
+
+   :Parameters:
+
+       **wins** : Group(CcdWin)
+           All of the :class:`CcdWin` objects
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:method:: __repr__()
+
+
+   .. py:method:: toJson(fname)
+
+      
+      Dumps MccdWin in JSON format to a file
+
+      Arguments::
+
+          fname : (string)
+             file to dump to
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: fromJson(fname)
+      :classmethod:
+
+
+      
+      Read from JSON-format file fname
+
+      Returns an MccdWin object.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: fromMccd(mccd)
+      :classmethod:
+
+
+
+.. py:class:: CCD(winds, nxtot, nytot, nxpad=0, nypad=0, copy=False)
+
+   Bases: :py:obj:`hipercam.group.Agroup`
+
+
+   
+   Represents a single CCD as a :class:`Group` of :class:`Window`.
+
+   :class:`CCD` objects support a few operations such as returning
+   the mean value, arithematic operations, and file I/O to/from FITS
+   files. Header information is passed via the Windows. The first of
+   these is assumed to be the location for any data pertaining to the
+   CCD as a whole.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:attribute:: nxtot
+
+
+   .. py:attribute:: nytot
+
+
+   .. py:attribute:: nxpad
+      :value: 0
+
+
+
+   .. py:attribute:: nypad
+      :value: 0
+
+
+
+   .. py:method:: __reduce__()
+
+      
+      This is to overcome a problem with pickling CCDs. The arguments for init
+      don't get picked up for some reason so this must return them in the
+      second element of the tuple
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: flatten()
+
+      
+      Returns all data of a CCD as a single 1D array, analogous to
+      numpy.flatten
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: min()
+
+      
+      Returns the minimum value of the :class:`CCD`, i.e. the minimum of
+      all the minimum values of all the :class:`Window`
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: max()
+
+      
+      Returns the maximum value of the :class:`CCD`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: mean()
+
+      
+      Returns the mean value of the :class:`CCD`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: median()
+
+      
+      Returns the median value of the :class:`CCD`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: percentile(q, xlo=None, xhi=None, ylo=None, yhi=None)
+
+      
+      Computes percentile(s) of the :class:`CCD`.
+
+      Arguments::
+
+        q : float or sequence of floats
+          Percentile(s) to use, in range [0,100]
+
+        xlo : int | None
+          To restrict range of pixels
+
+        xhi : int | None
+          To restrict range of pixels
+
+        ylo : int | None
+          To restrict range of pixels
+
+        yhi : int | None
+          To restrict range of pixels
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: whdul(hdul=None, cnam=None, xoff=0, yoff=0)
+
+      
+      Write the :class:`CCD` as a series of HDUs, one per
+      :class:`Window`, adding to and returning an :class:`HDUList`.
+
+      Arguments::
+
+          hdul : astropy.io.fits.HDUList
+             The HDUList to add to.
+
+          cnam : string | None
+             CCD name.
+
+          xoff : int [if cname is not None]
+             X-offset for mosaicing in ds9. Ignored if cnam is None.
+
+      Returns:: an :class:`HDUList`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: rhdul(hdul, cnam=None)
+      :classmethod:
+
+
+      
+      Builds a single :class:`CCD` from an :class:`HDUList`.
+
+      If cnam is None, it is assumed that each HDU represents a Window.
+      Each data HDU will be searched for a header parameter 'WINDOW' to label
+      the :class:`Window`, but the routine will attempt to generate a
+      sequential label if WINDOW is not found. If the auto-generated label
+      conflicts with one already found, then a KeyError will be raised.
+
+      If cnam is not None, cnam is taken to be the label of a CCD to be
+      extracted from the :class:`HDUList` which may contain multiple
+      CCDs. It is assumed in this case that the CCD of interest has a
+      continguous set of HDUs all containing the keyword CCD set equal to
+      cnam. This allows individual CCDs to be read from hcm MCCD files.
+
+      Arguments::
+
+        hdul  : :class:`HDUList`
+             each HDU will be read as sub-window of the :class:`CCD`
+
+        cnam  : (None | string)
+             if cnam is not None, the routine will try to find and return a
+             :class:CCD built from a contiguous subset of HDUs that matches
+             cnam (the keyword CCD is used)
+
+      Returns a :class:`CCD`. Data are converted to float32 unless they are
+      read in as float64.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: rmhdul(hdul)
+      :classmethod:
+
+
+      
+      Builds a :class:`CCD` from an :class:`HDUList` potentially containing
+      multiple CCDs, i.e. an MCCD object. This function acts as a generator
+      to allow the CCDs to be returned in successive calls. It is assumed
+      that hdul is positioned at the start of the CCDs (i.e. with the
+      initial data-less primary HDU removed).
+
+      Arguments::
+
+        hdul  : :class:`HDUList`
+             each ImageHDU will be read as a sub-window of the :class:`CCD`
+
+      Returns::
+
+        A series of (label, :class:`CCD`) 2-element tuples to be used as
+        as follows::
+
+          >> for label, ccd in CCD.rmhdul(hdul, True):
+          >>    ... do something
+
+      Data are converted to float32 unless they are read in as float64.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: write(fname, overwrite=False)
+
+      
+      Writes out the CCD to a FITS file.
+
+      Arguments::
+
+          fname : (string)
+               Name of file to write to.
+
+          overwrite : (bool)
+               True to overwrite pre-existing files
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: read(fname, cnam=None)
+      :classmethod:
+
+
+      
+      Builds a :class:`CCD` from a FITS file. Expects a primary HDU,
+      containing no data, followed by a series of HDUs each containing data
+      for a series of non-overlapping windows.
+
+      This can also be applied to extract a particular CCD, labelled 'cnam'
+      from an MCCD hcm file, on the assumption that all HDUs for a given CCD
+      come in a contiguous block with each one labelled with the keyword
+      'CCD'.
+
+      Data are converted to float32 unless they are read in as float64.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: matches(ccd)
+
+      
+      Check that the :class:`CCD` matches another, which in this case means
+      checking that each window of the same label matches the equivalent in
+      the other `CCD`.
+
+      There will be no match if there any windows present in one `CCD` but
+      not the other and the windows must have identical location, size and
+      binning.
+
+      Raises KeyError or ValueError exception depending on the problem.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: copy(memo=None)
+
+      
+      Make a copy of the :class:`CCD`
+
+      copy.copy and copy.deepcopy of a `CCD` use this method
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: float32()
+
+      
+      Applies :class:Window.float32 to all Windows of a CCD
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: float64()
+
+      
+      Applies :class:Window.float64 to all Windows of a CCD
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: uint16()
+
+      
+      Applies :class:Window.uint16 to all Windows of a CCD
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: set_const(val)
+
+      
+      Sets all Windows to a constant value
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: inside(x, y, dmin)
+
+      
+      Tests whether a point x,y lies within any Window of a CCD, at
+      least dmin from its outer edge. It returns with the Window label
+      or None if the point is not inside any Window
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: crop(ccd)
+
+      
+      Given a template :class:`CCD` called `ccd`, this tries to modify
+      the format of the :class:`CCD`, returning a new
+      :class:`CCD`. This is often needed e.g. prior to applying a
+      full frame flat field. In general this operation requires
+      re-labelling of the :class:`Window` composing the CCD. It
+      raises a :class:`HipercamError` if it fails.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:property:: head
+
+      
+      Returns the first Window or an empty fits.Header if there is
+      no first Window. The header of the first Window is where general
+      header items of the CCD are stored.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: is_data()
+
+      
+      Returns True / False according to whether the frame is thought
+      to contain data. Uses DSTATUS keyword if present, else returns True
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __repr__()
+
+      
+      Return repr(self).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+.. py:class:: MCCD(ccds, head=None, copy=False)
+
+   Bases: :py:obj:`hipercam.group.Agroup`
+
+
+   
+   Class representing a multi-CCD as a Group of CCD objects plus a FITS
+   header. It supports arithematic operations and file I/O to/from FITS
+   files.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:attribute:: head
+      :value: None
+
+
+
+   .. py:method:: __reduce__()
+
+      
+      This is to overcome a problem with pickling MCCDs. The arguments for
+      init don't get picked up for some reason so this must return them in
+      the second element of the tuple
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: write(fname, overwrite=False, xgap=200, ygap=200)
+
+      
+      Writes out the MCCD to a FITS file.
+
+      Arguments::
+
+          fname : string or file-like object
+              Name of file to write to. Can also be a file, opened in
+              writeable binary mode.
+
+          overwrite : bool
+              True to overwrite pre-existing files
+
+          xgap  : int
+             X-gap used to space CCDs for ds9 mosaicing (unbinned pixels)
+
+          ygap  : int
+             Y-gap used to space CCDs for ds9 mosaicing (unbinned pixels)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: read(fname)
+      :classmethod:
+
+
+      
+      Builds an :class:`MCCD` from a FITS file. Expects a primary HDU, containing
+      general headers and the first HDU, followed by a series of HDU blocks
+      for each CCD with the first one of each containing some general
+      per-CCD header items.
+
+      Data are converted to float32 unless they are read in as float64.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: rhdul(hdul)
+      :classmethod:
+
+
+      
+      Builds an :class:`MCCD` from an :class:`HDUList`.
+
+      This will usually be passed the :class:`HDUList` from a
+      file. The header from the first (primary) HDU will be used to
+      create the header for the :class:`MCCD`. It is then assumed
+      that the data for each :class:`CCD` is contained in blocks of
+      HDUs after the first. The data from all HDUs will be read into
+      the :class:`Window` objects that make up the CCD. Each HDU
+      will be searched for a header parameter WINDOW to label the
+      :class:`Window`, but the code will attempt to generate a
+      sequential label if WINDOW is not found.
+
+      Arguments::
+
+        hdul : :class:`HDUList`
+             each ImageHDU will be read as sub-window of the :class:`CCD`
+
+      Data are converted to float32 unless they are read in as float64.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: copy(memo=None)
+
+      
+      Make a copy of the :class:`MCCD`
+
+      copy.copy and copy.deepcopy of an `MCCD` use this method
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: matches(mccd)
+
+      
+      Check that the :class:`MCCD` matches another, which in this means checking
+      that each CCD of the same label matches the equivalent in the other
+      `MCCD`.
+
+      There will be no match if there any CCDs present in one `MCCD` which are
+      not in the other.
+
+      Raises KeyError or ValueError exception depending on the problem.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: crop(mccd)
+
+      
+      Crops the :class:MCCD to the same format as a template,
+      `mccd`. Returns the new version. Will raise a HipercamError if
+      it fails.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __repr__()
+
+      
+      Return repr(self).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: float32()
+
+      
+      Applies :class:Window.float32 to all Windows of an MCCD
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: float64()
+
+      
+      Applies :class:Window.float64 to all Windows of an MCCD
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: uint16()
+
+      
+      Applies :class:Window.uint16 to all Windows of an MCCD
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: set_const(val)
+
+      
+      Sets all CCDs to a constant value
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+.. py:function:: get_ccd_info(fname)
+
+   
+   Routine to return some useful basic information from an MCCD file without
+   reading the whole thing in. It returns an OrderedDict keyed on the CCD
+   label which returns the maximum X and Y dimensions of the CCD and X and Y
+   padding as a 4-element tuple. If no CCD label [header parameter 'CCD'] is
+   found, the routine assigns a label of '1' on the assumption that the file
+   cotains a single CCD.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: trim_ultracam(mccd, ncol, nrow)
+
+   
+   Trims columns and rows from an MCCD. The rows and columns are trimmed
+   from each nearest to the readout amplifier as indicated by the value of
+   the "outamp" attribute. e.g. if outamp='LL' then the rows and columns
+   are stripped from the bottom and the left of the window respectively. This
+   is useful because for ULTRACAM and ULTRASPEC these rows and columns can
+   suffer from ringing effects.
+
+   Arguments::
+
+      mccd : MCCD
+        the MCCD to be trimmed. Modified in place, i.e. it's changed on
+        output.
+
+      ncol : int
+        number of columns to be trimmed.
+
+      nrow : int
+        number of rows to be trimmed
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:class:: Aperture(x, y, rtarg, rsky1, rsky2, ref, compo=False, mask=[], extra=[], link='')
+
+   
+   Represents an aperture for astronomical photometry
+
+   Essentially this consists of 3 circles representing the object,
+   radius `rtarg`, and the sky annulus between radii `r2` and `r3`,
+   centered at a specific position, but there are several extra
+   characteristics in addition. These are:
+
+   Reference apertures: these indicate (typically) bright stars that should
+   be easy to locate. The idea is that when re-positioning apertures, you
+   might want to initially do the brightest stars, and then see what the
+   overall x,y shift is before attempting fainter ones. This status is
+   indicated with a logical flag.
+
+   Linked apertures: some targets are nearly impossible to register, or may
+   fade so much that they cannot be detected. Such targets can be "linked" to
+   others in the sense that they are offset from them.
+
+   COMPO apertures: comparison stars injected onto the science image by
+   COMPO have a difference world coordinate system to the main science image.
+   Their motion on the CCD is flipped, so that an (x, y) shift in the stars
+   on the science CCD produces a (-x, -y) shift in the COMPO stars. This
+   status is indicated with a logical flag.
+
+   Sky masks: ('mask) these are fixed circles offset from the aperture in
+   question indicating pixels to ignore when estimating the sky background.
+
+   Star masks: ('extra') these are circles offset from aperture indicating
+   pixels to include when summing the object flux. This is to combat problems
+   caused by blended objects. These *also* act as sky masks so there should
+   be no need to also mask such object.
+
+   :Parameters:
+
+       **x** : float
+           X position of centre of aperture, or the X offset to apply
+           if the aperture is linked from another.
+
+       **y** : float
+           Y position of centre of aperture, or the Y offset to apply
+           if the aperture is linked from another.
+
+       **rtarg** : float
+           Radius (unbinned pixels) of target aperture
+
+       **rsky1** : float
+           Inner radius (unbinned pixels) of sky annulus
+
+       **rsky2** : float
+           Outer radius (unbinned pixels) of sky annulus
+
+       **ref** : bool
+           True/False to indicate whether this is a reference
+           aperture meaning that its position will be re-determined
+           before non-reference apertures to provide a shift.
+
+       **compo** : bool
+           True/False to indicate whether this is a compo
+           aperture meaning that its shifts are inverted w.r.t non-compo
+           apertures.
+
+       **mask** : list of 3 element tuples
+           Each tuple in the list consists of an x,y offset and a radius in
+           unbinned pixels. These are used to mask nearby areas when
+           determining the sky value (e.g. to exclude stars)
+
+       **extra** : list of 2 element tuples
+           Similar to `mask`, but each tuple in the list consists only of an
+           x,y offset. These however are used as centres of additional target
+           apertures to allow blended stars to be include in the total flux.
+           They are given the same radius as the target aperture. They are also
+           used to exclude sky pixels.
+
+       **link** : str
+              If != '', this is a string label for another :class:`Aperture` that
+              *this* :class:`Aperture` is linked from. The idea is that this label
+              can be used to lookup the :class:`Aperture`.
+           
+           .. note::
+           
+              Normal practice would be to set link, mask, extra later,
+              having created the Aperture. Attributes of the same name as
+              all the arguments are defined.  We copy the mask and extra
+              apertures to avoid propagating references.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:attribute:: x
+
+
+   .. py:attribute:: y
+
+
+   .. py:attribute:: rtarg
+
+
+   .. py:attribute:: rsky1
+
+
+   .. py:attribute:: rsky2
+
+
+   .. py:attribute:: ref
+
+
+   .. py:attribute:: compo
+      :value: False
+
+
+
+   .. py:attribute:: mask
+
+
+   .. py:attribute:: extra
+
+
+   .. py:attribute:: link
+      :value: ''
+
+
+
+   .. py:method:: __repr__()
+
+
+   .. py:method:: copy(memo=None)
+
+      
+      Returns with a copy of the Aperture
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: add_mask(xoff, yoff, radius)
+
+      
+      Adds a mask to the :class:Aperture
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: add_extra(xoff, yoff)
+
+      
+      Adds a mask to the :class:Aperture
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: set_link(aplabel)
+
+      
+      Links this :class:Aperture to a lookup label for another
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: break_link()
+
+      
+      Cancels any link to another :class:Aperture
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:property:: linked
+
+      
+      Returns True if the :class:Aperture is linked to another
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: check()
+
+      
+      Run a few checks on an :class:Aperture. Raises a ValueError if there are
+      problems.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: write(fname)
+
+      
+      Dumps Aperture in JSON format to a file called fname
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: toString()
+
+      
+      Returns Aperture as a JSON-type string
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: read(fname)
+      :classmethod:
+
+
+      
+      Read from JSON-format file fname
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+.. py:class:: CcdAper(aps=Group(Aperture))
+
+   Bases: :py:obj:`Group`
+
+
+   
+   Class representing all the :class:Apertures for a single CCD.
+   Normal usage is to create an empty one and then add apertures via
+   the usual mechanism for updating dictionaries, i.e. ccdap[label] =
+   aperture.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:method:: __repr__()
+
+
+   .. py:method:: check()
+
+      
+      Checks for problems with links
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: write(fname)
+
+      
+      Dumps ccdAper in JSON format to a file called fname
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: copy(memo=None)
+
+
+.. py:class:: MccdAper(aps=Group(CcdAper))
+
+   Bases: :py:obj:`Group`
+
+
+   
+   Class representing all the :class:Apertures for multiple CCDs.
+   Normal usage is to create an empty one and then add apertures via
+   the usual mechanism for updating dictionaries, e.g.
+
+     >> mccdap = MccdAper()
+     >> mccdap['ccd1'] = CcdAper()
+     >> mccdap['ccd2'] = CcdAper()
+     >> mccdap['ccd1']['ap1'] = Aperture(100,200,10,15,125,False)
+
+   etc.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:method:: __repr__()
+
+
+   .. py:method:: write(fname)
+
+      
+      Dumps MccdAper in JSON format to a file called fname
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: toString()
+
+      
+      Returns MccdAper in JSON format as a string
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: read(fname)
+      :classmethod:
+
+
+      
+      Read from JSON-format file fname. Since such files can fairly easily be
+      corrupted by injudicious editing, some consistency checks are
+      run. File loading does not happen often, so this should not be a
+      serious overhead
+
+        fp : a file-like object opened for reading of text
+
+      Returns an MccdAper object.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+.. py:class:: Target(xcen, ycen, height, fwhm1, fwhm2, angle, beta, fmin)
+
+   
+   Object to represent an astronomical target in terms of its appearance in a
+   CCD image. The representation chosen is 2D "Moffat" function, which takes
+   the form h/(1+(r/r0)**2)**beta, where 'h' is the central height, 'r' is
+   the distance from the centre, 'r0' is a scale, and 'beta' is an exponent
+   which for large values makes the profile Gaussian.
+
+   To allow for trailing, poor focus and to roughly simulate galaxies,
+   :class:`Target` objects can be elliptical in shape.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:attribute:: xcen
+
+
+   .. py:attribute:: ycen
+
+
+   .. py:attribute:: height
+
+
+   .. py:attribute:: fmin
+
+
+   .. py:attribute:: _fwhm1
+
+
+   .. py:attribute:: _fwhm2
+
+
+   .. py:attribute:: _angle
+
+
+   .. py:attribute:: _beta
+
+
+   .. py:method:: copy(memo=None)
+
+      
+      Returns a copy of the :class:`Target`
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __copy__()
+
+
+   .. py:method:: __deepcopy__(memo)
+
+
+   .. py:method:: _comp_abc()
+
+
+   .. py:property:: fwhm1
+
+
+   .. py:property:: fwhm2
+
+
+   .. py:property:: angle
+
+
+   .. py:property:: beta
+
+
+   .. py:method:: offset(dx, dy)
+
+      
+      This generates a new :class:`Target` by offsetting the position
+      of the :class:`Target`
+
+      Arguments::
+
+         dx : float
+           X offset to add to the positions of all targets [unbinned pixels]
+
+         dy : float
+           Y offset to add to the positions of all targets [unbinned pixels]
+
+      Returns:: a shifted version of the :class:`Target`
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: add(wind, scale=1.0)
+
+      
+      Adds the :class:`Target` to a :class:`Window` with
+      an optional scaling factor. Returns 1 if anything added, 0
+      if there was no overlap.
+
+      Arguments::
+
+        wind : Window
+          a Window, i.e. an array that knows where it is located.
+
+        scale : float
+          factor to scale how much is added in.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __repr__()
+
+
+.. py:class:: Field
+
+   Bases: :py:obj:`list`
+
+
+   
+   Object to represent a star field as a list of :class:`Target`s. This is to
+   help with simulation of star fields.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:method:: add_random(ntarg, x1, x2, y1, y2, h1, h2, angle1, angle2, fwhm1, fwhm2, beta, fmin)
+
+      
+      Adds a random field of ntarg :class:`Target` objects scattered over the
+      range x1, x2, y1, y2, with peak heights from h1 to h2, random angles
+      from angle1 to angle2, but with fixed width parameters. The peak
+      heights are chosen between the limits to have a distribution
+      appropriate to a 3D Euclidean distribution of constant luminosity
+      objects. The distributions over x, y and angle are uniform.
+
+      Arguments::
+
+         ntarg : (int)
+            number of targets to add
+
+         x1 : (float)
+            left limit of region to add targets to
+
+         x2 : (float)
+            right limit of region to add targets to
+
+         y1 : (float)
+            lower limit of region to add targets to
+
+         y2 : (float)
+            upper limit of region to add targets to
+
+         h1 : (float)
+            lowest peak height
+
+         h2 : (float)
+            highest peak height
+
+         angle1 : (float)
+            lowest angle degrees clockwise from the X axis
+
+         angle2 : (float)
+            highest angle degrees clockwise from the X axis
+
+         fwhm1 : (float)
+            FWHM along major axis of objects
+
+         fwhm2 : (float)
+            FWHM along minor axis of objects
+
+         beta : (float)
+            exponent that appears in Moffat functions
+
+         fmin : (float)
+
+            parameter used to restrict region affected by a target: it's the
+            minimum count level to which the profile will be computed.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: modify(transform, fscale)
+
+      
+      This generates a new :class:`Field` by applying `transform` to the x,y
+      locations of each target to change them. It also scales the targets'
+      peak heights by a constant factor fscale.
+
+      Arguments::
+
+         transform : (callable)
+             Should have signature transform(x,y) and when given the centre
+             x,y of a target, it should return the change in x,y needed to
+             get to the new position which will be fed to Target.offset
+
+         fscale : (float)
+             Scaling factor  It should also have an attribute `fscale`
+             that is a scaling factor that will be applied to the targt peak
+             heights.
+
+      See `hipercam.command_line.makedata` for an example.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: add(wind, ndiv=0)
+
+      
+      Adds all the targets of a Field to a Window
+
+      Arguments::
+
+        wind : Window
+           targets will be added to it; modified on exit
+
+        ndiv : int
+           sub-division factor to account for pixellation
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: wjson(fname)
+
+      
+      Writes a :class:`Field` to a file in json format. This is provided as a
+      straightforward way to store all the info of a :class:`Field`.
+
+      Arguments::
+
+         fname : (string)
+            file to write to
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: rjson(fname)
+      :classmethod:
+
+
+      
+      Creates a :class:`Field` from a json format file as saved by `wjson`.
+
+      Arguments::
+
+         fname : (string)
+            the file to read to create the :class:`Field`
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+.. py:class:: Header(head=None, copy=False)
+
+   
+   Simulates the basic functionality of astropy.io.fits.Header objects while
+   being lighter weight and thus more efficient. The idea is to allow headers
+   that are compatible with writing to and reading from FITS files, i.e.
+   that have (uppercase) keywords, values, comments and allows for 'HIERARCH'
+   long keywords. History and comments are added at the end of the
+   header. There is no attempt to replicate all the methods of
+   astropy.io.fits.Header, although many are similar in nature to reduce the
+   number of changes to the code required to implement this. This class has
+   does not have all the checks of astropy.io.fits.Header objects so it is
+   possible to create invalid headers, but this should become obvious when
+   attempting conversion to FITS. Some example code::
+
+     >> import Header from hipercam
+     >> head = Header()
+     >> head['a'] = (1.23, 'a comment')
+     >> head['object'] = 'IP Peg'
+
+   :class:`Header` objects are used as the base class of :class:`Winhead` and
+   :class:`Window` objects which build into :class:`CCD` and :class:`MCCD`
+   objects.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:attribute:: SPECIAL_KEYWORDS
+      :value: ('COMMENT', 'HISTORY', '')
+
+
+
+   .. py:property:: to_fits
+
+      
+      Returns the Header as an astropy.io.fits.Header
+      which is useful when saving to disk
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: _process_key(key)
+      :staticmethod:
+
+
+      
+      This converts keys of 8 characters or less to uppercase.
+      Any leading 'HIERARCH ' is stripped
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __setitem__(key, item)
+
+      
+      Sets the value of a header item using the [] form, e.g. `head['NREC'] =
+      2345`.  Reserved keywords 'COMMENT', 'HISTORY' and '' (blank) are
+      trapped.
+
+      Arguments::
+
+        key : string
+           the name of the header item.
+
+        item : tuple | string | int | float
+           the (value,comment) pair or just the value (in which
+           case the comment will be blank.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __getitem__(key)
+
+      
+      Returns the value associated with header item 'key' using the
+      [] form, e.g. `nrec = head['NRECORD']`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: get(key, default)
+
+      
+      Returns the value associated with header item 'key', returning
+      a default value if the header item does not exist.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: get_full(key)
+
+      
+      Returns with 2-element (value,comment) tuple for the given keyword
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: get_comment(key)
+
+      
+      Returns with the comment for the given keyword
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: add_comment(comment)
+
+      
+      Adds a comment to the end of the 'COMMENT' section
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: add_history(history)
+
+      
+      Adds a line of history to the end of the 'HISTORY' section
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: copy()
+
+
+   .. py:method:: __repr__()
+
+
+   .. py:method:: __delitem__(key)
+
+      
+      Deletes a particular header item when called e.g. as
+      `del head[key]`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __contains__(key)
+
+      
+      Defines the operation 'in' for a Header. Look up whether
+      a given key is in the header
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: update(head)
+
+      
+      Update the Header with the contents of another header (excluding
+      comments and history)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+.. py:data:: __version__
+
+.. py:data:: __all__
+

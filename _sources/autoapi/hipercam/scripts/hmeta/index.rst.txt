@@ -1,0 +1,26 @@
+hipercam.scripts.hmeta
+======================
+
+.. py:module:: hipercam.scripts.hmeta
+
+.. autoapi-nested-parse::
+
+   Command line script to generate meta data
+
+   ..
+       !! processed by numpydoc !!
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   hipercam.scripts.hmeta.hmeta
+
+
+Module Contents
+---------------
+
+.. py:function:: hmeta(args=None)
+

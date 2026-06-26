@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>hipercam.core &#8212; HiPERCAM pipeline 1.6.8.dev12+g30055e846 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/bootstrap-astropy.css?v=177ce38d" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=fd3f3429" />
+    
+    <script src="../../../_static/documentation_options.js?v=adfd3a0b"></script>
+    <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script type="text/javascript" src="../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="hipercam.defect" href="../defect/index.html" />
+    <link rel="prev" title="hipercam.ccd" href="../ccd/index.html" />
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../index.html"><span id="logotext1">astro</span><span id="logotext2"></span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="../defect/index.html" title="hipercam.defect">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="../ccd/index.html" title="hipercam.ccd">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../../../index.html">HiPERCAM pipeline 1.6.8.dev12+g30055e846 documentation</a>
+	 &#187;
+      </li>
+      <li><a href="../../index.html" >API Reference</a> &#187;</li>
+      <li><a href="../index.html" accesskey="U">hipercam</a> &#187;</li>
+      
+      <li>hipercam.core</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-hipercam.core">
+<span id="hipercam-core"></span><h1>hipercam.core<a class="headerlink" href="#module-hipercam.core" title="Link to this heading">¶</a></h1>
+<p>Core data, functions and classes for the hipercam package</p>
+<section id="attributes">
+<h2>Attributes<a class="headerlink" href="#attributes" title="Link to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.core.REDUCE_FILE_VERSION" title="hipercam.core.REDUCE_FILE_VERSION"><code class="xref py py-obj docutils literal notranslate"><span class="pre">REDUCE_FILE_VERSION</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.core.FIELD" title="hipercam.core.FIELD"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FIELD</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.core.HCAM" title="hipercam.core.HCAM"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HCAM</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.core.LIST" title="hipercam.core.LIST"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LIST</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.core.APER" title="hipercam.core.APER"><code class="xref py py-obj docutils literal notranslate"><span class="pre">APER</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.core.HRAW" title="hipercam.core.HRAW"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HRAW</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.core.RED" title="hipercam.core.RED"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RED</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.core.LOG" title="hipercam.core.LOG"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LOG</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.core.DFCT" title="hipercam.core.DFCT"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DFCT</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.core.SEP" title="hipercam.core.SEP"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SEP</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.core.TBTS" title="hipercam.core.TBTS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TBTS</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.core.FRNG" title="hipercam.core.FRNG"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FRNG</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.core.DMINS" title="hipercam.core.DMINS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DMINS</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.core.CIS" title="hipercam.core.CIS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CIS</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.core.CNAMS" title="hipercam.core.CNAMS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CNAMS</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.core.ALL_OK" title="hipercam.core.ALL_OK"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ALL_OK</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.core.ANY_FLAG" title="hipercam.core.ANY_FLAG"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ANY_FLAG</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.core.NO_FWHM" title="hipercam.core.NO_FWHM"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NO_FWHM</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.core.NO_SKY" title="hipercam.core.NO_SKY"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NO_SKY</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.core.SKY_AT_EDGE" title="hipercam.core.SKY_AT_EDGE"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SKY_AT_EDGE</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.core.TARGET_AT_EDGE" title="hipercam.core.TARGET_AT_EDGE"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TARGET_AT_EDGE</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.core.TARGET_SATURATED" title="hipercam.core.TARGET_SATURATED"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TARGET_SATURATED</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.core.TARGET_NONLINEAR" title="hipercam.core.TARGET_NONLINEAR"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TARGET_NONLINEAR</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.core.NO_EXTRACTION" title="hipercam.core.NO_EXTRACTION"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NO_EXTRACTION</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.core.NO_DATA" title="hipercam.core.NO_DATA"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NO_DATA</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.core.CLOUDS" title="hipercam.core.CLOUDS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CLOUDS</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.core.JUNK" title="hipercam.core.JUNK"><code class="xref py py-obj docutils literal notranslate"><span class="pre">JUNK</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.core.BAD_FLAT" title="hipercam.core.BAD_FLAT"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BAD_FLAT</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.core.BAD_COLUMN" title="hipercam.core.BAD_COLUMN"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BAD_COLUMN</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.core.BAD_TIME" title="hipercam.core.BAD_TIME"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BAD_TIME</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.core.OUTLIER" title="hipercam.core.OUTLIER"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OUTLIER</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.core.FLAGS" title="hipercam.core.FLAGS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FLAGS</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.core.FLAG_MESSAGES" title="hipercam.core.FLAG_MESSAGES"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FLAG_MESSAGES</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="exceptions">
+<h2>Exceptions<a class="headerlink" href="#exceptions" title="Link to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.core.HipercamError" title="hipercam.core.HipercamError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HipercamError</span></code></a></p></td>
+<td><p>Class for the hipercam package errors</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.core.HipercamWarning" title="hipercam.core.HipercamWarning"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HipercamWarning</span></code></a></p></td>
+<td><p>Class for hipercam package warnings. Use with warnings.warn</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.core.version" title="hipercam.core.version"><code class="xref py py-obj docutils literal notranslate"><span class="pre">version</span></code></a>()</p></td>
+<td><p>Returns version number of installed HiPERCAM pipeline</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.core.gregorian_to_mjd" title="hipercam.core.gregorian_to_mjd"><code class="xref py py-obj docutils literal notranslate"><span class="pre">gregorian_to_mjd</span></code></a>(year, month, day)</p></td>
+<td><p>This returns the Modified Julian Day number corresponding to the</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.core.mjd_to_gregorian" title="hipercam.core.mjd_to_gregorian"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mjd_to_gregorian</span></code></a>(mjd)</p></td>
+<td><p>This returns the year, month, and day corresponding to the supplied</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.core.fday_to_hms" title="hipercam.core.fday_to_hms"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fday_to_hms</span></code></a>(fday)</p></td>
+<td><p>Returns a tuple of (hours, minutes, seconds) given a fraction of a</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">¶</a></h2>
+<dl class="py data">
+<dt class="sig sig-object py" id="hipercam.core.REDUCE_FILE_VERSION">
+<span class="sig-prename descclassname"><span class="pre">hipercam.core.</span></span><span class="sig-name descname"><span class="pre">REDUCE_FILE_VERSION</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'20230222'</span></em><a class="headerlink" href="#hipercam.core.REDUCE_FILE_VERSION" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="hipercam.core.FIELD">
+<span class="sig-prename descclassname"><span class="pre">hipercam.core.</span></span><span class="sig-name descname"><span class="pre">FIELD</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'.fld'</span></em><a class="headerlink" href="#hipercam.core.FIELD" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="hipercam.core.HCAM">
+<span class="sig-prename descclassname"><span class="pre">hipercam.core.</span></span><span class="sig-name descname"><span class="pre">HCAM</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'.hcm'</span></em><a class="headerlink" href="#hipercam.core.HCAM" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="hipercam.core.LIST">
+<span class="sig-prename descclassname"><span class="pre">hipercam.core.</span></span><span class="sig-name descname"><span class="pre">LIST</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'.lis'</span></em><a class="headerlink" href="#hipercam.core.LIST" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="hipercam.core.APER">
+<span class="sig-prename descclassname"><span class="pre">hipercam.core.</span></span><span class="sig-name descname"><span class="pre">APER</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'.ape'</span></em><a class="headerlink" href="#hipercam.core.APER" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="hipercam.core.HRAW">
+<span class="sig-prename descclassname"><span class="pre">hipercam.core.</span></span><span class="sig-name descname"><span class="pre">HRAW</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'.fits'</span></em><a class="headerlink" href="#hipercam.core.HRAW" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="hipercam.core.RED">
+<span class="sig-prename descclassname"><span class="pre">hipercam.core.</span></span><span class="sig-name descname"><span class="pre">RED</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'.red'</span></em><a class="headerlink" href="#hipercam.core.RED" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="hipercam.core.LOG">
+<span class="sig-prename descclassname"><span class="pre">hipercam.core.</span></span><span class="sig-name descname"><span class="pre">LOG</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'.log'</span></em><a class="headerlink" href="#hipercam.core.LOG" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="hipercam.core.DFCT">
+<span class="sig-prename descclassname"><span class="pre">hipercam.core.</span></span><span class="sig-name descname"><span class="pre">DFCT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'.dft'</span></em><a class="headerlink" href="#hipercam.core.DFCT" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="hipercam.core.SEP">
+<span class="sig-prename descclassname"><span class="pre">hipercam.core.</span></span><span class="sig-name descname"><span class="pre">SEP</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'.sep'</span></em><a class="headerlink" href="#hipercam.core.SEP" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="hipercam.core.TBTS">
+<span class="sig-prename descclassname"><span class="pre">hipercam.core.</span></span><span class="sig-name descname"><span class="pre">TBTS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'.tbts'</span></em><a class="headerlink" href="#hipercam.core.TBTS" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="hipercam.core.FRNG">
+<span class="sig-prename descclassname"><span class="pre">hipercam.core.</span></span><span class="sig-name descname"><span class="pre">FRNG</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'.frng'</span></em><a class="headerlink" href="#hipercam.core.FRNG" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="hipercam.core.DMINS">
+<span class="sig-prename descclassname"><span class="pre">hipercam.core.</span></span><span class="sig-name descname"><span class="pre">DMINS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1440.0</span></em><a class="headerlink" href="#hipercam.core.DMINS" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="hipercam.core.CIS">
+<span class="sig-prename descclassname"><span class="pre">hipercam.core.</span></span><span class="sig-name descname"><span class="pre">CIS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">((1,</span> <span class="pre">1,</span> <span class="pre">1),</span> <span class="pre">(0,</span> <span class="pre">0,</span> <span class="pre">0),</span> <span class="pre">(0.898,</span> <span class="pre">0,</span> <span class="pre">0),</span> <span class="pre">(0.082,</span> <span class="pre">0.69,</span> <span class="pre">0.102),</span> <span class="pre">(0.012,</span> <span class="pre">0.263,</span> <span class="pre">0.875),</span> <span class="pre">(1,</span> <span class="pre">0.008,...</span></em><a class="headerlink" href="#hipercam.core.CIS" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="hipercam.core.CNAMS">
+<span class="sig-prename descclassname"><span class="pre">hipercam.core.</span></span><span class="sig-name descname"><span class="pre">CNAMS</span></span><a class="headerlink" href="#hipercam.core.CNAMS" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="hipercam.core.ALL_OK">
+<span class="sig-prename descclassname"><span class="pre">hipercam.core.</span></span><span class="sig-name descname"><span class="pre">ALL_OK</span></span><a class="headerlink" href="#hipercam.core.ALL_OK" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="hipercam.core.ANY_FLAG">
+<span class="sig-prename descclassname"><span class="pre">hipercam.core.</span></span><span class="sig-name descname"><span class="pre">ANY_FLAG</span></span><a class="headerlink" href="#hipercam.core.ANY_FLAG" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="hipercam.core.NO_FWHM">
+<span class="sig-prename descclassname"><span class="pre">hipercam.core.</span></span><span class="sig-name descname"><span class="pre">NO_FWHM</span></span><a class="headerlink" href="#hipercam.core.NO_FWHM" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="hipercam.core.NO_SKY">
+<span class="sig-prename descclassname"><span class="pre">hipercam.core.</span></span><span class="sig-name descname"><span class="pre">NO_SKY</span></span><a class="headerlink" href="#hipercam.core.NO_SKY" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="hipercam.core.SKY_AT_EDGE">
+<span class="sig-prename descclassname"><span class="pre">hipercam.core.</span></span><span class="sig-name descname"><span class="pre">SKY_AT_EDGE</span></span><a class="headerlink" href="#hipercam.core.SKY_AT_EDGE" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="hipercam.core.TARGET_AT_EDGE">
+<span class="sig-prename descclassname"><span class="pre">hipercam.core.</span></span><span class="sig-name descname"><span class="pre">TARGET_AT_EDGE</span></span><a class="headerlink" href="#hipercam.core.TARGET_AT_EDGE" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="hipercam.core.TARGET_SATURATED">
+<span class="sig-prename descclassname"><span class="pre">hipercam.core.</span></span><span class="sig-name descname"><span class="pre">TARGET_SATURATED</span></span><a class="headerlink" href="#hipercam.core.TARGET_SATURATED" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="hipercam.core.TARGET_NONLINEAR">
+<span class="sig-prename descclassname"><span class="pre">hipercam.core.</span></span><span class="sig-name descname"><span class="pre">TARGET_NONLINEAR</span></span><a class="headerlink" href="#hipercam.core.TARGET_NONLINEAR" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="hipercam.core.NO_EXTRACTION">
+<span class="sig-prename descclassname"><span class="pre">hipercam.core.</span></span><span class="sig-name descname"><span class="pre">NO_EXTRACTION</span></span><a class="headerlink" href="#hipercam.core.NO_EXTRACTION" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="hipercam.core.NO_DATA">
+<span class="sig-prename descclassname"><span class="pre">hipercam.core.</span></span><span class="sig-name descname"><span class="pre">NO_DATA</span></span><a class="headerlink" href="#hipercam.core.NO_DATA" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="hipercam.core.CLOUDS">
+<span class="sig-prename descclassname"><span class="pre">hipercam.core.</span></span><span class="sig-name descname"><span class="pre">CLOUDS</span></span><a class="headerlink" href="#hipercam.core.CLOUDS" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="hipercam.core.JUNK">
+<span class="sig-prename descclassname"><span class="pre">hipercam.core.</span></span><span class="sig-name descname"><span class="pre">JUNK</span></span><a class="headerlink" href="#hipercam.core.JUNK" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="hipercam.core.BAD_FLAT">
+<span class="sig-prename descclassname"><span class="pre">hipercam.core.</span></span><span class="sig-name descname"><span class="pre">BAD_FLAT</span></span><a class="headerlink" href="#hipercam.core.BAD_FLAT" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="hipercam.core.BAD_COLUMN">
+<span class="sig-prename descclassname"><span class="pre">hipercam.core.</span></span><span class="sig-name descname"><span class="pre">BAD_COLUMN</span></span><a class="headerlink" href="#hipercam.core.BAD_COLUMN" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="hipercam.core.BAD_TIME">
+<span class="sig-prename descclassname"><span class="pre">hipercam.core.</span></span><span class="sig-name descname"><span class="pre">BAD_TIME</span></span><a class="headerlink" href="#hipercam.core.BAD_TIME" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="hipercam.core.OUTLIER">
+<span class="sig-prename descclassname"><span class="pre">hipercam.core.</span></span><span class="sig-name descname"><span class="pre">OUTLIER</span></span><a class="headerlink" href="#hipercam.core.OUTLIER" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="hipercam.core.FLAGS">
+<span class="sig-prename descclassname"><span class="pre">hipercam.core.</span></span><span class="sig-name descname"><span class="pre">FLAGS</span></span><a class="headerlink" href="#hipercam.core.FLAGS" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="hipercam.core.FLAG_MESSAGES">
+<span class="sig-prename descclassname"><span class="pre">hipercam.core.</span></span><span class="sig-name descname"><span class="pre">FLAG_MESSAGES</span></span><a class="headerlink" href="#hipercam.core.FLAG_MESSAGES" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.core.version">
+<span class="sig-prename descclassname"><span class="pre">hipercam.core.</span></span><span class="sig-name descname"><span class="pre">version</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.core.version" title="Link to this definition">¶</a></dt>
+<dd><p>Returns version number of installed HiPERCAM pipeline</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.core.gregorian_to_mjd">
+<span class="sig-prename descclassname"><span class="pre">hipercam.core.</span></span><span class="sig-name descname"><span class="pre">gregorian_to_mjd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">year</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">month</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">day</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.core.gregorian_to_mjd" title="Link to this definition">¶</a></dt>
+<dd><p>This returns the Modified Julian Day number corresponding to the
+start of the Gregorian date supplied. Algorithm taken from
+Duffet-Smith. Tested against astropy.time.Time. Designed to be
+simple and fast.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>year</strong><span class="classifier">int</span></dt><dd><p>Year (valid range: 1582 onwards)</p>
+</dd>
+<dt><strong>month</strong><span class="classifier">int</span></dt><dd><p>Month of year, 1 to 12 inclusive.</p>
+</dd>
+<dt><strong>day</strong><span class="classifier">int</span></dt><dd><p>day of month (1 to 31; will not check month by month)</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>mjd</strong><span class="classifier">int</span></dt><dd><p>Modified Julian Day number</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.core.mjd_to_gregorian">
+<span class="sig-prename descclassname"><span class="pre">hipercam.core.</span></span><span class="sig-name descname"><span class="pre">mjd_to_gregorian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mjd</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.core.mjd_to_gregorian" title="Link to this definition">¶</a></dt>
+<dd><p>This returns the year, month, and day corresponding to the supplied
+MJD. From Duffet-Smith. Checked against ‘gregorian_to_mjd’.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>mjd</strong><span class="classifier">int</span></dt><dd><p>Modified Julian Day number</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt>Returns a tuple of (year,month,day)</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.core.fday_to_hms">
+<span class="sig-prename descclassname"><span class="pre">hipercam.core.</span></span><span class="sig-name descname"><span class="pre">fday_to_hms</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fday</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.core.fday_to_hms" title="Link to this definition">¶</a></dt>
+<dd><p>Returns a tuple of (hours, minutes, seconds) given a fraction of a
+day.  The hours and minutes are integers, the seconds are floating
+point.</p>
+<p>fday should lie in the interval [0,1)</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="hipercam.core.HipercamError">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.core.</span></span><span class="sig-name descname"><span class="pre">HipercamError</span></span><a class="headerlink" href="#hipercam.core.HipercamError" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">Exception</span></code></p>
+<p>Class for the hipercam package errors</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.core.HipercamWarning">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.core.</span></span><span class="sig-name descname"><span class="pre">HipercamWarning</span></span><a class="headerlink" href="#hipercam.core.HipercamWarning" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.utils.exceptions.AstropyUserWarning</span></code></p>
+<p>Class for hipercam package warnings. Use with warnings.warn</p>
+</dd></dl>
+
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><h3>Table of Contents</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../news.html">HiPERCAM pipeline news</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../observers.html">Observer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../commands.html">HiPERCAM commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/api.html">The API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Getting the software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../files.html">Useful files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plugins.html">Writing an instrument plugin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/bugs.html">Reporting problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../makingmovies.html">Making HiPERCAM movies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../phaseII.html">HiPERCAM Phase II</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">hipercam</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../aperture/index.html">hipercam.aperture</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ccd/index.html">hipercam.ccd</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">hipercam.core</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../defect/index.html">hipercam.defect</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extraction/index.html">hipercam.extraction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../fitting/index.html">hipercam.fitting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../fringe/index.html">hipercam.fringe</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../group/index.html">hipercam.group</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../hcam/index.html">hipercam.hcam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../header/index.html">hipercam.header</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../hlog/index.html">hipercam.hlog</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../instruments/index.html">hipercam.instruments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../mpl/index.html">hipercam.mpl</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../pgp/index.html">hipercam.pgp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../psf_reduction/index.html">hipercam.psf_reduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reduction/index.html">hipercam.reduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../scripts/index.html">hipercam.scripts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../spooler/index.html">hipercam.spooler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../target/index.html">hipercam.target</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../tests/index.html">hipercam.tests</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ucam/index.html">hipercam.ucam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../utils/index.html">hipercam.utils</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../window/index.html">hipercam.window</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="../ccd/index.html"
+                          title="previous chapter">hipercam.ccd</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="../defect/index.html"
+                          title="next chapter">hipercam.defect</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../../_sources/autoapi/hipercam/core/index.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../../../_sources/autoapi/hipercam/core/index.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2017, T.R. Marsh.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 7.4.7. &nbsp;
+  </p>
+</footer>
+  </body>
+</html>

@@ -1,0 +1,612 @@
+hipercam.aperture
+=================
+
+.. py:module:: hipercam.aperture
+
+.. autoapi-nested-parse::
+
+   Defines classes to represent photometric apertures.
+
+   The classes support JSON-style serialisation to allow apertures to be
+   saved to disk in a fairly easily read and editable format.
+
+   ..
+       !! processed by numpydoc !!
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   hipercam.aperture.Aperture
+   hipercam.aperture.CcdAper
+   hipercam.aperture.MccdAper
+
+
+Module Contents
+---------------
+
+.. py:class:: Aperture(x, y, rtarg, rsky1, rsky2, ref, compo=False, mask=[], extra=[], link='')
+
+   
+   Represents an aperture for astronomical photometry
+
+   Essentially this consists of 3 circles representing the object,
+   radius `rtarg`, and the sky annulus between radii `r2` and `r3`,
+   centered at a specific position, but there are several extra
+   characteristics in addition. These are:
+
+   Reference apertures: these indicate (typically) bright stars that should
+   be easy to locate. The idea is that when re-positioning apertures, you
+   might want to initially do the brightest stars, and then see what the
+   overall x,y shift is before attempting fainter ones. This status is
+   indicated with a logical flag.
+
+   Linked apertures: some targets are nearly impossible to register, or may
+   fade so much that they cannot be detected. Such targets can be "linked" to
+   others in the sense that they are offset from them.
+
+   COMPO apertures: comparison stars injected onto the science image by
+   COMPO have a difference world coordinate system to the main science image.
+   Their motion on the CCD is flipped, so that an (x, y) shift in the stars
+   on the science CCD produces a (-x, -y) shift in the COMPO stars. This
+   status is indicated with a logical flag.
+
+   Sky masks: ('mask) these are fixed circles offset from the aperture in
+   question indicating pixels to ignore when estimating the sky background.
+
+   Star masks: ('extra') these are circles offset from aperture indicating
+   pixels to include when summing the object flux. This is to combat problems
+   caused by blended objects. These *also* act as sky masks so there should
+   be no need to also mask such object.
+
+   :Parameters:
+
+       **x** : float
+           X position of centre of aperture, or the X offset to apply
+           if the aperture is linked from another.
+
+       **y** : float
+           Y position of centre of aperture, or the Y offset to apply
+           if the aperture is linked from another.
+
+       **rtarg** : float
+           Radius (unbinned pixels) of target aperture
+
+       **rsky1** : float
+           Inner radius (unbinned pixels) of sky annulus
+
+       **rsky2** : float
+           Outer radius (unbinned pixels) of sky annulus
+
+       **ref** : bool
+           True/False to indicate whether this is a reference
+           aperture meaning that its position will be re-determined
+           before non-reference apertures to provide a shift.
+
+       **compo** : bool
+           True/False to indicate whether this is a compo
+           aperture meaning that its shifts are inverted w.r.t non-compo
+           apertures.
+
+       **mask** : list of 3 element tuples
+           Each tuple in the list consists of an x,y offset and a radius in
+           unbinned pixels. These are used to mask nearby areas when
+           determining the sky value (e.g. to exclude stars)
+
+       **extra** : list of 2 element tuples
+           Similar to `mask`, but each tuple in the list consists only of an
+           x,y offset. These however are used as centres of additional target
+           apertures to allow blended stars to be include in the total flux.
+           They are given the same radius as the target aperture. They are also
+           used to exclude sky pixels.
+
+       **link** : str
+              If != '', this is a string label for another :class:`Aperture` that
+              *this* :class:`Aperture` is linked from. The idea is that this label
+              can be used to lookup the :class:`Aperture`.
+           
+           .. note::
+           
+              Normal practice would be to set link, mask, extra later,
+              having created the Aperture. Attributes of the same name as
+              all the arguments are defined.  We copy the mask and extra
+              apertures to avoid propagating references.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:attribute:: x
+
+
+   .. py:attribute:: y
+
+
+   .. py:attribute:: rtarg
+
+
+   .. py:attribute:: rsky1
+
+
+   .. py:attribute:: rsky2
+
+
+   .. py:attribute:: ref
+
+
+   .. py:attribute:: compo
+      :value: False
+
+
+
+   .. py:attribute:: mask
+
+
+   .. py:attribute:: extra
+
+
+   .. py:attribute:: link
+      :value: ''
+
+
+
+   .. py:method:: __repr__()
+
+
+   .. py:method:: copy(memo=None)
+
+      
+      Returns with a copy of the Aperture
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: add_mask(xoff, yoff, radius)
+
+      
+      Adds a mask to the :class:Aperture
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: add_extra(xoff, yoff)
+
+      
+      Adds a mask to the :class:Aperture
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: set_link(aplabel)
+
+      
+      Links this :class:Aperture to a lookup label for another
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: break_link()
+
+      
+      Cancels any link to another :class:Aperture
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:property:: linked
+
+      
+      Returns True if the :class:Aperture is linked to another
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: check()
+
+      
+      Run a few checks on an :class:Aperture. Raises a ValueError if there are
+      problems.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: write(fname)
+
+      
+      Dumps Aperture in JSON format to a file called fname
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: toString()
+
+      
+      Returns Aperture as a JSON-type string
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: read(fname)
+      :classmethod:
+
+
+      
+      Read from JSON-format file fname
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+.. py:class:: CcdAper(aps=Group(Aperture))
+
+   Bases: :py:obj:`Group`
+
+
+   
+   Class representing all the :class:Apertures for a single CCD.
+   Normal usage is to create an empty one and then add apertures via
+   the usual mechanism for updating dictionaries, i.e. ccdap[label] =
+   aperture.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:method:: __repr__()
+
+
+   .. py:method:: check()
+
+      
+      Checks for problems with links
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: write(fname)
+
+      
+      Dumps ccdAper in JSON format to a file called fname
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: copy(memo=None)
+
+
+.. py:class:: MccdAper(aps=Group(CcdAper))
+
+   Bases: :py:obj:`Group`
+
+
+   
+   Class representing all the :class:Apertures for multiple CCDs.
+   Normal usage is to create an empty one and then add apertures via
+   the usual mechanism for updating dictionaries, e.g.
+
+     >> mccdap = MccdAper()
+     >> mccdap['ccd1'] = CcdAper()
+     >> mccdap['ccd2'] = CcdAper()
+     >> mccdap['ccd1']['ap1'] = Aperture(100,200,10,15,125,False)
+
+   etc.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:method:: __repr__()
+
+
+   .. py:method:: write(fname)
+
+      
+      Dumps MccdAper in JSON format to a file called fname
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: toString()
+
+      
+      Returns MccdAper in JSON format as a string
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: read(fname)
+      :classmethod:
+
+
+      
+      Read from JSON-format file fname. Since such files can fairly easily be
+      corrupted by injudicious editing, some consistency checks are
+      run. File loading does not happen often, so this should not be a
+      serious overhead
+
+        fp : a file-like object opened for reading of text
+
+      Returns an MccdAper object.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+

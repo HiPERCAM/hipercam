@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>hipercam.spooler &#8212; HiPERCAM pipeline 1.6.8.dev12+g30055e846 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/bootstrap-astropy.css?v=177ce38d" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=fd3f3429" />
+    
+    <script src="../../../_static/documentation_options.js?v=adfd3a0b"></script>
+    <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script type="text/javascript" src="../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="hipercam.target" href="../target/index.html" />
+    <link rel="prev" title="hipercam.scripts.uls" href="../scripts/uls/index.html" />
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../index.html"><span id="logotext1">astro</span><span id="logotext2"></span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="../target/index.html" title="hipercam.target">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="../scripts/uls/index.html" title="hipercam.scripts.uls">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../../../index.html">HiPERCAM pipeline 1.6.8.dev12+g30055e846 documentation</a>
+	 &#187;
+      </li>
+      <li><a href="../../index.html" >API Reference</a> &#187;</li>
+      <li><a href="../index.html" accesskey="U">hipercam</a> &#187;</li>
+      
+      <li>hipercam.spooler</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-hipercam.spooler">
+<span id="hipercam-spooler"></span><h1>hipercam.spooler<a class="headerlink" href="#module-hipercam.spooler" title="Link to this heading">¶</a></h1>
+<p>Classes and methods to support reading data in multiple formats and for
+iterating through multiple images from a variety of sources in a standardised
+manner.</p>
+<p>For instance this piece of code:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">spooler</span><span class="o">.</span><span class="n">data_source</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">resource</span><span class="p">,</span> <span class="n">first</span><span class="p">)</span> <span class="k">as</span> <span class="n">spool</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">mccd</span> <span class="ow">in</span> <span class="n">spool</span><span class="p">:</span>
+        <span class="o">...</span>
+</pre></div>
+</div>
+<p>creates an object ‘spool’ that then acts a source of <code class="xref py py-class docutils literal notranslate"><span class="pre">MCCD</span></code>
+objects. The <a class="reference internal" href="#hipercam.spooler.data_source" title="hipercam.spooler.data_source"><code class="xref py py-meth docutils literal notranslate"><span class="pre">data_source()</span></code></a> method returns this for a variety of possible
+sources of data such as raw HiPERCAM and ULTRACAM files and a list of hcm
+files. Important methods are <a class="reference internal" href="#hipercam.spooler.data_source" title="hipercam.spooler.data_source"><code class="xref py py-meth docutils literal notranslate"><span class="pre">data_source()</span></code></a> and <a class="reference internal" href="#hipercam.spooler.get_ccd_pars" title="hipercam.spooler.get_ccd_pars"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_ccd_pars()</span></code></a>. You
+may also want to look at classes such as <a class="reference internal" href="#hipercam.spooler.HcamListSpool" title="hipercam.spooler.HcamListSpool"><code class="xref py py-class docutils literal notranslate"><span class="pre">HcamListSpool</span></code></a> if you are
+interested in accessing data in a specific manner.</p>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.spooler.SpoolerBase" title="hipercam.spooler.SpoolerBase"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SpoolerBase</span></code></a></p></td>
+<td><p>A common requirement is the need to loop through a stack of</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.spooler.UcamDiskSpool" title="hipercam.spooler.UcamDiskSpool"><code class="xref py py-obj docutils literal notranslate"><span class="pre">UcamDiskSpool</span></code></a></p></td>
+<td><p>Provides an iterable context manager to loop through frames within</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.spooler.UcamServSpool" title="hipercam.spooler.UcamServSpool"><code class="xref py py-obj docutils literal notranslate"><span class="pre">UcamServSpool</span></code></a></p></td>
+<td><p>Provides an iterable context manager to loop through frames within</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.spooler.UcamTbytesSpool" title="hipercam.spooler.UcamTbytesSpool"><code class="xref py py-obj docutils literal notranslate"><span class="pre">UcamTbytesSpool</span></code></a></p></td>
+<td><p>Provides an iterable context manager to loop through frames within</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.spooler.HcamDiskSpool" title="hipercam.spooler.HcamDiskSpool"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HcamDiskSpool</span></code></a></p></td>
+<td><p>Provides an iterable context manager to loop through frames within</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.spooler.HcamListSpool" title="hipercam.spooler.HcamListSpool"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HcamListSpool</span></code></a></p></td>
+<td><p>Provides an iterable context manager to loop through frames within</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.spooler.HcamServSpool" title="hipercam.spooler.HcamServSpool"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HcamServSpool</span></code></a></p></td>
+<td><p>Provides an iterable context manager to loop through frames within</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.spooler.HcamTbytesSpool" title="hipercam.spooler.HcamTbytesSpool"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HcamTbytesSpool</span></code></a></p></td>
+<td><p>Provides an iterable context manager to loop through frames within</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.spooler.PluginDiskSpool" title="hipercam.spooler.PluginDiskSpool"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PluginDiskSpool</span></code></a></p></td>
+<td><p>Provides an iterable context manager to loop through frames within</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.spooler.PluginServSpool" title="hipercam.spooler.PluginServSpool"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PluginServSpool</span></code></a></p></td>
+<td><p>Provides an iterable context manager to loop through frames within</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.spooler.rhcam" title="hipercam.spooler.rhcam"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rhcam</span></code></a>(fname)</p></td>
+<td><p>Reads a HiPERCAM file containing either CCD or MCCD data and returns one or</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.spooler.data_source" title="hipercam.spooler.data_source"><code class="xref py py-obj docutils literal notranslate"><span class="pre">data_source</span></code></a>(source, resource[, first])</p></td>
+<td><p>Returns a context manager needed to run through a set of exposures.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.spooler.get_ccd_pars" title="hipercam.spooler.get_ccd_pars"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_ccd_pars</span></code></a>(source, resource)</p></td>
+<td><p>Returns a list of tuples of CCD labels, maximum dimensions, and padding</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.spooler.hang_about" title="hipercam.spooler.hang_about"><code class="xref py py-obj docutils literal notranslate"><span class="pre">hang_about</span></code></a>(obj, twait, tmax, total_time[, updaters, ...])</p></td>
+<td><p>Carries out some standard actions when we loop through frames which are</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.spooler.rhcam">
+<span class="sig-prename descclassname"><span class="pre">hipercam.spooler.</span></span><span class="sig-name descname"><span class="pre">rhcam</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.spooler.rhcam" title="Link to this definition">¶</a></dt>
+<dd><p>Reads a HiPERCAM file containing either CCD or MCCD data and returns one or
+the other.</p>
+<p>Argument:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">fname</span> <span class="p">:</span> <span class="p">(</span><span class="n">string</span><span class="p">)</span>
+
+   <span class="n">Name</span> <span class="n">of</span> <span class="n">file</span><span class="o">.</span> <span class="n">This</span> <span class="n">should</span> <span class="n">be</span> <span class="n">a</span> <span class="n">FITS</span> <span class="n">file</span> <span class="k">with</span> <span class="n">a</span> <span class="n">particular</span>
+   <span class="n">arrangement</span> <span class="n">of</span> <span class="n">HDUs</span><span class="o">.</span> <span class="n">The</span> <span class="n">keyword</span> <span class="n">HIPERCAM</span> <span class="n">should</span> <span class="n">be</span> <span class="n">present</span> <span class="ow">in</span> <span class="n">the</span>
+   <span class="n">primary</span> <span class="n">HDU</span><span class="s1">&#39;s header and set to either CCD for single &#39;</span><span class="n">CCD</span><span class="s1">&#39; data or</span>
+   <span class="s1">&#39;MCCD&#39;</span> <span class="k">for</span> <span class="n">multiple</span> <span class="n">CCDs</span><span class="o">.</span> <span class="n">A</span> <span class="ne">ValueError</span> <span class="n">will</span> <span class="n">be</span> <span class="n">raised</span> <span class="k">if</span> <span class="n">this</span> <span class="ow">is</span> <span class="ow">not</span>
+   <span class="n">the</span> <span class="n">case</span><span class="o">.</span> <span class="n">See</span> <span class="n">the</span> <span class="n">docs</span> <span class="n">on</span> <span class="n">CCD</span> <span class="ow">and</span> <span class="n">MCCD</span> <span class="k">for</span> <span class="n">more</span><span class="o">.</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.spooler.SpoolerBase">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.spooler.</span></span><span class="sig-name descname"><span class="pre">SpoolerBase</span></span><a class="headerlink" href="#hipercam.spooler.SpoolerBase" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+<p>A common requirement is the need to loop through a stack of
+images. With a variety of possible data sources, one requires handling of
+multiple possible ways of accessing the data. The aim of this class is to
+provide uniform access via an iterable context manager. It is written as
+an abstract class.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.spooler.SpoolerBase.__enter__">
+<span class="sig-name descname"><span class="pre">__enter__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.spooler.SpoolerBase.__enter__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.spooler.SpoolerBase.__exit__">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">__exit__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.spooler.SpoolerBase.__exit__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.spooler.SpoolerBase.__iter__">
+<span class="sig-name descname"><span class="pre">__iter__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.spooler.SpoolerBase.__iter__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.spooler.SpoolerBase.__next__">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">__next__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.spooler.SpoolerBase.__next__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.spooler.UcamDiskSpool">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.spooler.</span></span><span class="sig-name descname"><span class="pre">UcamDiskSpool</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">run</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">first</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.spooler.UcamDiskSpool" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#hipercam.spooler.SpoolerBase" title="hipercam.spooler.SpoolerBase"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SpoolerBase</span></code></a></p>
+<p>Provides an iterable context manager to loop through frames within
+a raw ULTRACAM or ULTRASPEC disk file.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.spooler.UcamDiskSpool._iter">
+<span class="sig-name descname"><span class="pre">_iter</span></span><a class="headerlink" href="#hipercam.spooler.UcamDiskSpool._iter" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.spooler.UcamDiskSpool.__exit__">
+<span class="sig-name descname"><span class="pre">__exit__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.spooler.UcamDiskSpool.__exit__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.spooler.UcamDiskSpool.__next__">
+<span class="sig-name descname"><span class="pre">__next__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.spooler.UcamDiskSpool.__next__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.spooler.UcamServSpool">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.spooler.</span></span><span class="sig-name descname"><span class="pre">UcamServSpool</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">run</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">first</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.spooler.UcamServSpool" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#hipercam.spooler.SpoolerBase" title="hipercam.spooler.SpoolerBase"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SpoolerBase</span></code></a></p>
+<p>Provides an iterable context manager to loop through frames within
+a raw ULTRACAM or ULTRASPEC raw file served from the ATC FileServer</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.spooler.UcamServSpool._iter">
+<span class="sig-name descname"><span class="pre">_iter</span></span><a class="headerlink" href="#hipercam.spooler.UcamServSpool._iter" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.spooler.UcamServSpool.__exit__">
+<span class="sig-name descname"><span class="pre">__exit__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.spooler.UcamServSpool.__exit__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.spooler.UcamServSpool.__next__">
+<span class="sig-name descname"><span class="pre">__next__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.spooler.UcamServSpool.__next__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.spooler.UcamTbytesSpool">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.spooler.</span></span><span class="sig-name descname"><span class="pre">UcamTbytesSpool</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">run</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">first</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">old</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.spooler.UcamTbytesSpool" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#hipercam.spooler.SpoolerBase" title="hipercam.spooler.SpoolerBase"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SpoolerBase</span></code></a></p>
+<p>Provides an iterable context manager to loop through frames within
+a raw ULTRACAM or ULTRASPEC disk file returning the timing bytes.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.spooler.UcamTbytesSpool._iter">
+<span class="sig-name descname"><span class="pre">_iter</span></span><a class="headerlink" href="#hipercam.spooler.UcamTbytesSpool._iter" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.spooler.UcamTbytesSpool.ntbytes">
+<span class="sig-name descname"><span class="pre">ntbytes</span></span><a class="headerlink" href="#hipercam.spooler.UcamTbytesSpool.ntbytes" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="hipercam.spooler.UcamTbytesSpool.head">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">head</span></span><a class="headerlink" href="#hipercam.spooler.UcamTbytesSpool.head" title="Link to this definition">¶</a></dt>
+<dd><p>Need this to pass to utimer in “tbytes”.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.spooler.UcamTbytesSpool.__exit__">
+<span class="sig-name descname"><span class="pre">__exit__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.spooler.UcamTbytesSpool.__exit__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.spooler.UcamTbytesSpool.__next__">
+<span class="sig-name descname"><span class="pre">__next__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.spooler.UcamTbytesSpool.__next__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.spooler.HcamDiskSpool">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.spooler.</span></span><span class="sig-name descname"><span class="pre">HcamDiskSpool</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">run</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">first</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">full</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.spooler.HcamDiskSpool" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#hipercam.spooler.SpoolerBase" title="hipercam.spooler.SpoolerBase"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SpoolerBase</span></code></a></p>
+<p>Provides an iterable context manager to loop through frames within
+a raw HiPERCAM file.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.spooler.HcamDiskSpool._iter">
+<span class="sig-name descname"><span class="pre">_iter</span></span><a class="headerlink" href="#hipercam.spooler.HcamDiskSpool._iter" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.spooler.HcamDiskSpool.__exit__">
+<span class="sig-name descname"><span class="pre">__exit__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.spooler.HcamDiskSpool.__exit__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.spooler.HcamDiskSpool.__next__">
+<span class="sig-name descname"><span class="pre">__next__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.spooler.HcamDiskSpool.__next__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.spooler.HcamListSpool">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.spooler.</span></span><span class="sig-name descname"><span class="pre">HcamListSpool</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cnam</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.spooler.HcamListSpool" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#hipercam.spooler.SpoolerBase" title="hipercam.spooler.SpoolerBase"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SpoolerBase</span></code></a></p>
+<p>Provides an iterable context manager to loop through frames within
+a list of HiPERCAM .hcm files, either a file listing the files, or
+a Python list. Use as:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">spooler</span><span class="o">.</span><span class="n">HcamListSpool</span><span class="p">(</span><span class="n">flist</span><span class="p">)</span> <span class="k">as</span> <span class="n">spool</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">mccd</span> <span class="ow">in</span> <span class="n">spool</span><span class="p">:</span>
+        <span class="o">...</span>
+</pre></div>
+</div>
+<p>to get <code class="xref py py-class docutils literal notranslate"><span class="pre">MCCD</span></code>  objects or:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">spooler</span><span class="o">.</span><span class="n">HcamListSpool</span><span class="p">(</span><span class="n">flist</span><span class="p">,</span><span class="n">cnam</span><span class="p">)</span> <span class="k">as</span> <span class="n">spool</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">ccd</span> <span class="ow">in</span> <span class="n">spool</span><span class="p">:</span>
+        <span class="o">...</span>
+</pre></div>
+</div>
+<p>to get <code class="xref py py-class docutils literal notranslate"><span class="pre">CCD</span></code> objects.</p>
+<p>The name of the file that each MCCD was read from is written to
+.head as ‘FILENAME’.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.spooler.HcamListSpool.cnam">
+<span class="sig-name descname"><span class="pre">cnam</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#hipercam.spooler.HcamListSpool.cnam" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.spooler.HcamListSpool.__exit__">
+<span class="sig-name descname"><span class="pre">__exit__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.spooler.HcamListSpool.__exit__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.spooler.HcamListSpool.__next__">
+<span class="sig-name descname"><span class="pre">__next__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.spooler.HcamListSpool.__next__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.spooler.HcamServSpool">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.spooler.</span></span><span class="sig-name descname"><span class="pre">HcamServSpool</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">run</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">first</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">full</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.spooler.HcamServSpool" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#hipercam.spooler.SpoolerBase" title="hipercam.spooler.SpoolerBase"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SpoolerBase</span></code></a></p>
+<p>Provides an iterable context manager to loop through frames within
+a raw HiPERCAM file served from Stu’s FileServer</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.spooler.HcamServSpool._iter">
+<span class="sig-name descname"><span class="pre">_iter</span></span><a class="headerlink" href="#hipercam.spooler.HcamServSpool._iter" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.spooler.HcamServSpool.__exit__">
+<span class="sig-name descname"><span class="pre">__exit__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.spooler.HcamServSpool.__exit__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.spooler.HcamServSpool.__next__">
+<span class="sig-name descname"><span class="pre">__next__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.spooler.HcamServSpool.__next__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.spooler.HcamTbytesSpool">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.spooler.</span></span><span class="sig-name descname"><span class="pre">HcamTbytesSpool</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">run</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">first</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.spooler.HcamTbytesSpool" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#hipercam.spooler.SpoolerBase" title="hipercam.spooler.SpoolerBase"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SpoolerBase</span></code></a></p>
+<p>Provides an iterable context manager to loop through frames within
+a raw HiPERCAM file returning the timing bytes</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.spooler.HcamTbytesSpool._iter">
+<span class="sig-name descname"><span class="pre">_iter</span></span><a class="headerlink" href="#hipercam.spooler.HcamTbytesSpool._iter" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.spooler.HcamTbytesSpool.ntbytes">
+<span class="sig-name descname"><span class="pre">ntbytes</span></span><a class="headerlink" href="#hipercam.spooler.HcamTbytesSpool.ntbytes" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.spooler.HcamTbytesSpool.__exit__">
+<span class="sig-name descname"><span class="pre">__exit__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.spooler.HcamTbytesSpool.__exit__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.spooler.HcamTbytesSpool.__next__">
+<span class="sig-name descname"><span class="pre">__next__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.spooler.HcamTbytesSpool.__next__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.spooler.PluginDiskSpool">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.spooler.</span></span><span class="sig-name descname"><span class="pre">PluginDiskSpool</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">instrument</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">run</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">first</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.spooler.PluginDiskSpool" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#hipercam.spooler.SpoolerBase" title="hipercam.spooler.SpoolerBase"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SpoolerBase</span></code></a></p>
+<p>Provides an iterable context manager to loop through frames within
+a raw data file from a third-party instrument plugin, reading from
+a local disk file.</p>
+<p>The instrument is identified by name and must be registered under the
+<code class="docutils literal notranslate"><span class="pre">hipercam.instruments</span></code> entry-point group.  Built-in names are
+<code class="docutils literal notranslate"><span class="pre">'hipercam'</span></code>, <code class="docutils literal notranslate"><span class="pre">'ultracam'</span></code>, and <code class="docutils literal notranslate"><span class="pre">'ultraspec'</span></code>.</p>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">spooler</span><span class="o">.</span><span class="n">PluginDiskSpool</span><span class="p">(</span><span class="s1">&#39;myinstrument&#39;</span><span class="p">,</span> <span class="s1">&#39;run003&#39;</span><span class="p">,</span> <span class="n">first</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="k">as</span> <span class="n">spool</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">mccd</span> <span class="ow">in</span> <span class="n">spool</span><span class="p">:</span>
+        <span class="o">...</span>
+</pre></div>
+</div>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.spooler.PluginDiskSpool._iter">
+<span class="sig-name descname"><span class="pre">_iter</span></span><a class="headerlink" href="#hipercam.spooler.PluginDiskSpool._iter" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.spooler.PluginDiskSpool.__exit__">
+<span class="sig-name descname"><span class="pre">__exit__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.spooler.PluginDiskSpool.__exit__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.spooler.PluginDiskSpool.__next__">
+<span class="sig-name descname"><span class="pre">__next__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.spooler.PluginDiskSpool.__next__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.spooler.PluginServSpool">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.spooler.</span></span><span class="sig-name descname"><span class="pre">PluginServSpool</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">instrument</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">run</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">first</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.spooler.PluginServSpool" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#hipercam.spooler.SpoolerBase" title="hipercam.spooler.SpoolerBase"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SpoolerBase</span></code></a></p>
+<p>Provides an iterable context manager to loop through frames within
+a raw data file from a third-party instrument plugin, reading from
+a server.</p>
+<p>The instrument is identified by name and must be registered under the
+<code class="docutils literal notranslate"><span class="pre">hipercam.instruments</span></code> entry-point group.  Built-in names are
+<code class="docutils literal notranslate"><span class="pre">'hipercam'</span></code>, <code class="docutils literal notranslate"><span class="pre">'ultracam'</span></code>, and <code class="docutils literal notranslate"><span class="pre">'ultraspec'</span></code>.</p>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">spooler</span><span class="o">.</span><span class="n">PluginServSpool</span><span class="p">(</span><span class="s1">&#39;myinstrument&#39;</span><span class="p">,</span> <span class="s1">&#39;run003&#39;</span><span class="p">,</span> <span class="n">first</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="k">as</span> <span class="n">spool</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">mccd</span> <span class="ow">in</span> <span class="n">spool</span><span class="p">:</span>
+        <span class="o">...</span>
+</pre></div>
+</div>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.spooler.PluginServSpool._iter">
+<span class="sig-name descname"><span class="pre">_iter</span></span><a class="headerlink" href="#hipercam.spooler.PluginServSpool._iter" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.spooler.PluginServSpool.__exit__">
+<span class="sig-name descname"><span class="pre">__exit__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.spooler.PluginServSpool.__exit__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.spooler.PluginServSpool.__next__">
+<span class="sig-name descname"><span class="pre">__next__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.spooler.PluginServSpool.__next__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.spooler.data_source">
+<span class="sig-prename descclassname"><span class="pre">hipercam.spooler.</span></span><span class="sig-name descname"><span class="pre">data_source</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resource</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">first</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.spooler.data_source" title="Link to this definition">¶</a></dt>
+<dd><p>Returns a context manager needed to run through a set of exposures.
+This is basically a wrapper around the various context managers that
+hook off the SpoolerBase class.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>source : string
+   Data source. Options are &#39;hl&#39;, &#39;hs&#39;, &#39;ul&#39;, &#39;us&#39;, &#39;hf&#39;. The leading
+   (&#39;h&#39; | &#39;u&#39;) indicates ULTRA(CAM|SPEC), or HiPERCAM. The trailing
+   (&#39;l&#39; | &#39;s&#39; | &#39;f&#39;) refers to access through a local file for &#39;l&#39;
+   (.fits for HiPERCAM or .dat/.xml for ULTRA(CAM|SPEC), a server for
+   &#39;s&#39; (either the ATC fileserver for ULTRA(CAM|SPEC) or Stu
+   Littlefair&#39;s HiPERCAM server), or from a list of fils in HiPERCAM&#39;s
+   FITS-based hcm format.
+
+   Third-party instrument plugins may be accessed using the format
+   ``&#39;&lt;instrument&gt;:local&#39;`` or ``&#39;&lt;instrument&gt;:server&#39;``, where
+   ``&lt;instrument&gt;`` is the name registered in the
+   ``hipercam.instruments`` entry-point group.
+   Examples: ``&#39;hipercam:local&#39;``, ``&#39;ultracam:server&#39;``,
+   ``&#39;myinstrument:local&#39;``.
+
+resource : string
+   File name. A run number if source=(&#39;?l&#39;|&#39;?s&#39;) or a file list
+   for source=&#39;hl&#39;.
+
+first : int
+   If a raw disk file is being read, either locally or via a server,
+   this parameter sets where to start in the file. 0 to always try
+   to get the last. See also &#39;hang_about&#39; in this case. This parameter
+   is ignored if source==&#39;hf&#39;.
+
+kwargs : dictionary of keyword arguments
+   some of the spooler classes support extra arguments. e.g. HcamDiskSpool.
+   These are passed via kwargs
+</pre></div>
+</div>
+<p>Returns:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>A :class:`SpoolerBase` object that can appear inside a &quot;with&quot;
+statement, e.g.
+
+  &gt;&gt; with data_source(&#39;us&#39;, &#39;run003&#39;) as dsource:
+  &gt;&gt;    for frame in dsource:
+  &gt;&gt;       ... do something with &#39;frame&#39;
+
+A possible return is None if no frame is found. See `hang_about` for
+how to handle this.
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.spooler.get_ccd_pars">
+<span class="sig-prename descclassname"><span class="pre">hipercam.spooler.</span></span><span class="sig-name descname"><span class="pre">get_ccd_pars</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resource</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.spooler.get_ccd_pars" title="Link to this definition">¶</a></dt>
+<dd><p>Returns a list of tuples of CCD labels, maximum dimensions, and padding
+factors (label, nxmax, nymax, nxpad, nypad) for each CCD pointed at by the
+input parameters.</p>
+<p>Parameters:</p>
+<blockquote>
+<div><dl class="simple">
+<dt>source<span class="classifier">str</span></dt><dd><p>Data source. See ‘data_source’ for details. Plugin sources use the
+<code class="docutils literal notranslate"><span class="pre">'&lt;instrument&gt;:local'</span></code> or <code class="docutils literal notranslate"><span class="pre">'&lt;instrument&gt;:server'</span></code> format.</p>
+</dd>
+<dt>resource<span class="classifier">str</span></dt><dd><p>Either a run number, a file list or a list of names. Again, see
+‘data_source’ for details.</p>
+</dd>
+</dl>
+</div></blockquote>
+<p>Returns with a list of tuples with the information outlined above. In the
+case of file lists these are extracted from the first file of the list only.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.spooler.hang_about">
+<span class="sig-prename descclassname"><span class="pre">hipercam.spooler.</span></span><span class="sig-name descname"><span class="pre">hang_about</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">twait</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tmax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">total_time</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">updaters</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tupdate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.spooler.hang_about" title="Link to this definition">¶</a></dt>
+<dd><p>Carries out some standard actions when we loop through frames which are
+common to rtplot, reduce and grab. This is a case of seeing whether we
+want to try again for a frame or a time that may have arrived while we
+wait.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">obj</span> <span class="p">:</span> <span class="nb">object</span> <span class="ow">or</span> <span class="kc">None</span>
+   <span class="n">something</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="n">g</span><span class="o">.</span> <span class="n">an</span> <span class="n">MCCD</span> <span class="ow">or</span> <span class="n">a</span> <span class="n">Time</span><span class="p">,</span> <span class="n">it</span> <span class="n">does</span> <span class="ow">not</span> <span class="n">matter</span> <span class="n">what</span><span class="p">,</span>
+   <span class="n">because</span> <span class="n">the</span> <span class="n">only</span> <span class="n">thing</span> <span class="n">that</span> <span class="ow">is</span> <span class="n">tested</span> <span class="ow">is</span> <span class="n">whether</span> <span class="n">it</span> <span class="ow">is</span> <span class="s1">&#39;None&#39;</span><span class="o">.</span> <span class="n">If</span>
+   <span class="n">it</span> <span class="ow">is</span><span class="p">,</span> <span class="n">that</span> <span class="ow">is</span> <span class="n">a</span> <span class="n">trigger</span> <span class="n">to</span> <span class="n">wait</span> <span class="n">a</span> <span class="n">bit</span> <span class="n">before</span> <span class="n">trying</span> <span class="n">again</span>
+
+<span class="n">twait</span> <span class="p">:</span> <span class="nb">float</span>
+   <span class="n">how</span> <span class="n">long</span> <span class="n">to</span> <span class="n">wait</span> <span class="n">each</span> <span class="n">time</span><span class="p">,</span> <span class="n">seconds</span>
+
+<span class="n">tmax</span> <span class="p">:</span> <span class="nb">float</span>
+   <span class="n">maximum</span> <span class="n">time</span> <span class="n">to</span> <span class="n">wait</span><span class="p">,</span> <span class="n">seconds</span>
+
+<span class="n">total_time</span> <span class="p">:</span> <span class="nb">float</span>
+   <span class="n">total</span> <span class="n">time</span> <span class="n">waited</span><span class="o">.</span> <span class="n">Should</span> <span class="n">be</span> <span class="n">initialised</span> <span class="n">to</span> <span class="n">zero</span>
+
+<span class="n">updaters</span> <span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">tuple</span> <span class="n">of</span> <span class="n">functions</span>
+   <span class="n">update</span> <span class="n">functions</span> <span class="n">that</span> <span class="n">will</span> <span class="n">be</span> <span class="n">run</span> <span class="k">if</span> <span class="n">twait</span>
+   <span class="ow">is</span> <span class="n">longer</span> <span class="n">than</span> <span class="mi">2</span><span class="o">*</span><span class="n">tupdate</span><span class="o">.</span> <span class="n">Designed</span> <span class="k">for</span> <span class="n">use</span> <span class="n">by</span> <span class="n">nrtplot</span><span class="o">.</span>
+
+<span class="n">tupdate</span> <span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">float</span>
+   <span class="n">time</span> <span class="n">period</span> <span class="k">for</span> <span class="n">triggering</span> <span class="n">an</span> <span class="n">update</span>
+</pre></div>
+</div>
+<p>Returns: (give_up, try_again, total_time)</p>
+<blockquote>
+<div><p>give_up == True   ==&gt; stop trying
+try_again == True ==&gt; have another go</p>
+</div></blockquote>
+<p>If both are False, that indicates success and we carry on.</p>
+</dd></dl>
+
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><h3>Table of Contents</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../news.html">HiPERCAM pipeline news</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../observers.html">Observer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../commands.html">HiPERCAM commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/api.html">The API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Getting the software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../files.html">Useful files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plugins.html">Writing an instrument plugin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/bugs.html">Reporting problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../makingmovies.html">Making HiPERCAM movies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../phaseII.html">HiPERCAM Phase II</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">hipercam</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../aperture/index.html">hipercam.aperture</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ccd/index.html">hipercam.ccd</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../core/index.html">hipercam.core</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../defect/index.html">hipercam.defect</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extraction/index.html">hipercam.extraction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../fitting/index.html">hipercam.fitting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../fringe/index.html">hipercam.fringe</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../group/index.html">hipercam.group</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../hcam/index.html">hipercam.hcam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../header/index.html">hipercam.header</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../hlog/index.html">hipercam.hlog</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../instruments/index.html">hipercam.instruments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../mpl/index.html">hipercam.mpl</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../pgp/index.html">hipercam.pgp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../psf_reduction/index.html">hipercam.psf_reduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reduction/index.html">hipercam.reduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../scripts/index.html">hipercam.scripts</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">hipercam.spooler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../target/index.html">hipercam.target</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../tests/index.html">hipercam.tests</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ucam/index.html">hipercam.ucam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../utils/index.html">hipercam.utils</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../window/index.html">hipercam.window</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="../scripts/uls/index.html"
+                          title="previous chapter">hipercam.scripts.uls</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="../target/index.html"
+                          title="next chapter">hipercam.target</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../../_sources/autoapi/hipercam/spooler/index.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../../../_sources/autoapi/hipercam/spooler/index.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2017, T.R. Marsh.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 7.4.7. &nbsp;
+  </p>
+</footer>
+  </body>
+</html>

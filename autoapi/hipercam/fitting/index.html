@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>hipercam.fitting &#8212; HiPERCAM pipeline 1.6.8.dev12+g30055e846 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/bootstrap-astropy.css?v=177ce38d" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=fd3f3429" />
+    
+    <script src="../../../_static/documentation_options.js?v=adfd3a0b"></script>
+    <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script type="text/javascript" src="../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="hipercam.fringe" href="../fringe/index.html" />
+    <link rel="prev" title="hipercam.extraction" href="../extraction/index.html" />
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../index.html"><span id="logotext1">astro</span><span id="logotext2"></span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="../fringe/index.html" title="hipercam.fringe">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="../extraction/index.html" title="hipercam.extraction">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../../../index.html">HiPERCAM pipeline 1.6.8.dev12+g30055e846 documentation</a>
+	 &#187;
+      </li>
+      <li><a href="../../index.html" >API Reference</a> &#187;</li>
+      <li><a href="../index.html" accesskey="U">hipercam</a> &#187;</li>
+      
+      <li>hipercam.fitting</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-hipercam.fitting">
+<span id="hipercam-fitting"></span><h1>hipercam.fitting<a class="headerlink" href="#module-hipercam.fitting" title="Link to this heading">¶</a></h1>
+<p>Code for profile fitting. Currently supports symmetric 2D Gaussian and
+Moffat profiles plus constants.</p>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.fitting.combFit" title="hipercam.fitting.combFit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">combFit</span></code></a>(wind, sigma, method, sky, height, x, y, fwhm, ...)</p></td>
+<td><p>Fits a stellar profile in a :class:Window using either a 2D Gaussian</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.fitting.fitMoffat" title="hipercam.fitting.fitMoffat"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fitMoffat</span></code></a>(wind, sigma, sky, height, xcen, ycen, fwhm, ...)</p></td>
+<td><p>Fits the profile of one target in a Window with a symmetric 2D Moffat</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.fitting.moffat" title="hipercam.fitting.moffat"><code class="xref py py-obj docutils literal notranslate"><span class="pre">moffat</span></code></a>(x, y, sky, height, xcen, ycen, fwhm, beta, ...)</p></td>
+<td><p>Returns a numpy array corresponding to the ordinate grids in xy</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.fitting.fitGaussian" title="hipercam.fitting.fitGaussian"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fitGaussian</span></code></a>(wind, sigma, sky, height, xcen, ycen, ...)</p></td>
+<td><p>Fits the profile of one target in an Window with a 2D symmetric Gaussian</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.fitting.gaussian" title="hipercam.fitting.gaussian"><code class="xref py py-obj docutils literal notranslate"><span class="pre">gaussian</span></code></a>(x, y, sky, height, xcen, ycen, fwhm, xbin, ...)</p></td>
+<td><p>Returns a numpy array corresponding to the ordinate grids in xy set to a</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.fitting.combFit">
+<span class="sig-prename descclassname"><span class="pre">hipercam.fitting.</span></span><span class="sig-name descname"><span class="pre">combFit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wind</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sky</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fwhm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fwhm_min</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fwhm_fix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta_fix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thresh</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ndiv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_nfev</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.fitting.combFit" title="Link to this definition">¶</a></dt>
+<dd><p>Fits a stellar profile in a :class:Window using either a 2D Gaussian
+or Moffat profile. This is a convenience wrapper of fitMoffat and
+fitGaussian because one often wants both options.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>wind : :class:`Window`
+    the Window containing the stellar profile to fit.
+
+sigma : np.array
+    array of sigma estimates matching dimensions of wind. Modified
+    on exit. Rejected points will be negative.
+
+method : string
+    fitting method &#39;g&#39; for Gaussian, &#39;m&#39; for Moffat
+
+sky : float
+    initial sky level
+
+height : float
+    initial peak height
+
+x : float
+    initial central X value
+
+y : float
+    initial central Y value
+
+fwhm : float
+    initial FWHM, unbinned pixels.
+
+fwhm_min : float
+    minimum FWHM, unbinned pixels.
+
+fwhm_fix : bool
+    fix the FWHM (i.e. don&#39;t fit it)
+
+beta : float [if method == &#39;m&#39;]
+    exponent of Moffat function
+
+beta_max : float [if method == &#39;m&#39;]
+    maximum beta
+
+beta_fix : bool [if method == &#39;m&#39;]
+    fix beta (i.e. don&#39;t fit it)
+
+thresh : float
+    threshold in terms of RMS for rejection. The RMS is obtained from
+    read and gain but scaled by the sqrt(chi**2/d.o.f). Typical value
+    = 4. The first fit is carried out with 2*thresh as the rejection
+    threshold to avoid spurious rejections.
+
+ndiv : int
+    Parameter controlling treatment of sub-pixellation. If ndiv &gt; 0,
+    every pixel in `wind` will be sub-divided first into unbinned
+    pixels, and then each unbinned pixel will be split into a square
+    array of ndiv by ndiv points. The profile will be evaluated and
+    averaged over each of these points. Thus if the pixels in `wind`
+    are binned xbin by ybin, there will be xbin*ybin*ndiv**2
+    evaluations per pixel. This is to cope with the case where the
+    seeing is becoming small compared to the pixels, but obviously
+    will slow things. To simply evaluate the profile once at the
+    centre of each pixel in `wind`, set ndiv = 0.
+</pre></div>
+</div>
+<p>Returns:: (pars, epars, extras)</p>
+<p>where:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>pars : tuple
+   (sky, height, x, y, fwhm, beta), the fitted parameters
+   (`beta` == 0 if `method`==&#39;g&#39;)
+
+epars : tuple
+   (esky, eheight, ex, ey, efwhm, ebeta), fitted standard errors.
+   `ebeta` == -1 if `method`==&#39;g&#39;; `efwhm` == -1 if the FWHM was fixed
+   or it hit the minimum value.
+
+extras : tuple
+   (fit,x,y,chisq,nok,nrej,npar,message) -- `fit` is an Window
+   containing the best fit; `x` and `x` are the X and Y coordinates of
+   the pixels; `chisq` is the chi**2 of the fit; `nok`
+   is the number of points fitted; `nrej` is the number rejected;
+   `npar` is the number of parameters fitted; `message` summarises the
+   fit values. `x`  and `y` are 2D numpy arrays matching
+   the dimensions of the data.
+</pre></div>
+</div>
+<p>Raises a HipercamError if least_squares fails.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.fitting.fitMoffat">
+<span class="sig-prename descclassname"><span class="pre">hipercam.fitting.</span></span><span class="sig-name descname"><span class="pre">fitMoffat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wind</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sky</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xcen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ycen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fwhm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fwhm_min</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fwhm_fix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta_fix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thresh</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ndiv</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_nfev</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.fitting.fitMoffat" title="Link to this definition">¶</a></dt>
+<dd><p>Fits the profile of one target in a Window with a symmetric 2D Moffat
+profile plus a constant “c + h/(1+alpha**2)**beta” where r is the distance
+from the centre of the aperture. The constant alpha is determined by the
+parameters <cite>fwhm</cite> and <cite>beta</cite>. The routine returns the fitted parameters,
+the covariances and a few extras including the best fit itself. The FWHM
+can be constrained to lie above a lower limit which can be useful when
+data are heavily binned. If when <cite>fwhm_fix</cite> == False, the first fit with a
+free FWHM fails, the routine will try again with the fwhm held fixed at
+its input value <cite>fwhm</cite>. Similarly the Moffat exponent beta can be limited
+to a maximum value as Moffat profiles are degenerate with Gaussians for
+large beta.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>wind : :class:`Window`
+    the Window with the data to be fitted. Ideally should contain
+    only one target, so chopping down to a small region around
+    the target of interest is usually a good idea.
+
+sigma : np.array
+    array of sigma estimates matching dimensions of wind. Modified on
+    exit; rejected points are multiplied by -1
+
+sky : float or None
+    initial value of the (assumed constant) sky background (counts
+    per pixel). Set None to ignore (i.e. regard as = 0)
+
+height : float
+    initial peak height of profile (counts)
+
+xcen : float
+    initial X value at centre of profile (unbinned absolute
+    coordinates)
+
+ycen : float
+    initial Y value at centre of profile (unbinned absolute
+    coordinates)
+
+fwhm : float
+    initial FWHM (unbinned pixels).
+
+fwhm_min : float
+    minimum value to allow FWHM to go to. Useful for heavily binned
+    data especially where all signal might be in a single pixel to
+    prevent going to silly values. Routine first fits with a free
+    FWHM. If it goes below this value it tries again, setting to
+    this value. (unbinned pixels)
+
+fwhm_fix : bool
+    fix the FWHM at the value `fwhm` during fits. Should be a bit
+    faster and more robust.
+
+beta : float
+    initial value of Moffat exponent beta
+
+beta_max : float
+    maximum value to allow beta to go to. For large beta,
+    Moffat profiles degenerate into guassians. The routines
+    tries with a free beta, but restarts if beta goes above
+    this value.
+
+beta_fix : bool
+    fix beta at its initial value during fits. Should be a bit
+    faster and more robust.
+
+read : float | array
+    readout noise, from which weights are generated (RMS counts)
+
+gain : float | array
+    gain, from which weights are generated (e- per count)
+
+thresh : float
+    threshold in terms of RMS for rejection. The RMS is obtained from
+    read and gain but scaled by the sqrt(chi**2/d.o.f). Typical value
+    = 4
+
+ndiv : int
+    Parameter controlling treatment of sub-pixellation. If ndiv &gt; 0,
+    every pixel will be sub-divided first into unbinned pixels, and
+    then each unbinned pixels will be split into a square array of
+    ndiv by ndiv points. The profile will be evaluated and averaged
+    over each of these points. Thus if the pixels in `wind` are binned
+    xbin by ybin, there will be xbin*ybin*ndiv**2 evaluations per
+    pixel. This is to cope with the case where the seeing is becoming
+    small compared to the pixels, but obviously will slow things. To
+    simply evaluate the profile once at the centre of each pixel in
+    `wind`, set ndiv = 0.
+
+max_nfev : int or None
+   maximum number of function evaluations during fits. Passed
+   direct to least_squares.
+</pre></div>
+</div>
+<p>Returns:: tuple</p>
+<blockquote>
+<div><p>(pars, sigs, extras) where:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>pars : tuple
+     (sky, height, xcen, yce, fwhm, beta), the fitted parameters.
+     fwhm = fwhm_min if initial fit returns an fwhm &lt; fwhm_min,
+     or == initial fwhm if fwhm_fix == True. sky = 0 if sky
+     not fitted.
+
+sigs : tuple
+     (skye, heighte, xcene, ycene, fwhme, betae), standard errors
+     on the fit parameters. If fwhm defaults to `fwhm_min` or
+     `fwhm_fix` == True, then `fwhme` will come back as -1. If
+     the sky is not fitted, skye comes back as -1.
+
+extras : tuple
+     (fit, x, y, chisq, nok, nrej, npar, nfev) where: `fit`
+     is an :class:`Window` containing the best fit; `x` and
+     `y` are the x and y positions of all pixels (2D numpy
+     arrays); `chisq` is the raw chi**2; `nok` is the
+     number of points fitted; `nrej` is the number
+     rejected; `npar` is the number of parameters fitted (3
+     to 6), `nfev` is the number of functions evaluations.
+</pre></div>
+</div>
+</div></blockquote>
+<p>The program re-scales the uncertainties on the fit parameters by
+sqrt(chi**2/ndof) where ndof is the number of degrees of freedom =
+number of points - 5 or 6, depending on the fit. This allows for
+poor values of <cite>read</cite> and <cite>gain</cite> to a certain extent, which happen
+especially if a sky background has been removed at the start. The
+value of <cite>sigma</cite> on any rejected pixel is &lt; 0.</p>
+<p>Raises a HipercamError if the least_squares fails.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.fitting.moffat">
+<span class="sig-prename descclassname"><span class="pre">hipercam.fitting.</span></span><span class="sig-name descname"><span class="pre">moffat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sky</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xcen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ycen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fwhm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xbin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ybin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ndiv</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.fitting.moffat" title="Link to this definition">¶</a></dt>
+<dd><p>Returns a numpy array corresponding to the ordinate grids in xy
+set to a Moffat profile plus a constant. Defined by
+sky + height/(1+alpha*r**2)**beta where r is the distance from the
+centre and alpha is set to give the desired FWHM given the exponent
+beta. As beta becomes large, this tends to a Gaussian shape but has
+more extended wings at low beta.</p>
+<p>Parameters:</p>
+<blockquote>
+<div><dl class="simple">
+<dt>x<span class="classifier">2D numpy array</span></dt><dd><p>the X ordinates over which you want to compute the
+profile. They should be measured in term of unbinned pixels.</p>
+</dd>
+<dt>y<span class="classifier">2D numpy array</span></dt><dd><p>the Y ordinates over which you want to compute the
+profile. They should be measured in term of unbinned pixels.</p>
+</dd>
+<dt>sky<span class="classifier">float</span></dt><dd><p>sky background.</p>
+</dd>
+<dt>height<span class="classifier">float</span></dt><dd><p>height of central peak</p>
+</dd>
+<dt>xcen<span class="classifier">float</span></dt><dd><p>X-ordinate of centre</p>
+</dd>
+<dt>ycen<span class="classifier">float</span></dt><dd><p>Y-ordinate of centre</p>
+</dd>
+<dt>fwhm<span class="classifier">float</span></dt><dd><p>FWHM of the profile</p>
+</dd>
+<dt>beta<span class="classifier">float</span></dt><dd><p>Moffat exponent</p>
+</dd>
+<dt>xbin<span class="classifier">int</span></dt><dd><p>X-size of pixels in terms of unbinned pixels, i.e. the binning factor in X</p>
+</dd>
+<dt>ybin<span class="classifier">int</span></dt><dd><p>Y-size of pixels in terms of unbinned pixels, i.e. the binning factor in Y</p>
+</dd>
+<dt>ndiv<span class="classifier">int</span></dt><dd><p>Parameter controlling treatment of sub-pixellation. If &gt; 0, every
+pixel will be sub-divided first into unbinned pixels, and then each
+unbinned pixel will be split into a square array of ndiv by ndiv
+points. The profile will be evaluated and averaged over each of these
+points. Thus if the pixels are binned xbin by ybin, there will be
+xbin*ybin*ndiv**2 evaluations per pixel. This is to cope with the
+case where the seeing is becoming small compared to the pixels, but
+obviously will slow things. To simply evaluate the profile once at
+the centre of each pixel, set ndiv = 0.</p>
+</dd>
+</dl>
+</div></blockquote>
+<p>Returns:: 2D numpy array containg the Moffat profile plus constant evaluated
+on the ordinate grids in xy.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.fitting.fitGaussian">
+<span class="sig-prename descclassname"><span class="pre">hipercam.fitting.</span></span><span class="sig-name descname"><span class="pre">fitGaussian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wind</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sky</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xcen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ycen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fwhm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fwhm_min</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fwhm_fix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thresh</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ndiv</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_nfev</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.fitting.fitGaussian" title="Link to this definition">¶</a></dt>
+<dd><p>Fits the profile of one target in an Window with a 2D symmetric Gaussian
+profile “c + h*exp(-alpha*r**2)” where r is the distance from the centre
+of the aperture. The constant alpha is fixed by the FWHM. The function
+returns the fitted parameters, covariances and a few extras; see below.
+The FWHM can be constrained to lie above a lower limit which can be useful
+when data are heavily binned. If when fwhm_fix == False, the first fit
+with a free FWHM fails, the routine will try again with the fwhm held
+fixed at its input value <cite>fwhm</cite>.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>wind : Window
+    the Window with the data to be fitted. Ideally should contain only
+    one target, so chopping down to a small region around the target
+    of interest is usually a good idea.
+
+sigma : np.array
+    array of uncertainties matching wind. Modified on exit. Rejected
+    points multiplied by -1
+
+sky : float
+    initial value of the (assumed constant) sky background (counts per
+    pixel)
+
+height : float
+    initial peak height of profile (counts)
+
+xcen : float
+    initial X value at centre of profile (unbinned absolute
+    coordinates)
+
+ycen : float
+    initial Y value at centre of profile (unbinned absolute
+    coordinates)
+
+fwhm : float
+    initial FWHM (unbinned pixels).
+
+fwhm_min : float
+    minimum value to allow FWHM to go to. Useful for heavily binned
+    data especially where all signal might be in a single pixel to
+    prevent going to silly values. Routine first fits with a free
+    FWHM. If it goes below this value it tries again, setting to this
+    value. (unbinned pixels)
+
+fwhm_fix : bool
+    fix the FWHM at the value &#39;fwhm&#39; during fits. Should be a bit
+    faster and more robust.
+
+read : float / array
+    readout noise, from which weights are generated. If an
+    array it must match the dimensions of the Window. (RMS counts)
+
+gain : float / array
+    gain, from which weights are generated. If an array it
+    must match the dimensions of the Window (e- per count)
+
+thresh : float
+    threshold in terms of RMS for rejection. The RMS is obtained from
+    read and gain but scaled by the sqrt(chi**2/d.o.f). Typical value
+    = 4
+
+ndiv : int
+    Parameter controlling treatment of sub-pixellation. If ndiv &gt; 0,
+    every pixel will be sub-divided first into unbinned pixels, and
+    then each unbinned pixels will be split into a square array of
+    ndiv by ndiv points. The profile will be evaluated and averaged
+    over each of these points. Thus if the pixels in `wind` are binned
+    xbin by ybin, there will be xbin*ybin*ndiv**2 evaluations per
+    pixel. This is to cope with the case where the seeing is becoming
+    small compared to the pixels, but obviously will slow things. To
+    simply evaluate the profile once at the centre of each pixel in
+    `wind`, set ndiv = 0.
+
+max_nfev : int
+    maximum number of function evaluations during fits. Passed directly
+    to leastsq.
+</pre></div>
+</div>
+<p>Returns:: tuple of tuples</p>
+<blockquote>
+<div><p>(pars, sigs, extras) where:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>pars : tuple
+     (sky, height, xcen, yce, fwhm). Fitted parameters.
+     `fwhm` == `fwhm_min` if fwhm after first fit is &lt; `fwhm_min`,
+     or == initial fwhm if `fwhm_fix` == True.
+
+sigs : tuple
+     (skye, heighte, xcene, ycene, fwhme). Standard errors on
+     the fit parameters. If `fwhm` defaults to `fwhm_min` or
+     `fwhm_fix` == True, then `fwhme` will come back as -1.
+
+extras : tuple
+     (fit, x, y, chisq, nok, nrej, npar, nfev) where: `fit`
+     is an :class:`Window` containing the best fit; `x` and
+     `y` are the x and y positions of all pixels (2D numpy
+     arrays); `chisq` is the raw chi**2; `nok` is the
+     number of points fitted; `nrej` is the number
+     rejected; `npar` is the number of parameters fitted (3
+     to 5), `nfev` is the number of functions evaluations.
+</pre></div>
+</div>
+</div></blockquote>
+<p>Raises a HipercamError least_squares fails.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.fitting.gaussian">
+<span class="sig-prename descclassname"><span class="pre">hipercam.fitting.</span></span><span class="sig-name descname"><span class="pre">gaussian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sky</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xcen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ycen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fwhm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xbin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ybin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ndiv</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.fitting.gaussian" title="Link to this definition">¶</a></dt>
+<dd><p>Returns a numpy array corresponding to the ordinate grids in xy set to a
+symmetric 2D Gaussian plus a constant. The profile is essentially defined
+by sky + height*exp(-alpha*r**2) where r is the distance from the centre
+and alpha is set to give the desired FWHM, but account is taken of the
+finite size of the pixels by summing over multiple points in each one.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">x</span>  <span class="p">:</span> <span class="mi">2</span><span class="n">D</span> <span class="n">numpy</span> <span class="n">array</span>
+   <span class="n">the</span> <span class="n">X</span> <span class="n">ordinates</span> <span class="n">over</span> <span class="n">which</span> <span class="n">you</span> <span class="n">want</span> <span class="n">to</span> <span class="n">compute</span> <span class="n">the</span>
+   <span class="n">profile</span><span class="o">.</span> <span class="n">They</span> <span class="n">should</span> <span class="n">be</span> <span class="n">measured</span> <span class="ow">in</span> <span class="n">term</span> <span class="n">of</span> <span class="n">unbinned</span> <span class="n">pixels</span><span class="o">.</span>
+
+<span class="n">y</span>  <span class="p">:</span> <span class="mi">2</span><span class="n">D</span> <span class="n">numpy</span> <span class="n">array</span>
+   <span class="n">the</span> <span class="n">Y</span> <span class="n">ordinates</span> <span class="n">over</span> <span class="n">which</span> <span class="n">you</span> <span class="n">want</span> <span class="n">to</span> <span class="n">compute</span> <span class="n">the</span>
+   <span class="n">profile</span><span class="o">.</span> <span class="n">They</span> <span class="n">should</span> <span class="n">be</span> <span class="n">measured</span> <span class="ow">in</span> <span class="n">term</span> <span class="n">of</span> <span class="n">unbinned</span> <span class="n">pixels</span><span class="o">.</span>
+
+<span class="n">sky</span> <span class="p">:</span> <span class="nb">float</span>
+   <span class="n">sky</span> <span class="n">background</span>
+
+<span class="n">height</span> <span class="p">:</span> <span class="nb">float</span>
+   <span class="n">height</span> <span class="n">of</span> <span class="n">central</span> <span class="n">peak</span>
+
+<span class="n">xcen</span> <span class="p">:</span> <span class="nb">float</span>
+   <span class="n">X</span><span class="o">-</span><span class="n">ordinate</span> <span class="n">of</span> <span class="n">centre</span>
+
+<span class="n">ycen</span> <span class="p">:</span> <span class="nb">float</span>
+   <span class="n">Y</span><span class="o">-</span><span class="n">ordinate</span> <span class="n">of</span> <span class="n">centre</span>
+
+<span class="n">fwhm</span> <span class="p">:</span> <span class="nb">float</span>
+   <span class="n">FWHM</span> <span class="n">of</span> <span class="n">the</span> <span class="n">profile</span> <span class="p">(</span><span class="n">unbinned</span> <span class="n">pixels</span><span class="p">)</span>
+
+<span class="n">xbin</span> <span class="p">:</span> <span class="nb">int</span>
+   <span class="n">X</span><span class="o">-</span><span class="n">size</span> <span class="n">of</span> <span class="n">pixels</span> <span class="ow">in</span> <span class="n">terms</span> <span class="n">of</span> <span class="n">unbinned</span> <span class="n">pixels</span><span class="p">,</span> <span class="n">i</span><span class="o">.</span><span class="n">e</span><span class="o">.</span> <span class="n">the</span> <span class="n">binning</span> <span class="n">factor</span> <span class="ow">in</span> <span class="n">X</span>
+
+<span class="n">ybin</span> <span class="p">:</span> <span class="nb">int</span>
+   <span class="n">Y</span><span class="o">-</span><span class="n">size</span> <span class="n">of</span> <span class="n">pixels</span> <span class="ow">in</span> <span class="n">terms</span> <span class="n">of</span> <span class="n">unbinned</span> <span class="n">pixels</span><span class="p">,</span> <span class="n">i</span><span class="o">.</span><span class="n">e</span><span class="o">.</span> <span class="n">the</span> <span class="n">binning</span> <span class="n">factor</span> <span class="ow">in</span> <span class="n">Y</span>
+
+<span class="n">ndiv</span> <span class="p">:</span> <span class="nb">int</span>
+   <span class="n">Parameter</span> <span class="n">controlling</span> <span class="n">treatment</span> <span class="n">of</span> <span class="n">sub</span><span class="o">-</span><span class="n">pixellation</span><span class="o">.</span> <span class="n">If</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">every</span>
+   <span class="n">pixel</span> <span class="n">will</span> <span class="n">be</span> <span class="n">sub</span><span class="o">-</span><span class="n">divided</span> <span class="n">first</span> <span class="n">into</span> <span class="n">unbinned</span> <span class="n">pixels</span><span class="p">,</span> <span class="ow">and</span> <span class="n">then</span> <span class="n">each</span>
+   <span class="n">unbinned</span> <span class="n">pixels</span> <span class="n">will</span> <span class="n">be</span> <span class="n">split</span> <span class="n">into</span> <span class="n">a</span> <span class="n">square</span> <span class="n">array</span> <span class="n">of</span> <span class="n">ndiv</span> <span class="n">by</span> <span class="n">ndiv</span>
+   <span class="n">points</span><span class="o">.</span> <span class="n">The</span> <span class="n">profile</span> <span class="n">will</span> <span class="n">be</span> <span class="n">evaluated</span> <span class="ow">and</span> <span class="n">averaged</span> <span class="n">over</span> <span class="n">each</span> <span class="n">of</span> <span class="n">these</span>
+   <span class="n">points</span><span class="o">.</span> <span class="n">Thus</span> <span class="k">if</span> <span class="n">the</span> <span class="n">pixels</span> <span class="n">are</span> <span class="n">binned</span> <span class="n">xbin</span> <span class="n">by</span> <span class="n">ybin</span><span class="p">,</span> <span class="n">there</span> <span class="n">will</span> <span class="n">be</span>
+   <span class="n">xbin</span><span class="o">*</span><span class="n">ybin</span><span class="o">*</span><span class="n">ndiv</span><span class="o">**</span><span class="mi">2</span> <span class="n">evaluations</span> <span class="n">per</span> <span class="n">pixel</span><span class="o">.</span> <span class="n">This</span> <span class="ow">is</span> <span class="n">to</span> <span class="n">cope</span> <span class="k">with</span> <span class="n">the</span>
+   <span class="k">case</span> <span class="n">where</span> <span class="n">the</span> <span class="n">seeing</span> <span class="ow">is</span> <span class="n">becoming</span> <span class="n">small</span> <span class="n">compared</span> <span class="n">to</span> <span class="n">the</span> <span class="n">pixels</span><span class="p">,</span> <span class="n">but</span>
+   <span class="n">obviously</span> <span class="n">will</span> <span class="n">slow</span> <span class="n">things</span><span class="o">.</span> <span class="n">To</span> <span class="n">simply</span> <span class="n">evaluate</span> <span class="n">the</span> <span class="n">profile</span> <span class="n">once</span> <span class="n">at</span>
+   <span class="n">the</span> <span class="n">centre</span> <span class="n">of</span> <span class="n">each</span> <span class="n">pixel</span><span class="p">,</span> <span class="nb">set</span> <span class="n">ndiv</span> <span class="o">=</span> <span class="mf">0.</span>
+</pre></div>
+</div>
+<p>Returns:: 2D numpy array containing the Gaussian plus constant evaluated
+on the ordinate grids in xy.</p>
+</dd></dl>
+
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><h3>Table of Contents</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../news.html">HiPERCAM pipeline news</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../observers.html">Observer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../commands.html">HiPERCAM commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/api.html">The API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Getting the software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../files.html">Useful files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plugins.html">Writing an instrument plugin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/bugs.html">Reporting problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../makingmovies.html">Making HiPERCAM movies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../phaseII.html">HiPERCAM Phase II</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">hipercam</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../aperture/index.html">hipercam.aperture</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ccd/index.html">hipercam.ccd</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../core/index.html">hipercam.core</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../defect/index.html">hipercam.defect</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extraction/index.html">hipercam.extraction</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">hipercam.fitting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../fringe/index.html">hipercam.fringe</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../group/index.html">hipercam.group</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../hcam/index.html">hipercam.hcam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../header/index.html">hipercam.header</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../hlog/index.html">hipercam.hlog</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../instruments/index.html">hipercam.instruments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../mpl/index.html">hipercam.mpl</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../pgp/index.html">hipercam.pgp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../psf_reduction/index.html">hipercam.psf_reduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reduction/index.html">hipercam.reduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../scripts/index.html">hipercam.scripts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../spooler/index.html">hipercam.spooler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../target/index.html">hipercam.target</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../tests/index.html">hipercam.tests</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ucam/index.html">hipercam.ucam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../utils/index.html">hipercam.utils</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../window/index.html">hipercam.window</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="../extraction/index.html"
+                          title="previous chapter">hipercam.extraction</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="../fringe/index.html"
+                          title="next chapter">hipercam.fringe</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../../_sources/autoapi/hipercam/fitting/index.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../../../_sources/autoapi/hipercam/fitting/index.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2017, T.R. Marsh.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 7.4.7. &nbsp;
+  </p>
+</footer>
+  </body>
+</html>

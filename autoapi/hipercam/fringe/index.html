@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>hipercam.fringe &#8212; HiPERCAM pipeline 1.6.8.dev12+g30055e846 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/bootstrap-astropy.css?v=177ce38d" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=fd3f3429" />
+    
+    <script src="../../../_static/documentation_options.js?v=adfd3a0b"></script>
+    <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script type="text/javascript" src="../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="hipercam.group" href="../group/index.html" />
+    <link rel="prev" title="hipercam.fitting" href="../fitting/index.html" />
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../index.html"><span id="logotext1">astro</span><span id="logotext2"></span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="../group/index.html" title="hipercam.group">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="../fitting/index.html" title="hipercam.fitting">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../../../index.html">HiPERCAM pipeline 1.6.8.dev12+g30055e846 documentation</a>
+	 &#187;
+      </li>
+      <li><a href="../../index.html" >API Reference</a> &#187;</li>
+      <li><a href="../index.html" accesskey="U">hipercam</a> &#187;</li>
+      
+      <li>hipercam.fringe</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-hipercam.fringe">
+<span id="hipercam-fringe"></span><h1>hipercam.fringe<a class="headerlink" href="#module-hipercam.fringe" title="Link to this heading">¶</a></h1>
+<p>Defines classes to specify pairs of points for fringe
+measurements. See ‘setfringe’ for usage. Basic idea is
+to measure peak-trough difference in two frames to measure
+the ratio of fringes between them.  Median values are used
+to eliminate discrepant points caused by objects.</p>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.fringe.FringePair" title="hipercam.fringe.FringePair"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FringePair</span></code></a></p></td>
+<td><p>Class representing a pair of positions for fringe</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.fringe.CcdFringePair" title="hipercam.fringe.CcdFringePair"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CcdFringePair</span></code></a></p></td>
+<td><p>Class representing all the :class:<a href="#id1"><span class="problematic" id="id2">`</span></a>FringePair`s for a single CCD.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.fringe.MccdFringePair" title="hipercam.fringe.MccdFringePair"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MccdFringePair</span></code></a></p></td>
+<td><p>Class representing all the :class:FringePairs for multiple CCDs.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.fringe._Encoder" title="hipercam.fringe._Encoder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_Encoder</span></code></a></p></td>
+<td><p>Extensible JSON &lt;<a class="reference external" href="http://json.org">http://json.org</a>&gt; encoder for Python data structures.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.fringe._Decoder" title="hipercam.fringe._Decoder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_Decoder</span></code></a></p></td>
+<td><p>Simple JSON &lt;<a class="reference external" href="http://json.org">http://json.org</a>&gt; decoder</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.fringe.FringePair">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.fringe.</span></span><span class="sig-name descname"><span class="pre">FringePair</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.fringe.FringePair" title="Link to this definition">¶</a></dt>
+<dd><p>Class representing a pair of positions for fringe
+measurement. The idea is that ratio of the difference
+in intensity at the two positions compared between two
+frames is used to scale a reference fringe image before
+subtracting from data.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.fringe.FringePair.x1">
+<span class="sig-name descname"><span class="pre">x1</span></span><a class="headerlink" href="#hipercam.fringe.FringePair.x1" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.fringe.FringePair.y1">
+<span class="sig-name descname"><span class="pre">y1</span></span><a class="headerlink" href="#hipercam.fringe.FringePair.y1" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.fringe.FringePair.x2">
+<span class="sig-name descname"><span class="pre">x2</span></span><a class="headerlink" href="#hipercam.fringe.FringePair.x2" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.fringe.FringePair.y2">
+<span class="sig-name descname"><span class="pre">y2</span></span><a class="headerlink" href="#hipercam.fringe.FringePair.y2" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.fringe.FringePair.wnam">
+<span class="sig-name descname"><span class="pre">wnam</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#hipercam.fringe.FringePair.wnam" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.fringe.FringePair.copy">
+<span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">memo</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.fringe.FringePair.copy" title="Link to this definition">¶</a></dt>
+<dd><p>Returns with a copy of the Aperture</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.fringe.FringePair.dist">
+<span class="sig-name descname"><span class="pre">dist</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.fringe.FringePair.dist" title="Link to this definition">¶</a></dt>
+<dd><p>Defines a distance of the FringePair from a point</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.fringe.FringePair.inside">
+<span class="sig-name descname"><span class="pre">inside</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ccd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nhalf</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.fringe.FringePair.inside" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.fringe.FringePair.diff">
+<span class="sig-name descname"><span class="pre">diff</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ccd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nhalf</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.fringe.FringePair.diff" title="Link to this definition">¶</a></dt>
+<dd><p>Returns difference in intensity.</p>
+<dl class="simple">
+<dt>nhalf<span class="classifier">int</span></dt><dd><p>will measure difference in the medians over regions
++/-nhalf binned pixels around nearest pixel of either
+end of FringePair</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.fringe.FringePair.__repr__">
+<span class="sig-name descname"><span class="pre">__repr__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.fringe.FringePair.__repr__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.fringe.CcdFringePair">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.fringe.</span></span><span class="sig-name descname"><span class="pre">CcdFringePair</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fpairs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">Group(FringePair)</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.fringe.CcdFringePair" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="../group/index.html#hipercam.group.Group" title="hipercam.group.Group"><code class="xref py py-obj docutils literal notranslate"><span class="pre">hipercam.group.Group</span></code></a></p>
+<p>Class representing all the :class:<a href="#id3"><span class="problematic" id="id4">`</span></a>FringePair`s for a single CCD.
+Normal usage is to create an empty one and then add FringePairs
+via the usual mechanism for updating dictionaries,
+i.e. ccddef[label] = fpair</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.fringe.CcdFringePair.diffrefs">
+<span class="sig-name descname"><span class="pre">diffrefs</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#hipercam.fringe.CcdFringePair.diffrefs" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.fringe.CcdFringePair.__repr__">
+<span class="sig-name descname"><span class="pre">__repr__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.fringe.CcdFringePair.__repr__" title="Link to this definition">¶</a></dt>
+<dd><p>Return repr(self).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.fringe.CcdFringePair.write">
+<span class="sig-name descname"><span class="pre">write</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.fringe.CcdFringePair.write" title="Link to this definition">¶</a></dt>
+<dd><p>Dumps ccdAper in JSON format to a file called fname</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.fringe.CcdFringePair.copy">
+<span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">memo</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.fringe.CcdFringePair.copy" title="Link to this definition">¶</a></dt>
+<dd><p>Copy operation. The stored objects must have a <cite>copy(self, memo)</cite> method.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.fringe.CcdFringePair.crop">
+<span class="sig-name descname"><span class="pre">crop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ccd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nhalf</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.fringe.CcdFringePair.crop" title="Link to this definition">¶</a></dt>
+<dd><p>Returns version of CcdFringePair with any
+<em>not</em> in ccd removed.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.fringe.CcdFringePair.diff">
+<span class="sig-name descname"><span class="pre">diff</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ccd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nhalf</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.fringe.CcdFringePair.diff" title="Link to this definition">¶</a></dt>
+<dd><p>Returns array of differences for all FringePairs in the ccd “crop”
+should have been run using ccd before running this.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.fringe.CcdFringePair.scale">
+<span class="sig-name descname"><span class="pre">scale</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ccd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ccdref</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nhalf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rmin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rmax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.fringe.CcdFringePair.scale" title="Link to this definition">¶</a></dt>
+<dd><p>Measures scale factor needed to subtract the fringes in
+a reference CCD <cite>ccdref</cite> from <cite>ccd</cite>. Measures median of
+the FringePair amplitude ratios.</p>
+<p>Parameters:</p>
+<blockquote>
+<div><dl class="simple">
+<dt>ccd<span class="classifier">CCD</span></dt><dd><p>the CCD to remove fringes from</p>
+</dd>
+<dt>ccdref<span class="classifier">CCD</span></dt><dd><p>the fringe map CCD</p>
+</dd>
+<dt>nhalf<span class="classifier">int</span></dt><dd><p>fringe amplitude measurements are made from pairs
+of points. A region of pixels extending +/-nhalf
+binned pixels around the centre pixel of each point
+will be used. nhalf can be 0, but a value &gt;0 ensures
+better stats.</p>
+</dd>
+<dt>rmin<span class="classifier">float</span></dt><dd><p>Lowest ratio to allow. Values lower than
+this from individual points will be ignored.</p>
+</dd>
+<dt>rmax<span class="classifier">float</span></dt><dd><p>Highest ratio to allow. Values higher than
+this from individual points will be ignored.</p>
+</dd>
+<dt>reset<span class="classifier">bool</span></dt><dd><p>Re-computes reference differences (only computed
+first time otherwise for speed)</p>
+</dd>
+<dt>verbose<span class="classifier">bool</span></dt><dd><p>True to report details of the ratios (prior to any
+rmin to rmax editing. The ratios are reported sorted
+by size.</p>
+</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.fringe.MccdFringePair">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.fringe.</span></span><span class="sig-name descname"><span class="pre">MccdFringePair</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fpairs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">Group(CcdFringePair)</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.fringe.MccdFringePair" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="../group/index.html#hipercam.group.Group" title="hipercam.group.Group"><code class="xref py py-obj docutils literal notranslate"><span class="pre">hipercam.group.Group</span></code></a></p>
+<p>Class representing all the :class:FringePairs for multiple CCDs.
+Normal usage is to create an empty one and then add apertures via
+the usual mechanism for updating dictionaries, e.g.</p>
+<p>&gt;&gt; mccddef = MccdFringePair()
+&gt;&gt; mccddef[‘ccd1’] = CcdFringePair()
+&gt;&gt; mccddef[‘ccd2’] = CcdFringePair()
+&gt;&gt; mccddef[‘ccd1’][‘ap1’] = FringePair(100,200,10,15,125,False)</p>
+<p>etc.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.fringe.MccdFringePair.crop">
+<span class="sig-name descname"><span class="pre">crop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mccd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nhalf</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.fringe.MccdFringePair.crop" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.fringe.MccdFringePair.__repr__">
+<span class="sig-name descname"><span class="pre">__repr__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.fringe.MccdFringePair.__repr__" title="Link to this definition">¶</a></dt>
+<dd><p>Return repr(self).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.fringe.MccdFringePair.write">
+<span class="sig-name descname"><span class="pre">write</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.fringe.MccdFringePair.write" title="Link to this definition">¶</a></dt>
+<dd><p>Dumps a MccdFringePair in JSON format to a file called fname</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.fringe.MccdFringePair.toString">
+<span class="sig-name descname"><span class="pre">toString</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.fringe.MccdFringePair.toString" title="Link to this definition">¶</a></dt>
+<dd><p>Returns MccdFringePair in JSON format as a string</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.fringe.MccdFringePair.read">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">read</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.fringe.MccdFringePair.read" title="Link to this definition">¶</a></dt>
+<dd><p>Read from JSON-format file fname.</p>
+<blockquote>
+<div><p>fp : a file-like object opened for reading of text</p>
+</div></blockquote>
+<p>Returns an MccdFringePair object.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.fringe._Encoder">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.fringe.</span></span><span class="sig-name descname"><span class="pre">_Encoder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skipkeys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ensure_ascii</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">check_circular</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_nan</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sort_keys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">separators</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.fringe._Encoder" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">json.JSONEncoder</span></code></p>
+<p>Extensible JSON &lt;<a class="reference external" href="http://json.org">http://json.org</a>&gt; encoder for Python data structures.</p>
+<p>Supports the following objects and types by default:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Python</p></th>
+<th class="head"><p>JSON</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>dict</p></td>
+<td><p>object</p></td>
+</tr>
+<tr class="row-odd"><td><p>list, tuple</p></td>
+<td><p>array</p></td>
+</tr>
+<tr class="row-even"><td><p>str</p></td>
+<td><p>string</p></td>
+</tr>
+<tr class="row-odd"><td><p>int, float</p></td>
+<td><p>number</p></td>
+</tr>
+<tr class="row-even"><td><p>True</p></td>
+<td><p>true</p></td>
+</tr>
+<tr class="row-odd"><td><p>False</p></td>
+<td><p>false</p></td>
+</tr>
+<tr class="row-even"><td><p>None</p></td>
+<td><p>null</p></td>
+</tr>
+</tbody>
+</table>
+<p>To extend this to recognize other objects, subclass and implement a
+<code class="docutils literal notranslate"><span class="pre">.default()</span></code> method with another method that returns a serializable
+object for <code class="docutils literal notranslate"><span class="pre">o</span></code> if possible, otherwise it should call the superclass
+implementation (to raise <code class="docutils literal notranslate"><span class="pre">TypeError</span></code>).</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.fringe._Encoder.default">
+<span class="sig-name descname"><span class="pre">default</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.fringe._Encoder.default" title="Link to this definition">¶</a></dt>
+<dd><p>Implement this method in a subclass such that it returns
+a serializable object for <code class="docutils literal notranslate"><span class="pre">o</span></code>, or calls the base implementation
+(to raise a <code class="docutils literal notranslate"><span class="pre">TypeError</span></code>).</p>
+<p>For example, to support arbitrary iterators, you could
+implement default like this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">o</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">iterable</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">o</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+        <span class="k">pass</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">iterable</span><span class="p">)</span>
+    <span class="c1"># Let the base class default method raise the TypeError</span>
+    <span class="k">return</span> <span class="n">JSONEncoder</span><span class="o">.</span><span class="n">default</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">o</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.fringe._Decoder">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.fringe.</span></span><span class="sig-name descname"><span class="pre">_Decoder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.fringe._Decoder" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">json.JSONDecoder</span></code></p>
+<p>Simple JSON &lt;<a class="reference external" href="http://json.org">http://json.org</a>&gt; decoder</p>
+<p>Performs the following translations in decoding by default:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>JSON</p></th>
+<th class="head"><p>Python</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>object</p></td>
+<td><p>dict</p></td>
+</tr>
+<tr class="row-odd"><td><p>array</p></td>
+<td><p>list</p></td>
+</tr>
+<tr class="row-even"><td><p>string</p></td>
+<td><p>str</p></td>
+</tr>
+<tr class="row-odd"><td><p>number (int)</p></td>
+<td><p>int</p></td>
+</tr>
+<tr class="row-even"><td><p>number (real)</p></td>
+<td><p>float</p></td>
+</tr>
+<tr class="row-odd"><td><p>true</p></td>
+<td><p>True</p></td>
+</tr>
+<tr class="row-even"><td><p>false</p></td>
+<td><p>False</p></td>
+</tr>
+<tr class="row-odd"><td><p>null</p></td>
+<td><p>None</p></td>
+</tr>
+</tbody>
+</table>
+<p>It also understands <code class="docutils literal notranslate"><span class="pre">NaN</span></code>, <code class="docutils literal notranslate"><span class="pre">Infinity</span></code>, and <code class="docutils literal notranslate"><span class="pre">-Infinity</span></code> as
+their corresponding <code class="docutils literal notranslate"><span class="pre">float</span></code> values, which is outside the JSON spec.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.fringe._Decoder.object_hook">
+<span class="sig-name descname"><span class="pre">object_hook</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.fringe._Decoder.object_hook" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><h3>Table of Contents</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../news.html">HiPERCAM pipeline news</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../observers.html">Observer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../commands.html">HiPERCAM commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/api.html">The API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Getting the software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../files.html">Useful files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plugins.html">Writing an instrument plugin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/bugs.html">Reporting problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../makingmovies.html">Making HiPERCAM movies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../phaseII.html">HiPERCAM Phase II</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">hipercam</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../aperture/index.html">hipercam.aperture</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ccd/index.html">hipercam.ccd</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../core/index.html">hipercam.core</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../defect/index.html">hipercam.defect</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extraction/index.html">hipercam.extraction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../fitting/index.html">hipercam.fitting</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">hipercam.fringe</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../group/index.html">hipercam.group</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../hcam/index.html">hipercam.hcam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../header/index.html">hipercam.header</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../hlog/index.html">hipercam.hlog</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../instruments/index.html">hipercam.instruments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../mpl/index.html">hipercam.mpl</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../pgp/index.html">hipercam.pgp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../psf_reduction/index.html">hipercam.psf_reduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reduction/index.html">hipercam.reduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../scripts/index.html">hipercam.scripts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../spooler/index.html">hipercam.spooler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../target/index.html">hipercam.target</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../tests/index.html">hipercam.tests</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ucam/index.html">hipercam.ucam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../utils/index.html">hipercam.utils</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../window/index.html">hipercam.window</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="../fitting/index.html"
+                          title="previous chapter">hipercam.fitting</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="../group/index.html"
+                          title="next chapter">hipercam.group</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../../_sources/autoapi/hipercam/fringe/index.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../../../_sources/autoapi/hipercam/fringe/index.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2017, T.R. Marsh.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 7.4.7. &nbsp;
+  </p>
+</footer>
+  </body>
+</html>

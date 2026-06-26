@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>hipercam.header &#8212; HiPERCAM pipeline 1.6.8.dev12+g30055e846 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/bootstrap-astropy.css?v=177ce38d" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=fd3f3429" />
+    
+    <script src="../../../_static/documentation_options.js?v=adfd3a0b"></script>
+    <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script type="text/javascript" src="../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="hipercam.hlog" href="../hlog/index.html" />
+    <link rel="prev" title="hipercam.hcam" href="../hcam/index.html" />
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../index.html"><span id="logotext1">astro</span><span id="logotext2"></span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="../hlog/index.html" title="hipercam.hlog">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="../hcam/index.html" title="hipercam.hcam">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../../../index.html">HiPERCAM pipeline 1.6.8.dev12+g30055e846 documentation</a>
+	 &#187;
+      </li>
+      <li><a href="../../index.html" >API Reference</a> &#187;</li>
+      <li><a href="../index.html" accesskey="U">hipercam</a> &#187;</li>
+      
+      <li>hipercam.header</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-hipercam.header">
+<span id="hipercam-header"></span><h1>hipercam.header<a class="headerlink" href="#module-hipercam.header" title="Link to this heading">¶</a></h1>
+<p>Defines a class to contain header information compatible with FITS headers.
+The aim is to provide a faster replacement for astropy.io.fits.Header</p>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.header.Header" title="hipercam.header.Header"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Header</span></code></a></p></td>
+<td><p>Simulates the basic functionality of astropy.io.fits.Header objects while</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.header.Header">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.header.</span></span><span class="sig-name descname"><span class="pre">Header</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">head</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">copy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.header.Header" title="Link to this definition">¶</a></dt>
+<dd><p>Simulates the basic functionality of astropy.io.fits.Header objects while
+being lighter weight and thus more efficient. The idea is to allow headers
+that are compatible with writing to and reading from FITS files, i.e.
+that have (uppercase) keywords, values, comments and allows for ‘HIERARCH’
+long keywords. History and comments are added at the end of the
+header. There is no attempt to replicate all the methods of
+astropy.io.fits.Header, although many are similar in nature to reduce the
+number of changes to the code required to implement this. This class has
+does not have all the checks of astropy.io.fits.Header objects so it is
+possible to create invalid headers, but this should become obvious when
+attempting conversion to FITS. Some example code:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&gt;&gt;</span> <span class="kn">import</span><span class="w"> </span><span class="nn">Header</span> <span class="kn">from</span><span class="w"> </span><span class="nn">hipercam</span>
+<span class="o">&gt;&gt;</span> <span class="n">head</span> <span class="o">=</span> <span class="n">Header</span><span class="p">()</span>
+<span class="o">&gt;&gt;</span> <span class="n">head</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.23</span><span class="p">,</span> <span class="s1">&#39;a comment&#39;</span><span class="p">)</span>
+<span class="o">&gt;&gt;</span> <span class="n">head</span><span class="p">[</span><span class="s1">&#39;object&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;IP Peg&#39;</span>
+</pre></div>
+</div>
+<p><a class="reference internal" href="#hipercam.header.Header" title="hipercam.header.Header"><code class="xref py py-class docutils literal notranslate"><span class="pre">Header</span></code></a> objects are used as the base class of <code class="xref py py-class docutils literal notranslate"><span class="pre">Winhead</span></code> and
+<code class="xref py py-class docutils literal notranslate"><span class="pre">Window</span></code> objects which build into <code class="xref py py-class docutils literal notranslate"><span class="pre">CCD</span></code> and <code class="xref py py-class docutils literal notranslate"><span class="pre">MCCD</span></code>
+objects.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.header.Header.SPECIAL_KEYWORDS">
+<span class="sig-name descname"><span class="pre">SPECIAL_KEYWORDS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('COMMENT',</span> <span class="pre">'HISTORY',</span> <span class="pre">'')</span></em><a class="headerlink" href="#hipercam.header.Header.SPECIAL_KEYWORDS" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="hipercam.header.Header.to_fits">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">to_fits</span></span><a class="headerlink" href="#hipercam.header.Header.to_fits" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the Header as an astropy.io.fits.Header
+which is useful when saving to disk</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.header.Header._process_key">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">_process_key</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.header.Header._process_key" title="Link to this definition">¶</a></dt>
+<dd><p>This converts keys of 8 characters or less to uppercase.
+Any leading ‘HIERARCH ‘ is stripped</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.header.Header.__setitem__">
+<span class="sig-name descname"><span class="pre">__setitem__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">item</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.header.Header.__setitem__" title="Link to this definition">¶</a></dt>
+<dd><p>Sets the value of a header item using the [] form, e.g. <cite>head[‘NREC’] =
+2345</cite>.  Reserved keywords ‘COMMENT’, ‘HISTORY’ and ‘’ (blank) are
+trapped.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">key</span> <span class="p">:</span> <span class="n">string</span>
+   <span class="n">the</span> <span class="n">name</span> <span class="n">of</span> <span class="n">the</span> <span class="n">header</span> <span class="n">item</span><span class="o">.</span>
+
+<span class="n">item</span> <span class="p">:</span> <span class="nb">tuple</span> <span class="o">|</span> <span class="n">string</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">float</span>
+   <span class="n">the</span> <span class="p">(</span><span class="n">value</span><span class="p">,</span><span class="n">comment</span><span class="p">)</span> <span class="n">pair</span> <span class="ow">or</span> <span class="n">just</span> <span class="n">the</span> <span class="n">value</span> <span class="p">(</span><span class="ow">in</span> <span class="n">which</span>
+   <span class="k">case</span> <span class="n">the</span> <span class="n">comment</span> <span class="n">will</span> <span class="n">be</span> <span class="n">blank</span><span class="o">.</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.header.Header.__getitem__">
+<span class="sig-name descname"><span class="pre">__getitem__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.header.Header.__getitem__" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the value associated with header item ‘key’ using the
+[] form, e.g. <cite>nrec = head[‘NRECORD’]</cite>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.header.Header.get">
+<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.header.Header.get" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the value associated with header item ‘key’, returning
+a default value if the header item does not exist.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.header.Header.get_full">
+<span class="sig-name descname"><span class="pre">get_full</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.header.Header.get_full" title="Link to this definition">¶</a></dt>
+<dd><p>Returns with 2-element (value,comment) tuple for the given keyword</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.header.Header.get_comment">
+<span class="sig-name descname"><span class="pre">get_comment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.header.Header.get_comment" title="Link to this definition">¶</a></dt>
+<dd><p>Returns with the comment for the given keyword</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.header.Header.add_comment">
+<span class="sig-name descname"><span class="pre">add_comment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">comment</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.header.Header.add_comment" title="Link to this definition">¶</a></dt>
+<dd><p>Adds a comment to the end of the ‘COMMENT’ section</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.header.Header.add_history">
+<span class="sig-name descname"><span class="pre">add_history</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">history</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.header.Header.add_history" title="Link to this definition">¶</a></dt>
+<dd><p>Adds a line of history to the end of the ‘HISTORY’ section</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.header.Header.copy">
+<span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.header.Header.copy" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.header.Header.__repr__">
+<span class="sig-name descname"><span class="pre">__repr__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.header.Header.__repr__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.header.Header.__delitem__">
+<span class="sig-name descname"><span class="pre">__delitem__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.header.Header.__delitem__" title="Link to this definition">¶</a></dt>
+<dd><p>Deletes a particular header item when called e.g. as
+<cite>del head[key]</cite>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.header.Header.__contains__">
+<span class="sig-name descname"><span class="pre">__contains__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.header.Header.__contains__" title="Link to this definition">¶</a></dt>
+<dd><p>Defines the operation ‘in’ for a Header. Look up whether
+a given key is in the header</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.header.Header.update">
+<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">head</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.header.Header.update" title="Link to this definition">¶</a></dt>
+<dd><p>Update the Header with the contents of another header (excluding
+comments and history)</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><h3>Table of Contents</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../news.html">HiPERCAM pipeline news</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../observers.html">Observer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../commands.html">HiPERCAM commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/api.html">The API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Getting the software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../files.html">Useful files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plugins.html">Writing an instrument plugin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/bugs.html">Reporting problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../makingmovies.html">Making HiPERCAM movies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../phaseII.html">HiPERCAM Phase II</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">hipercam</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../aperture/index.html">hipercam.aperture</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ccd/index.html">hipercam.ccd</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../core/index.html">hipercam.core</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../defect/index.html">hipercam.defect</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extraction/index.html">hipercam.extraction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../fitting/index.html">hipercam.fitting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../fringe/index.html">hipercam.fringe</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../group/index.html">hipercam.group</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../hcam/index.html">hipercam.hcam</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">hipercam.header</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../hlog/index.html">hipercam.hlog</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../instruments/index.html">hipercam.instruments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../mpl/index.html">hipercam.mpl</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../pgp/index.html">hipercam.pgp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../psf_reduction/index.html">hipercam.psf_reduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reduction/index.html">hipercam.reduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../scripts/index.html">hipercam.scripts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../spooler/index.html">hipercam.spooler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../target/index.html">hipercam.target</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../tests/index.html">hipercam.tests</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ucam/index.html">hipercam.ucam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../utils/index.html">hipercam.utils</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../window/index.html">hipercam.window</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="../hcam/index.html"
+                          title="previous chapter">hipercam.hcam</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="../hlog/index.html"
+                          title="next chapter">hipercam.hlog</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../../_sources/autoapi/hipercam/header/index.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../../../_sources/autoapi/hipercam/header/index.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2017, T.R. Marsh.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 7.4.7. &nbsp;
+  </p>
+</footer>
+  </body>
+</html>

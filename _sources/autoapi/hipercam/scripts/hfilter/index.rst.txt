@@ -1,0 +1,64 @@
+hipercam.scripts.hfilter
+========================
+
+.. py:module:: hipercam.scripts.hfilter
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   hipercam.scripts.hfilter.hfilter
+
+
+Module Contents
+---------------
+
+.. py:function:: hfilter(args=None)
+
+   
+   ``hfilter input ccd nx filter [fwhm] output``
+
+   Filters a multi-CCD image. e.g. smooths it. Can be useful
+   in some analysis steps, e.g. for picking out defects, division
+   by a smoother version of an image can be useful.
+
+   Parameters:
+
+     input  : string
+        name of MCCD input file
+
+     ccd    : string
+        CCD(s) to filter, '0' for all. If not '0' then '1', '2' or even '3 4'
+        are possible inputs (without the quotes).
+
+     filter  : string [single character]
+        type of filter. 'g' = gaussian. Uses an FFT-based approach which
+        regards the boundaries as periodic, so you will get significant
+        edge-effects if the values on opposite edges of a window are
+        significantly different from each other.
+
+     clobber : bool [hidden]
+        clobber any pre-existing output files
+
+     output  : string
+        name of MCCD output file
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+

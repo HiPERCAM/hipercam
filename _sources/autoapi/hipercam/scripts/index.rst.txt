@@ -1,0 +1,4815 @@
+hipercam.scripts
+================
+
+.. py:module:: hipercam.scripts
+
+.. autoapi-nested-parse::
+
+   
+   Scripts sub-module of HiPERCAM contains all the commands used from
+   the terminal. They are all implemented as functions for automatic
+   inclusion in the documentation and for portability
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/hipercam/scripts/aligntool/index
+   /autoapi/hipercam/scripts/arith/index
+   /autoapi/hipercam/scripts/atanalysis/index
+   /autoapi/hipercam/scripts/atbytes/index
+   /autoapi/hipercam/scripts/averun/index
+   /autoapi/hipercam/scripts/calsearch/index
+   /autoapi/hipercam/scripts/carith/index
+   /autoapi/hipercam/scripts/combine/index
+   /autoapi/hipercam/scripts/exploss/index
+   /autoapi/hipercam/scripts/filtid/index
+   /autoapi/hipercam/scripts/fits2hcm/index
+   /autoapi/hipercam/scripts/flagcloud/index
+   /autoapi/hipercam/scripts/ftargets/index
+   /autoapi/hipercam/scripts/genred/index
+   /autoapi/hipercam/scripts/grab/index
+   /autoapi/hipercam/scripts/harchive/index
+   /autoapi/hipercam/scripts/hfilter/index
+   /autoapi/hipercam/scripts/hinfo/index
+   /autoapi/hipercam/scripts/hist/index
+   /autoapi/hipercam/scripts/hlog2col/index
+   /autoapi/hipercam/scripts/hlog2fits/index
+   /autoapi/hipercam/scripts/hlogger/index
+   /autoapi/hipercam/scripts/hls/index
+   /autoapi/hipercam/scripts/hmeta/index
+   /autoapi/hipercam/scripts/hpackage/index
+   /autoapi/hipercam/scripts/hplot/index
+   /autoapi/hipercam/scripts/joinup/index
+   /autoapi/hipercam/scripts/jtrawl/index
+   /autoapi/hipercam/scripts/logsearch/index
+   /autoapi/hipercam/scripts/ltimes/index
+   /autoapi/hipercam/scripts/ltrans/index
+   /autoapi/hipercam/scripts/makebias/index
+   /autoapi/hipercam/scripts/makedark/index
+   /autoapi/hipercam/scripts/makeflat/index
+   /autoapi/hipercam/scripts/makefringe/index
+   /autoapi/hipercam/scripts/makemovie/index
+   /autoapi/hipercam/scripts/makestuff/index
+   /autoapi/hipercam/scripts/mstats/index
+   /autoapi/hipercam/scripts/ncal/index
+   /autoapi/hipercam/scripts/nrtplot/index
+   /autoapi/hipercam/scripts/pbands/index
+   /autoapi/hipercam/scripts/pfolder/index
+   /autoapi/hipercam/scripts/plog/index
+   /autoapi/hipercam/scripts/psfaper/index
+   /autoapi/hipercam/scripts/redanal/index
+   /autoapi/hipercam/scripts/redplt/index
+   /autoapi/hipercam/scripts/reduce/index
+   /autoapi/hipercam/scripts/rtplot/index
+   /autoapi/hipercam/scripts/rupdate/index
+   /autoapi/hipercam/scripts/setaper/index
+   /autoapi/hipercam/scripts/setdefect/index
+   /autoapi/hipercam/scripts/setfringe/index
+   /autoapi/hipercam/scripts/shiftadd/index
+   /autoapi/hipercam/scripts/splice/index
+   /autoapi/hipercam/scripts/stats/index
+   /autoapi/hipercam/scripts/tanalysis/index
+   /autoapi/hipercam/scripts/tbytes/index
+   /autoapi/hipercam/scripts/uls/index
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   hipercam.scripts.add
+   hipercam.scripts.div
+   hipercam.scripts.mul
+   hipercam.scripts.sub
+   hipercam.scripts.atanalysis
+   hipercam.scripts.atbytes
+   hipercam.scripts.averun
+   hipercam.scripts.cadd
+   hipercam.scripts.cdiv
+   hipercam.scripts.cmul
+   hipercam.scripts.csub
+   hipercam.scripts.combine
+   hipercam.scripts.genred
+   hipercam.scripts.grab
+   hipercam.scripts.hfilter
+   hipercam.scripts.hist
+   hipercam.scripts.hlog2fits
+   hipercam.scripts.hlogger
+   hipercam.scripts.hls
+   hipercam.scripts.hpackage
+   hipercam.scripts.hplot
+   hipercam.scripts.joinup
+   hipercam.scripts.ltimes
+   hipercam.scripts.ltrans
+   hipercam.scripts.makebias
+   hipercam.scripts.makeflat
+   hipercam.scripts.makefringe
+   hipercam.scripts.makemovie
+   hipercam.scripts.makefield
+   hipercam.scripts.mstats
+   hipercam.scripts.ncal
+   hipercam.scripts.nrtplot
+   hipercam.scripts.pfolder
+   hipercam.scripts.plog
+   hipercam.scripts.redanal
+   hipercam.scripts.reduce
+   hipercam.scripts.rtplot
+   hipercam.scripts.rupdate
+   hipercam.scripts.setaper
+   hipercam.scripts.setdefect
+   hipercam.scripts.setfringe
+   hipercam.scripts.shiftadd
+   hipercam.scripts.splice
+   hipercam.scripts.stats
+   hipercam.scripts.tanalysis
+   hipercam.scripts.tbytes
+   hipercam.scripts.uls
+
+
+Package Contents
+----------------
+
+.. py:function:: add(args=None)
+
+   
+   ``add input1 input2 [ccd win] output``
+
+   Adds two hcm frames and outputs the result. Can be applied only to
+   particular CCDs and windows if wanted.
+
+   Parameters:
+
+      input1  : string
+         first input hcm file
+
+      input2  : string
+         second input hcm file to add to the first.
+
+      ccd     : string [hidden, defaults to 'all']
+         the CCD or CCDs to apply the operation to. 'all' for the whole lot
+         which it returns to by default.  Can be several e.g. '2 4' or just
+         one '3'
+
+      win     : string [hidden, defaults to 'all']
+         the CCD or CCDs to apply the operation to. 'all' for the whole lot
+         which it returns to by default.  Can be several e.g. 'E2 G1' or just
+         one 'H1'. If you specify windows in this manner, it is assumed that
+         all the CCDs chosen in the previous input have the named windows;
+         'all' just applies the operation to all windows regardless.
+
+      output  : string
+         output hcm file name. Can be same as either input1 or input2
+         in which case the input file will be over-written.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: div(args=None)
+
+   
+   ``div input1 input2 [ccd win] output``
+
+   Divides two hcm frames and outputs the result. Can be applied only to
+   particular CCDs and windows if wanted.
+
+   Parameters:
+
+      input1  : string
+         first input hcm file
+
+      input2  : string
+         second input hcm file to divide into the first.
+
+      ccd     : string [hidden, defaults to 'all']
+         the CCD or CCDs to apply the operation to. 'all' for the whole lot
+         which it returns to by default.  Can be several e.g. '2 4' or just
+         one '3'
+
+      win     : string [hidden, defaults to 'all']
+         the CCD or CCDs to apply the operation to. 'all' for the whole lot
+         which it returns to by default.  Can be several e.g. 'E2 G1' or just
+         one 'H1'. If you specify windows in this manner, it is assumed that
+         all the CCDs chosen in the previous input have the named windows;
+         'all' just applies the operation to all windows regardless.
+
+      output  : string
+         output hcm file name. Can be same as either input1 or input2
+         in which case the input file will be over-written.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: mul(args=None)
+
+   
+   ``mul input1 input2 [ccd win] output``
+
+   Multiplies two hcm frames and outputs the result. Can be applied only to
+   particular CCDs and windows if wanted.
+
+   Parameters:
+
+      input1  : string
+         first input hcm file
+
+      input2  : string
+         second input hcm file to multiply into the first.
+
+      ccd     : string [hidden, defaults to 'all']
+         the CCD or CCDs to apply the operation to. 'all' for the whole lot
+         which it returns to by default.  Can be several e.g. '2 4' or just
+         one '3'
+
+      win     : string [hidden, defaults to 'all']
+         the CCD or CCDs to apply the operation to. 'all' for the whole lot
+         which it returns to by default.  Can be several e.g. 'E2 G1' or just
+         one 'H1'. If you specify windows in this manner, it is assumed that
+         all the CCDs chosen in the previous input have the named windows;
+         'all' just applies the operation to all windows regardless.
+
+      output  : string
+         output hcm file name. Can be same as either input1 or input2
+         in which case the input file will be over-written.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: sub(args=None)
+
+   
+   ``sub input1 input2 [ccd win] output``
+
+   Subtracts two hcm frames and outputs the result. Can be applied only to
+   particular CCDs and windows if wanted.
+
+   Parameters:
+
+      input1  : string
+         first input hcm file
+
+      input2  : string
+         second input hcm file to subtract from the first.
+
+      ccd     : string [hidden, defaults to 'all']
+         the CCD or CCDs to apply the operation to. 'all' for the whole lot
+         which it returns to by default.  Can be several e.g. '2 4' or just
+         one '3'
+
+      win     : string [hidden, defaults to 'all']
+         the CCD or CCDs to apply the operation to. 'all' for the whole lot
+         which it returns to by default.  Can be several e.g. 'E2 G1' or just
+         one 'H1'. If you specify windows in this manner, it is assumed that
+         all the CCDs chosen in the previous input have the named windows;
+         'all' just applies the operation to all windows regardless.
+
+      output  : string
+         output hcm file name. Can be same as either input1 or input2
+         in which case the input file will be over-written.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: atanalysis(args=None)
+
+   
+   ``atanalysis mintim dcmax``
+
+   Specialist script to look for timing problems in all runs in
+   night directories.
+
+   Parameters:
+
+       mintim : int
+          Minimum number of frames to require a run to have before running
+          tanalysis on it
+
+       dcmax : float
+          Maximum differential in terms of cycle number from exact integers
+          to use to indicate "failed" times. Pre 2010-02 needs to be looser
+          than post 2010-02. Number of order 0.003 is appropriate.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: atbytes(args=None)
+
+   
+   ``atbytes``
+
+   Specialist script to strip out and save all timing bytes of all runs in a
+   series of directories of YYYY[_-]MM[_-]DD form which should be
+   sub-directories of the directory the script is run from. It will
+   create (if necessary) a sub-directory of each of these night
+   directories called 'tbytes' containing the timing bytes data, one
+   for each run of the night directory. It can handle ULTRACAM,
+   ULTRASPEC and HiPERCAM data. The script was created in preparation
+   for making in-place modifications of the timing data after the
+   discovery of some timing issues in March 2020.
+
+   In the case of ULTRASPEC (or ULTRACAM, but really only applies to
+   ULTRASPEC in practice) data, the script will always attempt to
+   access any "old" version of the form "run023.dat.old" as these are
+   files containing the original timing data potentially with null
+   timestamps in the case of ULTRASPEC, as ultimately I want to
+   develop a script that corrects both the ULTRASPEC null timestamps
+   as well as the spurious but genuine timestamps that seem to be at
+   the root of the March 2020 problem.
+
+   atbytes takes no arguments. Just run it from a directory
+   containing night directories.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: averun(args=None)
+
+   
+   ``averun [source] (run first last twait tmax | flist) trim ([ncol
+   nrow]) bias dark flat fmap (fpair [nhalf rmin rmax]) [method sigma
+   adjust clobber] output``
+
+   Averages images from a run using median combination, skipping the junk
+   frames that result from NSKIP / NBLUE options in HiPERCAM and ULTRACAM
+   data. `averun` is meant to be a simple tool to create median frames
+   suitable prior to aperture selection with `setaper`. See `combine` if you
+   want more fine-grained control over frame averaging. (`averun` uses a
+   combination of `grab` [if needed] and `combine`).
+
+   Parameters:
+
+       source : str [hidden]
+          Data source, five options for built-in sources:
+
+             | 'hs' : HiPERCAM server
+             | 'hl' : local HiPERCAM FITS file
+             | 'us' : ULTRACAM server
+             | 'ul' : local ULTRACAM .xml/.dat files
+             | 'hf' : list of HiPERCAM hcm FITS-format files
+
+          'hf' is used to look at sets of frames generated by 'grab'
+          or converted from foreign data formats. The standard
+          start-off default for ``source`` can be set using the
+          environment variable HIPERCAM_DEFAULT_SOURCE. e.g. in bash
+          :code:`export HIPERCAM_DEFAULT_SOURCE="us"` would ensure it
+          always started with the ULTRACAM server by default. If
+          unspecified, it defaults to 'hl'.
+
+          Any instruments installed via plugins can be used as a source by
+          specifying either ``<instrument>:local`` or ``<instrument>:server``.
+
+       run : str [if source ends 's' or 'l']
+          run number to access, e.g. 'run034'
+
+       flist : str [if source ends 'f']
+          name of file list
+
+       first : int [if source ends 's' or 'l']
+          exposure number to start from. 1 = first frame ('0' is
+          not supported).
+
+       last : int [if source ends 's' or 'l']
+          last exposure number must be >= first, or 0 for the lot
+
+       twait : float [if source ends 's' or 'l'; hidden]
+          time to wait between attempts to find a new exposure, seconds.
+
+       tmax : float [if source ends 's' or 'l'; hidden]
+          maximum time to wait between attempts to find a new exposure,
+          seconds.
+
+       trim : bool
+          True to trim columns and/or rows off the edges of windows nearest
+          the readout. Useful for ULTRACAM particularly.
+
+       ncol : int [if trim, hidden]
+          Number of columns to remove (on left of left-hand window, and right
+          of right-hand windows)
+
+       nrow : int [if trim, hidden]
+          Number of rows to remove (bottom of windows)
+
+       bias : str
+          Name of bias frame to subtract, 'none' to ignore.
+
+       dark : str
+          Name of dark frame to subtract, 'none' to ignore.
+
+       flat : str
+          Name of flat field to divide by, 'none' to ignore.
+
+       fmap : str
+          Name of fringe map (see e.g. `makefringe`), 'none' to ignore.
+
+       fpair : str [if fmap is not 'none']
+          Name of fringe pair file (see e.g. `setfringe`). Required if
+          a fringe map has been specified.
+
+       nhalf : int [if fmap is not 'none', hidden]
+          When calculating the differences for fringe measurement,
+          a region extending +/-nhalf binned pixels will be used when
+          measuring the amplitudes. Basically helps the stats.
+
+       rmin : float [if fmap is not 'none', hidden]
+          Minimum individual ratio to accept prior to calculating the overall
+          median in order to reduce the effect of outliers. Although all ratios
+          should be positive, you might want to set this a little below zero
+          to allow for some statistical fluctuation.
+
+       rmax : float [if fmap is not 'none', hidden]
+          Maximum individual ratio to accept prior to calculating the overall
+          median in order to reduce the effect of outliers. Probably typically
+          < 1 if fringe map was created from longer exposure data.
+
+       method : str [hidden, defaults to 'm']
+          'm' for median, 'c' for clipped mean. See below for pros and cons.
+
+       sigma : float [hidden; if method == 'c']
+          With clipped mean combination, pixels that deviate by more than
+          sigma RMS from the mean are kicked out. This is carried out in an
+          iterative manner. sigma <= 0 implies no rejection, just a straight
+          average. sigma=3 is typical.
+
+       adjust : str [hidden; defaults to 'i']
+          adjustments to make: 'i' = ignore; 'n' = normalise the mean of all
+          frames to match the first; 'b' = add offsets so that the mean of
+          all frames is the same as the first.  Option 'n' is useful for
+          twilight flats; 'b' for combining biases.
+
+       clobber : bool [hidden]
+          clobber any pre-existing output files
+
+       output : str
+          output file. Set by default to match the last part of "run"
+          (but it will have a different extension so they won't
+          clash)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: cadd(args=None)
+
+   
+   ``cadd input const [ccd win] output``
+
+   Adds a constant to a HiPERCAM hcm frame. Can be applied only to particular
+   CCDs and windows if wanted.
+
+   Parameters:
+
+      input  : string
+         input hcm file name
+
+      const  : float
+         constant to add
+
+      ccd    : string [hidden, defaults to 'all']
+         the CCD or CCDs to apply the operation to. 'all' for the whole lot
+         which it returns to by default.  Can be several e.g. '2 4' or just
+         one '3'
+
+      win    : string [hidden, defaults to 'all']
+         the CCD or CCDs to apply the operation to. 'all' for the whole lot
+         which it returns to by default.  Can be several e.g. 'E2 G1' or just
+         one 'H1'. If you specify windows in this manner, it is assumed that
+         all the CCDs chosen in the previous input have the named windows;
+         'all' just applies the operation to all windows regardless.
+
+      output : string
+         output hcm file name. Can be same as input in which case
+         the file will be over-written.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: cdiv(args=None)
+
+   
+   ``cdiv input const [ccd win] output``
+
+   Divides a HiPERCAM hcm frame by a constant. Can be applied only to
+   particular CCDs and windows if wanted.
+
+   Parameters:
+
+      input  : string
+         input hcm file name
+
+      const  : float
+         constant to divide by
+
+      ccd    : string [hidden, defaults to 'all']
+         the CCD or CCDs to apply the operation to. 'all' for the whole lot
+         which it returns to by default.  Can be several e.g. '2 4' or just
+         one '3'
+
+      win    : string [hidden, defaults to 'all']
+         the CCD or CCDs to apply the operation to. 'all' for the whole lot
+         which it returns to by default.  Can be several e.g. 'E2 G1' or just
+         one 'H1'. If you specify windows in this manner, it is assumed that
+         all the CCDs chosen in the previous input have the named windows;
+         'all' just applies the operation to all windows regardless.
+
+      output : string
+         output hcm file name. Can be same as input in which case
+         the file will be over-written.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: cmul(args=None)
+
+   
+   ``cmul input const [ccd win] output``
+
+   Multiplies a HiPERCAM hcm frame by a constant. Can be applied only to
+   particular CCDs and windows if wanted.
+
+   Parameters:
+
+      input  : string
+         input hcm file name
+
+      const  : float
+         constant to multiply by
+
+      ccd    : string [hidden, defaults to 'all']
+         the CCD or CCDs to apply the operation to. 'all' for the whole lot
+         which it returns to by default.  Can be several e.g. '2 4' or just
+         one '3'
+
+      win    : string [hidden, defaults to 'all']
+         the CCD or CCDs to apply the operation to. 'all' for the whole lot
+         which it returns to by default.  Can be several e.g. 'E2 G1' or just
+         one 'H1'. If you specify windows in this manner, it is assumed that
+         all the CCDs chosen in the previous input have the named windows;
+         'all' just applies the operation to all windows regardless.
+
+      output : string
+         output hcm file name. Can be same as input in which case
+         the file will be over-written.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: csub(args=None)
+
+   
+   ``csub input const [ccd win] output``
+
+   Subtracts a constant from a HiPERCAM hcm frame. Can be applied only to
+   particular CCDs and windows if wanted.
+
+   Parameters:
+
+      input  : string
+         input hcm file name
+
+      const  : float
+         constant to subtract
+
+      ccd    : string [hidden, defaults to 'all']
+         the CCD or CCDs to apply the operation to. 'all' for the whole lot
+         which it returns to by default.  Can be several e.g. '2 4' or just
+         one '3'
+
+      win    : string [hidden, defaults to 'all']
+         the CCD or CCDs to apply the operation to. 'all' for the whole lot
+         which it returns to by default.  Can be several e.g. 'E2 G1' or just
+         one 'H1'. If you specify windows in this manner, it is assumed that
+         all the CCDs chosen in the previous input have the named windows;
+         'all' just applies the operation to all windows regardless.
+
+      output : string
+         output hcm file name. Can be same as input in which case
+         the file will be over-written.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: combine(args=None)
+
+   
+   ``combine list bias dark flat method (sigma) adjust (usemean) [plot clobber]
+   output``
+
+   Combines a series of images defined by a list using median or clipped
+   mean combination. Only combines those CCDs for which is_data() is true
+   (i.e. it skips blank frames caused by NSKIP / NBLUE options)
+
+   Parameters:
+
+       list : string
+          list of hcm files with images to combine. The formats of the
+          images should all match
+
+       bias : string
+          Name of bias frame to subtract, 'none' to ignore.
+
+       dark : string
+          Name of dark frame to subtract, 'none' to ignore.
+
+       flat : string
+          Name of flat field frame to subtract, 'none' to ignore.
+
+       method  : string
+          'm' for median, 'c' for clipped mean. See below for pros and cons.
+
+       sigma   : float [if method == 'c']
+          With clipped mean combination, pixels that deviate by more than
+          sigma RMS from the mean are kicked out. This is carried out in an
+          iterative manner. sigma <= 0 implies no rejection, just a straight
+          average. sigma=3 is typical.
+
+       adjust  : string
+          adjustments to make: 'i' = ignore; 'n' = normalise the mean or
+          median of all frames to match the first; 'b' = add offsets so that
+          the mean or median of all frames is the same as the first. Option
+          'n' is useful for twilight flats and fringe frames; 'b' is good
+          for combining biases.
+
+       usemean : bool [if adjust == 'n' or 'b']
+          True to use the mean rather than the median for normalisation or
+          biass offsetting.
+
+       plot    : bool [hidden, if adjust == 'n' or 'b'; defaults to False]
+          make a plot of the mean versus frame number. This can provide a
+          quick check that the frames are not too different.
+
+       clobber : bool [hidden]
+          clobber any pre-existing output files
+
+       output  : string
+          output file
+
+      Clipped mean can work well for large numbers of frames but gets worse
+      for small numbers as the RMS can be heavily influenced by a single bad
+      value. The median can be better in such cases, but has the downside of
+      digitisation noise. For instance, the average of 100 bias frames could
+      have a noise level significantly below 1 count, depending upon the
+      readout noise, and the +/- 0.5 count uncertainty of median combination
+      may be worse than this.
+
+   .. Note::
+
+      This routine reads all inputs into memory, so can be a bit of a
+      hog. However, it does so one CCD at a time to alleviate this. It will
+      fail if it cannot find a valid frame for any CCD.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: genred(args=None)
+
+   
+   ``genred apfile rfile bias dark flat fmap fpair seeing (sworst
+   binfac) template (inst (nccd (ccd) nonlin sat scale readout
+   gain))``
+
+   Generates a reduce file as needed by |reduce|. You
+   give it the name of an aperture file, calibration frames and a few
+   other parameters and it will write out a reduce file which you can
+   then refine by hand. The aim is to try to get a reduce file that
+   is self-consistent and works to get observing started as soon as
+   possible. The parameters are not necessarily the best.
+
+   It is assumed that the target is called '1', the main comparison '2'.
+
+   To avoid endless prompts, genred does not try to prompt for all
+   parameters even via hidden ones (a change from its previous
+   behaviour).  However, if you find yourself always making the samed
+   edits to the file produced by genred, you may start wanting a way
+   to alter some of the otherwise fixed parameters. You can do so by
+   supplying a template file, which can just be from a previous run
+   of genred where such parameters can be altered by editing with a
+   standard text editor before running genred.
+
+   genred recognises some standard instrument telescope combinations
+   which it uses to set parameters such as the pixel scale and
+   readout noise, but if you choose 'other', you will be prompted for
+   these details. The main parameters it does prompt for are
+   calibration files, and it allows you to define a "seeing" which
+   then controls the setting of various profile fit parameters. This
+   can be ignored by setting = 0, in which case any template
+   parameters will be passed unchanged.
+
+   Parameters:
+
+       apfile : str
+          the input aperture file created using |setaper| (default
+          extension .ape). This will be read for the targets. The
+          main target will be assumed to have been called '1', the
+          main comparison '2'. If there is a '3' it will be plotted
+          relative to '2'; all others will be ignored for plotting
+          purposes. Target '2' will be used to define the position
+          and transmission plots for one CCD only [user
+          definable]. Target '1' will be used for the seeing plot
+          unless it is linked when target '2' will be used instead.
+
+       rfile : str
+          the output reduce file created by this script. The main
+          target will be assumed to have been called '1', the main
+          comparison '2'. If there is a '3' it will be plotted
+          relative to '2'; all others will be ignored for plotting
+          purposes.
+
+       bias : str
+          Name of bias frame; 'none' to ignore.
+
+       dark : str
+          Name of dark frame; 'none' to ignore.
+
+       flat : str
+          Name of flat field frame; 'none' to ignore.
+
+       fmap : str
+          Name of fringe frame; 'none' to ignore.
+
+       fpair : str [if fmap not 'none']
+          File defining pairs to measure fringe amplitudes.
+
+       seeing : float
+          estimate of seeing which will be used to define several of
+          the profile fitting parameters. Enter 0 to ignore and use
+          defaults from the template (or genred if no template)
+          instead.
+
+       sworst : float [if seeing > 0]
+          worst seeing expected during run. Expands the search and
+          fitting boxes which can cause difficulties if they are
+          too small. It also sets the maximum target aperture radius
+          which will set to ~ 1.8*sworst, converted to pixels, and the
+          sky annulus radii. It has to be at least 2*seeing. Always
+          remember that you can override the automated settings using
+          a pre-edited template and seeing = 0.
+
+       binfac : int [if seeing > 0]
+          binning factor. e.g. 4 if using 4x4. Needed to optimise some
+          profile parameters.
+
+       template : str
+          Reduce file to use as a template for any parameters not set
+          by genred. This allows one to tweak settings by running
+          genred without a template, then modifying the resultant
+          file and using it as a template. 'none' to ignore, and then
+          these values will be set by genred by default. Some will be
+          modified anyway (e.g. the calibration file names), and if
+          seeing > 0, then several of the profile fitting paramaters
+          will be adapted to the value given along with the
+          instrument parameters.  genred will try to keep as many of
+          the 'extraction', 'position', 'transmission', 'light' etc
+          lines associated with particular CCDs in this case without
+          modification, and will pass readout, saturation levels etc
+          unchanged from the template.
+
+       inst : str [if template == 'none']
+          the instrument. 'hipercam-gtc', 'ultracam-ntt', 'ultraspec-tnt',
+          'ultracam-wht', 'ultracam-vlt',  or 'other'. Sets pixel scale and
+          standard readnoise params.
+
+       nccd : int [if inst == 'other']
+          number of CCDs.
+
+       ccd : int [if nccd > 1]
+          the CCD to use for position plots
+
+       nonlin : list(float) [if inst == 'other']
+          values for warning of non linearity
+
+       sat : list(float) [if inst == 'other']
+          values for warning of saturation
+
+       scale : float [if inst == 'other']
+          image scale in arcsec/pixel
+
+       readout : float | string [if inst == 'other']
+          readout noise, RMS ADU. Can either be a single value or an
+          hcm file.
+
+       gain : float | string [if inst == 'other']
+          gain, electrons per ADU. Can either be a single value or an
+          hcm file.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: grab(args=None)
+
+   
+   ``grab [source temp] (run first last (ndigit) [twait tmax] | flist
+   (prefix)) trim ([ncol nrow]) bias dark flat fmap (fpair [nhalf rmin
+   rmax verbose]) [dtype]``
+
+   This downloads a sequence of images from a raw data file and writes them
+   out to a series CCD / MCCD files.
+
+   Parameters:
+
+      source : str [hidden]
+          Data source, five options for built-in sources:
+
+             | 'hs' : HiPERCAM server
+             | 'hl' : local HiPERCAM FITS file
+             | 'us' : ULTRACAM server
+             | 'ul' : local ULTRACAM .xml/.dat files
+             | 'hf' : list of HiPERCAM hcm FITS-format files
+
+          The standard start-off default for ``source`` can be set
+          using the environment variable
+          HIPERCAM_DEFAULT_SOURCE. e.g. in bash :code:`export
+          HIPERCAM_DEFAULT_SOURCE="us"` would ensure it always
+          started with the ULTRACAM server by default. If
+          unspecified, it defaults to 'hl'. 'hf' is useful if you
+          want to apply pipeline calibrations (bias, flat, etc) to
+          files imported from a 'foreign' format. In this case the
+          output files will have the same name as the inputs but
+          with a prefix added.
+
+          Any instruments installed via plugins can be used as a source by
+          specifying either ``<instrument>:local`` or ``<instrument>:server``.
+
+      temp : bool [hidden, defaults to False]
+          True to indicate that the frames should be written to
+          temporary files with automatically-generated names in the
+          expectation of deleting them later. This also writes out a
+          file listing the names.  The aim of this is to allow grab
+          to be used as a feeder for other routines in larger
+          scripts.  If temp == True, grab will return with the name
+          of the list of hcm files. Look at 'makebias' for an example
+          that uses this feature.
+
+      run : str [if source ends 's' or 'l']
+          run number to access, e.g. 'run034'
+
+      first : int [if source ends 's' or 'l']
+          First frame to access
+
+      last : int [if source ends 's' or 'l']
+          Last frame to access, 0 for the lot
+
+      ndigit : int [if source ends 's' or 'l' and not temp]
+          Files created will be written as 'run005_0013.fits'
+          etc. `ndigit` is the number of digits used for the frame
+          number (4 in this case). Any pre-existing files of the same
+          name will be over-written.
+
+      twait : float [hidden]
+          time to wait between attempts to find a new exposure, seconds.
+
+      tmax : float [hidden]
+          maximum time to wait between attempts to find a new exposure,
+          seconds.
+
+      flist : str [if source ends 'f']
+          name of file list. Output files will have the same names
+          as the input files with a prefix added
+
+      prefix : str [if source ends 'f' and not temp]
+          prefix to add to create output file names
+
+      trim : bool
+          True to trim columns and/or rows off the edges of windows
+          nearest the readout. Particularly useful for ULTRACAM
+          windowed data where the first few rows and columns can
+          contain bad data.
+
+      ncol : int [if trim, hidden]
+          Number of columns to remove (on left of left-hand window,
+          and right of right-hand windows)
+
+      nrow : int [if trim, hidden]
+          Number of rows to remove (bottom of windows)
+
+      bias : str
+          Name of bias frame to subtract, 'none' to ignore.
+
+      dark : str
+          Name of dark frame, 'none' to ignore.
+
+      flat : str
+          Name of flat field to divide by, 'none' to ignore. Should normally
+          only be used in conjunction with a bias, although it does allow you
+          to specify a flat even if you haven't specified a bias.
+
+      fmap : str
+          Name of fringe map (see e.g. `makefringe`), 'none' to ignore.
+
+      fpair : str [if fmap is not 'none']
+          Name of fringe pair file (see e.g. `setfringe`). Required if
+          a fringe map has been specified.
+
+      nhalf : int [if fmap is not 'none', hidden]
+          When calculating the differences for fringe measurement,
+          a region extending +/-nhalf binned pixels will be used when
+          measuring the amplitudes. Basically helps the stats.
+
+      rmin : float [if fmap is not 'none', hidden]
+          Minimum individual ratio to accept prior to calculating the overall
+          median in order to reduce the effect of outliers. Although all ratios
+          should be positive, you might want to set this a little below zero
+          to allow for some statistical fluctuation.
+
+      rmax : float [if fmap is not 'none', hidden]
+          Maximum individual ratio to accept prior to calculating the overall
+          median in order to reduce the effect of outliers. Probably typically
+          < 1 if fringe map was created from longer exposure data.
+
+      verbose : bool
+          True to print lots of details of fringe ratios
+
+      dtype : string [hidden, defaults to 'f32']
+          Data type on output. Options:
+
+           | 'f32' : output as 32-bit floats (default)
+
+           | 'f64' : output as 64-bit floats.
+
+           | 'u16' : output as 16-bit unsigned integers. A warning will be
+                     issued if loss of precision occurs; an exception will
+                     be raised if the data are outside the range 0 to 65535.
+
+   .. Note::
+
+      |grab| is used by several other scripts such as |averun| so take great
+      care when changing anything to do with its input parameters.
+
+      If you use the "temp" option to write to temporary files, then those
+      files will be deleted if you interrup with CTRL-C. This is to prevent
+      the accumulation of such frames.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: hfilter(args=None)
+
+   
+   ``hfilter input ccd nx filter [fwhm] output``
+
+   Filters a multi-CCD image. e.g. smooths it. Can be useful
+   in some analysis steps, e.g. for picking out defects, division
+   by a smoother version of an image can be useful.
+
+   Parameters:
+
+     input  : string
+        name of MCCD input file
+
+     ccd    : string
+        CCD(s) to filter, '0' for all. If not '0' then '1', '2' or even '3 4'
+        are possible inputs (without the quotes).
+
+     filter  : string [single character]
+        type of filter. 'g' = gaussian. Uses an FFT-based approach which
+        regards the boundaries as periodic, so you will get significant
+        edge-effects if the values on opposite edges of a window are
+        significantly different from each other.
+
+     clobber : bool [hidden]
+        clobber any pre-existing output files
+
+     output  : string
+        name of MCCD output file
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: hist(args=None)
+
+   
+   ``hist ccd window x1 x2 nbins gplot (nx) msub (nint) [device width
+   height]``
+
+   Plots histograms of :class:`MCCD` objects. Histograms can be powerful
+   diagnostics of CCD problems.
+
+   Parameters:
+
+     input : str
+        name of the MCCD file
+
+     ccd : str
+        CCD or CCDs to plot in histogram form, one CCD per panel. Can be '0'
+        for all of them or a specific set '2 3 5'
+
+     window : str
+        the window label to show. '0' will merge all windows on each CCD.
+
+     x1 : float
+        lower end of histogram range
+
+     x2 : float
+        upper end of histoigram range. Set == x1 to get automatic min to max.
+
+     nbins : int
+        number of bins to use for the histogram
+
+     ymax : float
+        maximum y value for plot; 0 for automatic
+
+     gplot : bool
+        plot a gaussian of the same mean and RMS as the data. Note
+        this is not a fit.
+
+     nx : int
+        number of panels across to display, prompted if more than one CCD is
+        to be plotted.
+
+     msub : bool
+        True/False to subtract median from each window before scaling
+
+     nint : bool [if msub]
+        True/False to take the nearest integer of the median or not. Can help
+        with histograms of digitised data.
+
+     device : str [hidden]
+        Plot device name. Either 'term' for an interactive plot or a
+        name like 'plot.pdf' for a hard copy.
+
+     width : float [hidden]
+        plot width (inches). Set = 0 to let the program choose.
+
+     height : float [hidden]
+        plot height (inches). Set = 0 to let the program choose. BOTH width
+        AND height must be non-zero to have any effect
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: hlog2fits(args=None)
+
+   
+   ``hlog2fits log [origin dir]``
+
+   Converts a |hiper| ASCII log into a FITS file. As well as a modest
+   reduction in file size (~40%, the ASCII logs are written relatively
+   efficiently), the resulting file is faster to read than the ASCII log
+   so this may be useful for very large log files [test of 78,000 frame file:
+   12.9 seconds to read the ASCII file, 1.9 to read the FITS version]. The FITS
+   log is also much easier to understand than the ASCII files, but they don't
+   have all the header information, so are not a replacement. At the
+   moment no significant header information is transferred beyond the CCD
+   names. Each CCD appears as a single binary table, starting at the second
+   HDU (or HDU 1 if you number them 0,1,2 ..). This can be read using
+   :meth:`hipercam.hlog.Hlog.from_fits`.
+
+   Parameters:
+
+     log : str
+        name of the log file (should end .log). The output FITS file
+        will have the same root name but end .fits. The routine will abort
+        if there is a pre-existing file of the same name.
+
+     origin : str [hidden]
+        'h' or 'u' depending upon whether the log file was created with
+        the hipercam or old ultracam pipeline. Defaults to 'h'.
+
+     dir : str [hidden]
+        directory for the output; defaults to the present working directory
+
+   NB Because of the danger of over-writing raw data (also ends
+   .fits), this routine will not over-write pre-existing files. You
+   should delete clashing files if you really want to proceed.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: hlogger(args=None)
+
+.. py:function:: hls(args=None)
+
+   
+   Gives an 'ls'-like listing of the runs available on the HiPERCAM file
+   server. Just invoke as 'hls' with no arguments. This should work correctly
+   whether it in fact its the HiPERCAM or ULTRACAM file server that is
+   running.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: hpackage(args=None)
+
+   
+   ``hpackage runs dname tar``
+
+   ``hpackage`` looks for standard reduce data products and bundles
+   them up into a single directory and optionally creates a tar
+   file. The idea is to copy all the files needed to be able to
+   re-run the reduction with the pipeline, while also adding a few
+   helpful extras where possible. This is to make export of a reduction
+   relatively painless.
+
+   Given 'run123' for instance, it looks for:
+
+     run123.hcm -- typically the result from a run of |averun|. This *must*
+                   exist for each run included.
+
+     run123.ape -- file of photometric apertures. Also must exist.
+
+     run123*.red -- reduce file as made by |genred| (* == any string)
+
+     run123*.log -- result from |reduce| (* == any string)
+
+   Note the '*' means that multiple .red / .log pairs are possible to
+   allow for multiple alternative reductions. But they must start
+   'run123' and end '.red' and '.log' to be included. There has to be
+   at least one such pair. It also looks for calibration files inside
+   the reduce file and copies them. It requires them to be within the
+   same directory and will fail if they are not. The reason for this
+   is that they get copied over to the same directory and the
+   directory structure required to store them elsewhere is not
+   created. I often use soft-links to point to calibration files for
+   this reason.
+
+   It produces several extra files which are:
+
+     run123.fits -- FITS version of the log file
+
+     run123_ccd1.fits -- joined-up ds9-able version of run123.hcm
+                         (and ccd2 etc) [but only if the windows are
+                         in sync.
+
+     run123_ccd1.reg -- ds9-region file representing the apertures
+                        from run123.ape [see above re synced windows]
+
+     README -- a file of explanation.
+
+   The files are all copied to a temporary directory.
+
+   Arguments:
+
+     run : str
+        Series of run names of the ones to copy, separated by spaces.
+
+     dname : str
+        Name for the directory to store all files forming the root of
+        any output tar file created from it.
+
+     tar : bool
+        Make a tar.gz file of the directory at the end; the directory and
+        the files in it will be deleted. Otherwise, no tar file is made and
+        the directory is left untouched. The directory will however be deleted
+        if the program is aborted early.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: hplot(args=None)
+
+   
+   ``hplot input [device] ccd nx msub ([cmap]) hsbox iset (ilo ihi | plo
+   phi) xlo xhi ylo yhi [width height]``
+
+   Plots a multi-CCD image. Can use PGPLOT or matplotlib. The matplotlib
+   version is slightly clunky in its choice of the viewing area but has some
+   features that could be useful, in particular, the interactive plot
+   (device='/mpl') allows one to pan and zoom and to compare the same part of
+   multiple CCDs easily.
+
+   If the interactive plot is used (device='/mpl'), then pressing the space
+   bar will initiate a profile fit at the position of the cursor. The
+   parameters of a successfull fit will be printed to the screen.
+   A radial profile plot centered on the fit position can be plotted
+   by pressing the 'r' key. This will open a new matplotlib window.
+
+   Parameters:
+
+     input : string
+        name of MCCD file
+
+     device : string [hidden]
+        Plot device name. Uses characters after a final trailing '/' to
+        identify the type in PGPLOT style. Thus:
+
+         |  /xs : PGPLOT xserver interactive plot
+         |  1/xs : PGPLOT xserver interactive plot called '1'
+         |  plot.ps/cps : PGPLOT colour postscript called 'plot.ps'
+         |  plot.ps/vps : PGPLOT B&W portrait oriented plot
+         |  /mpl : matplotlib interactive plot
+         |  plot.pdf/mpl : matplotlib PDF plot
+
+     ccd : string
+        CCD(s) to plot, '0' for all. If not '0' then '1', '2' or even '3 4'
+        are possible inputs (without the quotes). '3 4' will plot CCD '3' and
+        CCD '4'. If you want to plot more than one CCD, then you will be
+        prompted for the number of panels in the X direction. This parameter
+        will not be prompted if there is only one CCD in the file.
+
+     nx : int
+        number of panels across to display, prompted if more than one CCD is
+        to be plotted.
+
+     msub : bool
+        True/False to subtract median from each window before scaling
+
+     cmap : str [if matplotlib; hidden]
+        The colour map to use. "Greys" is the usual, but there are
+        many others. Typing an incorrect one will give a list. "none"
+        for matplotlib default.
+
+     hsbox : int [if device = '/mpl'; hidden]
+        half-width in binned pixels of stats box as offset from central pixel
+        hsbox = 1 gives a 3x3 box; hsbox = 2 gives 5x5 etc.
+
+     iset : string [single character]
+        determines how the intensities are determined. There are three
+        options: 'a' for automatic simply scales from the minimum to the
+        maximum value found on a per CCD basis. 'd' for direct just takes two
+        numbers from the user. 'p' for percentile dtermines levels based upon
+        percentiles determined from the entire CCD on a per CCD bais.
+
+     ilo : float [if iset=='d']
+        lower intensity level
+
+     ihi : float [if iset=='d']
+        upper intensity level
+
+     plo : float [if iset=='p']
+        lower percentile level
+
+     phi : float [if iset=='p']
+        upper percentile level
+
+     xlo : float
+        left X-limit, for PGPLOT plots. Applies to matplotlib plots
+        to restrict region used to compute percentile limits. This is
+        useful in case where bias strips otherwise distort the plot
+        limits (e.g. ultraspec full frame images)
+
+     xhi : float
+        right X-limit. See comments for xlo as well.
+
+     ylo : float
+        bottom Y-limit. See comments for xlo as well.
+
+     yhi : float
+        top Y-limit. See comments for xlo as well.
+
+     width : float [hidden]
+        plot width (inches). Set = 0 to let the program choose.
+
+     height : float [hidden]
+        plot height (inches). Set = 0 to let the program choose. BOTH width
+        AND height must be non-zero to have any effect
+
+     method : str [hidden]
+         if the device is set to '/mpl' (matplotlib), then pressing the
+         space bar will initiate a profile fit at the position of the cursor.
+         This defines the profile fitting method, either a gaussian or a
+         moffat profile. The latter is usually best.
+
+     beta : float [method == 'm'; hidden]
+         default Moffat exponent
+
+     fwhm : float [hidden]
+         default FWHM, unbinned pixels. Do try to get this about right as
+         it affects whether the profile can be fitted at all.
+
+     fwhm_min : float [hidden]
+         minimum FWHM to allow, unbinned pixels.
+
+     shbox : float [hidden]
+         half width of box for searching for a star, unbinned
+         pixels. The above-threshold target closest to the centre of
+         the box in a region +/- shbox around an intial position
+         will be selected. It may not be the brightest, depending
+         upon your threshold settings, so use those to filter faint
+         objects. If profit=True, 'shbox' should be large enough to
+         allow for likely changes in position from frame to frame,
+         but not too large to avoid jumping to brighter targets or
+         possibly cosmic rays.
+
+     smooth : float [hidden]
+         FWHM for gaussian smoothing, binned pixels. The initial position
+         for fitting is determined by finding the maximum flux in a smoothed
+         version of the image in a box of width +/- shbox around the starter
+         position. Typically should be comparable to the stellar width. Its
+         main purpose is to combat cosmic rays which tend only to occupy a
+         single pixel.
+
+     fhbox : float [hidden]
+         half width of box for profile fit, unbinned pixels. The fit box is
+         centred on the position located by the initial search. It should
+         normally be > ~2x the expected FWHM, and usually smaller than shbox
+
+     hmin : float [hidden]
+         height threshold to accept a fit. If the height is below this
+         value, the position will not be updated. This is to help in cloudy
+         conditions. The limit is applied to the image after it has been
+         smoothed to make less vulnerable to seeing fluctuations. This
+         can mean it can be quite small.
+
+     read : float [hidden]
+         readout noise, RMS ADU, for assigning uncertainties. Set to a -ve
+         value to try to ascertain on the fly; this is advisable either if
+         you don't have a bias or you apply 'msub', and it will default to
+         this if not specified in this case. The value returned in this case
+         includes sky noise, i.e it should be roughly sqrt(R**2+S/G) where
+         R is the true read noise, S are the sky counts per pixel, and G the
+         gain. If read is set -ve, two fits are carried out per target. The
+         second of these should usually be pretty fast. The first is carried
+         out with an assumed large read noise of 20 in order to soften the
+         weights. The results reported apply to the second fit.
+
+     gain : float [hidden]
+         gain, ADU/count, for assigning uncertainties.
+
+     thresh : float [hidden]
+         sigma rejection threshold for fits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: joinup(args=None)
+
+   
+   ``joinup [source] (run first [twait tmax] | flist) trim ([ncol
+   nrow]) (ccd) (aper) bias dark flat fmap (fpair nhalf rmin rmax)
+   msub (ndigit) dtype dmax nmax [overwrite] compress odir``
+
+   Converts a run or a list of hcm images into as near as possible
+   "standard" FITS files with one image in the primary HDU per file,
+   representing a single CCD with all windows merged. The aim above
+   all is to have a file that plays nicely with 'ds9'. A file such as
+   'run0002.fits' (|hiper|) will end up producing files with names
+   like run0002_0001_ccd1.fits, run0002_001_ccd2.fits, etc and the
+   same for any of the other CCDs for frame 1, then
+   run0002_0002_ccd1.fits. '_ccd1' etc will be tacked onto the names
+   from a list of files. The generated files will be written to the
+   present working directory. If the windows have gaps, then they
+   will be filled with zeroes.
+
+   When binning has been used it is possible for sub-windows to be
+   out of sync with each other so they cannot be simply added into a
+   single image. In this case the routine will instead place them
+   within an "unbinned" image with each binned pixel repeated within
+   this image xbin by ybin times. This and the zero filling can mean
+   that the resulting images are much larger than the
+   originals. There are safety parameters to guard against disaster
+   in such cases.
+
+   `joinup` gives you the option of creating ds9 "region" files
+   corresponding to a |hiper| aperture file. These can be used in
+   a command such as::
+
+     ds9 run123_ccd2.fits -regions run123_ccd2.reg -zscale
+
+   or loaded from within ds9 instead.
+
+   Parameters:
+
+       source : str [hidden]
+          Data source, five options for built-in sources:
+
+            |  'hs' : HiPERCAM server
+            |  'hl' : local HiPERCAM FITS file
+            |  'us' : ULTRACAM server
+            |  'ul' : local ULTRACAM .xml/.dat files
+            |  'hf' : list of HiPERCAM hcm FITS-format files
+
+          'hf' is used to look at sets of frames generated by 'grab'
+          or converted from foreign data formats. The standard
+          start-off default for ``source`` can be set using the
+          environment variable HIPERCAM_DEFAULT_SOURCE. e.g. in bash
+          :code:`export HIPERCAM_DEFAULT_SOURCE="us"` would ensure it
+          always started with the ULTRACAM server by default. If
+          unspecified, it defaults to 'hl'.
+
+          Any instruments installed via plugins can be used as a source by
+          specifying either ``<instrument>:local`` or ``<instrument>:server``.
+
+       run : string [if source ends 's' or 'l']
+          run number to access, e.g. 'run034'
+
+       first : int [if source ends 's' or 'l']
+          exposure number to start from. 1 = first frame. For data
+          from the |hiper| server, a negative number tries to get a frame not
+          quite at the end.  i.e. -10 will try to get 10 from the last
+          frame. This is mainly to sidestep a difficult bug with the
+          acquisition system.
+
+       last : int [if source ends 's' or 'l']
+          Last frame to access, 0 for the lot
+
+       twait : float [if source ends 's' or 'l'; hidden]
+          time to wait between attempts to find a new exposure, seconds.
+
+       tmax : float [if source ends 's' or 'l'; hidden]
+          maximum time to wait between attempts to find a new exposure,
+          seconds.
+
+       flist : str [if source ends 'f']
+          name of file list or just a single hcm file
+
+       trim : bool [if source starts with 'u']
+          True to trim columns and/or rows off the edges of windows nearest
+          the readout which can sometimes contain bad data.
+
+       ncol : int [if trim, hidden]
+          Number of columns to remove (on left of left-hand window, and right
+          of right-hand windows)
+
+       nrow : int [if trim, hidden]
+          Number of rows to remove (bottom of windows)
+
+       ccd : string
+          CCD(s) to plot, '0' for all, '1 3' to plot '1' and '3' only, etc.
+
+       aper : str [if source ends 's' or 'l' or just a single file]
+          A photometric aperture file associated with the run or images.
+          This will be translated into a file of "regions" (extension .reg)
+          for each CCD they are defined for. The file can be loaded into
+          ds9 showing the apertures over the image.
+
+       bias : str
+          Name of bias frame to subtract, 'none' to ignore.
+
+       dark : str
+          Name of dark frame to correct for dark counts. 'none' to
+          ignore.
+
+       flat : str
+          Name of flat field to divide by, 'none' to ignore. Should normally
+          only be used in conjunction with a bias, although it does allow you
+          to specify a flat even if you haven't specified a bias.
+
+       fmap : str
+          Fringe map to remove fringes, 'none' to ignore.
+
+       fpair : str [if fmap is not == 'none']
+          File of peak/trough pairs for fringe amplitude measurement.
+
+       nhalf : int [if fmap is not == 'none', hidden]
+          Half-size of regions around each point for measuring intensity
+          differences from peak/trough pairs.
+
+       rmin : float [if fmap is not == 'none', hidden]
+          Minimum individual ratio for pruning peak/tough ratios prior to
+          taking their median.
+
+       rmin : float [if fmap is not == 'none', hidden]
+          Maximum individual ratio for pruning peak/trough ratios prior to
+          taking their median.
+
+       msub : bool
+          subtract the median from each window. If set this happens after any
+          bias subtraction etc.
+
+       ndigit : int [if source ends 's' or 'l']
+          number of digits to be used in the frame counter attached
+          to the output file names. These are zero-padded so that the
+          frames order alphabetically. Thus 'run0002_ccd1_0001.fits',
+          'run0002_ccd1_0002.fits', 'run0002_ccd1_0003.fits' ... for
+          instance.
+
+       dtype : str
+          output data type. 'unit16', 'float32', 'float64'. The first
+          of these (2-byte unsigned) is only probably a good idea if
+          no bias, flat field or median subtraction has been applied
+          because it involves rounding and it will fail if any data
+          are out of the range 0 to 65535. 32-bit (4 byte) floats
+          should be OK for most purposes, but require twice the space
+          of uint16.
+
+       dmax : float
+          Maximum amount of data in GB to write out. A safety device
+          to avoid disaster in case this script was applied to highly
+          windowed data where you can end up expanding the total
+          amount of data by a large factor.
+
+       nmax : int
+          Maximum number of frames. A similar safety device to dmax
+          to avoid inadvertent application of this script to a
+          million+ frame run. File systems tend not to behave well
+          with vast numbers of files.
+
+       overwrite : bool [hidden]
+          overwrite any pre-existing files. Defaults to 'False'
+          for safety.
+
+       compress : str
+          allows data to be compressed with FITS's internal lossless
+          compression mechanisms. The file will still end as ".fits"
+          but has a different internal format; 'ds9' copes seamlessly
+          with all of them. The options are: 'none', 'rice', 'gzip1',
+          'gzip2'. 'rice' gave about a factor of 2 compression in a
+          short test I ran, and was as fast as gzip2, but it may
+          depend upon the nature of the data. 'none' is fastest. See
+          astropy.io.fits for further documentation.
+
+       odir : str
+          directory for output files. This routine can produce many
+          files so it often makes sense to direct them to a specific
+          directory. '.' for the PWD. [Must exist prior to running
+          the script.]
+
+   .. Note::
+
+      Be careful of running this on highly windowed data since it
+      could end up expanding the total amount of "data" hugely.  It's
+      really aimed at full frame runs above all. The "dmax" and
+      "nmax" parameters are aimed at heading off disaster.
+
+      The routine only creates a window big enough to contain all the
+      windows. Thus it might end up representing a sub-array of the
+      CCD as opposed to all of it. The location can be determined
+      from the 'LLX' and 'LLY' parameters that are written to the
+      header. These represent the location of the lowest and leftmost
+      unbinned pixel that is contained within the data array. The
+      bottom-left pixel of the CCD is considered to be (1,1), so full
+      frame images have LLX=LLY=1.
+
+      A HipercamError will be raised if an attempt is made to write out
+      data outside the range 0 to 65535 into unit16 format and nothing
+      will be written.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: ltimes(args=None)
+
+   
+   ``ltimes [source] run first last [twait tmax tdigit edigit]``
+
+   Lists timing information from a run in machine-readable space-separated
+   column style. Integer status flags are used, 1=OK, 0=not OK.
+
+   For HiPERCAM, the following items are listed: (1) the frame
+   number, (2) the raw GPS timestamp as an MJD, (3) the raw GPS
+   timestamp as a UTC string, (4) a status flag, 0 or 1, then for
+   each CCD: (i) the CCD number [1-5], (ii) the mid exposure time as
+   an MJD, (iii) the mid-exposure time as a UTC string, (iv) the
+   exposure length (seconds), (v) a status flag (0 or 1), determined
+   by the NSKIP parameters for each CCD.
+
+   For ULTRACAM, the following items are listed: (1) the frame
+   number, (2) the raw GPS timestamp as an MJD, (3) the raw GPS
+   timestamp as a UTC string, (4) the red & green mid exposure time
+   as an MJD, (5) the red & green mid-exposure time as a UTC string,
+   (6) a status flag to indicate whether the mid-exposure time is
+   considered to be good, (7) the exposure time in seconds, (8) the
+   blue mid-exposure time as an MJD, (9) the blue mid-exposure time
+   as a UTC string, (10) status flag of the blue data, which reflects
+   the "nblue" option where only some of the blue frames are valid
+   data.
+
+   For ULTRASPEC, the following items are listed: (1) the frame
+   number, (2) the raw GPS timestamp as an MJD, (3) the raw GPS
+   timestamp as a UTC string, (4) the mid-exposure time as an MJD,
+   (5) the mid-exposure time as a UTC string, (6) a status flag to
+   indicate whether the mid-exposure time is considered to be good,
+   (7) the exposure time in seconds.
+
+   Parameters:
+
+       source : string [hidden]
+          Data source, two options:
+
+             | 'hs' : HiPERCAM server
+             | 'hl' : local HiPERCAM FITS file
+             | 'us' : local ULTRA(CAM|SPEC) file
+             | 'ul' : ULTRA(CAM|SPEC) server
+
+       run : string
+          run number to access, e.g. 'run0034'
+
+       first : int
+          exposure number to start from. 1 = first frame; set = 0 to
+          always try to get the most recent frame (if it changes)
+
+       last : int
+          last exposure number, 0 for all.
+
+       twait : float [hidden]
+          time to wait between attempts to find a new exposure, seconds.
+
+       tmax : float [hidden]
+          maximum time to wait between attempts to find a new exposure,
+          seconds. Set to 0 to avoid waiting and extra output messages.
+
+       tdigit : int [hidden]
+          number of digits of precision for the seconds after the decimal
+          point when reporting the times.
+
+       edigit : int [hidden]
+          number of digits of precision after the decimal point when
+          reporting the exposure times
+
+   .. Warning::
+
+      This routine does not yet work with ULTRACAM data.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: ltrans(args=None)
+
+   
+   ``ltrans posns``
+
+   Reads a file of target positions dumped by `ftargets` and uses it
+   to derive the transformations needed to co-align images.
+
+   Parameters:
+
+       posns : string
+          file of positions generated by `ftargets`
+
+       cmax : float
+          maximum number of counts at peak allowed for a target. Targets
+          with greater than this will be ignored when computing the transform.
+
+       emax : float
+          maximum ratio a/b, major/minor axis elongation. Targets more elongated
+          than this will be ignored.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: makebias(args=None)
+
+   
+   ``makebias [source] run first last twait tmax sigma plot
+   output``
+
+   Combines the frames of a single run (or list) into a single frame
+   using clipped-mean averaging appropriate for biases. This uses
+   ``grab`` to get the frames and ``combine`` to combine them. If you
+   already have the frames separately, then just use ``combine``
+   directly.
+
+   Parameters:
+
+      source : str [hidden]
+          Data source, five options for built-in sources:
+
+            |   'hs' : HiPERCAM server
+            |   'hl' : local HiPERCAM FITS file
+            |   'us' : ULTRACAM server
+            |   'ul' : local ULTRACAM .xml/.dat files
+            |   'hf' : list of HiPERCAM hcm FITS-format files
+
+          'hf' is used to look at sets of frames generated by 'grab'
+          or converted from foreign data formats. The standard
+          start-off default for ``source`` can be set using the
+          environment variable HIPERCAM_DEFAULT_SOURCE. e.g. in bash
+          :code:`export HIPERCAM_DEFAULT_SOURCE="us"` would ensure it
+          always started with the ULTRACAM server by default. If
+          unspecified, it defaults to 'hl'.
+
+          Any instruments installed via plugins can be used as a source by
+          specifying either ``<instrument>:local`` or ``<instrument>:server``.
+
+      run : str
+          run name to access
+
+      first : int
+          First frame to access
+
+      last : int
+          Last frame to access, 0 for the lot
+
+      twait : float [hidden]
+          time to wait between attempts to find a new exposure, seconds.
+
+      tmax : float [hidden]
+          maximum time to wait between attempts to find a new exposure,
+          seconds.
+
+       flist : str [if source ends 'f']
+          name of file list.
+
+       sigma : float
+          The value of 'sigma' to pass to the clipped mean combination in
+          'combine'
+
+      plot : bool
+          make a plot of the mean level versus frame number for each
+          CCD. This can provide a quick check that the frames are not too
+          different. You will need explicitly to close the plot generated at
+          the end of the script
+
+      output : str
+          name of final combined file. Set by default to match the
+          last part of "run" (but it will have a different extension
+          so they won't clash)
+
+     .. Note::
+
+        This routine writes the files returned by 'grab' to
+        automatically generated files, typically in .hipercam/tmp, to
+        avoid polluting the working directory. These are removed at
+        the end, but may not be if you ctrl-C. You should check
+        .hipercam/tmp for redundant files every so often
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: makeflat(args=None)
+
+   
+   ``makeflat [source] (run first last [twait tmax] | flist)
+   bias dark ngroup ccd lower upper [clobber] output``
+
+   Averages a set of images to make a flat field.
+
+   Typically flat-fields for HiPERCAM and ULTRA(CAM|SPEC) are taken with a
+   strongly time-variable twilight sky as the Sun sets or rises. A typical
+   flat field run may start out bright, or even saturated, but by the end be
+   only a few thousand counts above bias. Moreover, there are very often
+   stars visible in the images, so we usually take them while offsetting the
+   telescope in a spiral pattern. The challenge is to combine these images
+   while rejecting the stars and saturated frames and giving due weight to
+   the better exposed images. This moreover has to be done for each CCD which
+   vary significantly in sensitivity.
+
+   'makeflat' does this as follows: given an input list of files (or
+   optionally a single run), it reads them all in, debiases them
+   (optionally), and calculates the mean count level in each CCD,
+   normalises by the mean and writes out the results to temporary
+   files. For each CCD it then sorts the files by their (original)
+   mean level, and for those that lie between defined limits it takes
+   the median of the mean-normalised frames in groups of defined
+   size. Thus, say one had 75 OK images, then these would be divided
+   into 10 groups, the first 9 having 7 frames, the last having
+   12. The median average of each of these would be taken. In each
+   case the mean levels would be adjusted to be the same before
+   taking the average to overcome the problem of taking a median of a
+   time-variable sky. The assumption is that while the level may
+   vary, the pattern of the image does not. It is up to the user to
+   check that this is correct. Each of the medians is adjusted to
+   have a mean equal to the sum of the means of the input
+   frames. Finally the normal average of all of these median frames
+   is taken and the mean level of the final output normalised to
+   1. The first step, taking the median in groups is designed to
+   remove the stars assuming that the telescope was spiralled. The
+   size of the groups ('ngroup' below is a crucial parameter in
+   whether this works). A good strategy is to run makeflat for a
+   succession of ever larger 'ngroup' and then to divide the results
+   into each other to see if stars are visible.
+
+   The final step, the average of the medians with adjusted mean
+   levels, is to ensure that the flats are combined in a way that
+   reflects the level of signal that they have, i.e. to avoid giving
+   equal weights to the median of a series of flats with 20,000 counts
+   per pixel and another series with 1,000 counts per pixel. This
+   somewhat complex procedure is implemented through a series of
+   temporary files which are written and read as the script runs, but
+   deleted at its end. This allows very large numbers to be combined
+   as long as there is enough memory to load 'ngroup' CCDs
+   simultaneously, which should usually be fine.
+
+   Parameters:
+
+       source : str [hidden]
+          Data source, five options for built-in sources:
+
+              | 'hs' : HiPERCAM server
+              | 'hl' : local HiPERCAM FITS file
+              | 'us' : ULTRACAM server
+              | 'ul' : local ULTRACAM .xml/.dat files
+              | 'hf' : list of HiPERCAM hcm FITS-format files
+
+          'hf' is used to look at sets of frames generated by 'grab'
+          or converted from foreign data formats. The standard
+          start-off default for ``source`` can be set using the
+          environment variable HIPERCAM_DEFAULT_SOURCE. e.g. in bash
+          :code:`export HIPERCAM_DEFAULT_SOURCE="us"` would ensure it
+          always started with the ULTRACAM server by default. If
+          unspecified, it defaults to 'hl'.
+
+          Any instruments installed via plugins can be used as a source by
+          specifying either ``<instrument>:local`` or ``<instrument>:server``.
+
+       run : str [if source ends 's' or 'l']
+          run number to access, e.g. 'run034'
+
+       first : int [if source ends 's' or 'l']
+          exposure number to start from. 1 = first frame ('0' is
+          not supported).
+
+       last : int [if source ends 's' or 'l']
+          last exposure number must be >= first or 0 for the whole lot.
+
+       twait : float [if source ends 's' or 'l'; hidden]
+          time to wait between attempts to find a new exposure, seconds.
+
+       tmax : float [if source ends 's' or 'l'; hidden]
+          maximum time to wait between attempts to find a new exposure,
+          seconds.
+
+       flist : str [if source ends 'f']
+          name of file list. Assumed that these are dias and dark corrected.
+
+       bias : str
+          Name of bias frame to subtract, 'none' to ignore.
+
+       dark : str
+          Name of dark frame to subtract, 'none' to ignore. Note that
+          it is assumed all CCDs have the same exposure time when making
+          a dark correction.
+
+       ngroup : int
+          the number of frames. Probably should be at least 5, preferably
+          more. Experiment to see its effect.
+
+       ccd : str
+          CCD(s) to process, '0' for all, '1 3' for '1' and '3' only, etc.
+          Would almost always expect this to be set = '0'.
+
+       lower : list of floats
+          Lower limits to the mean count level for a flat to be included. The
+          count level is determined after bias subtraction.  Should be the
+          same number as the selected CCDs, and will be assumed to be in the
+          same order. Use this to elminate frames that are of so low a level
+          that the accuracy of the bias subtraction could be a worry.
+          Suggested hipercam values: 3000 for each CCD. Enter values separated
+          by spaces.
+
+       upper : list of floats
+          Upper limits to the mean count level for a flat to be included. The
+          count level is determined *after* bias subtraction.  Should be the
+          same number as the selected CCDs, and will be assumed to be in the
+          same order. Use this to eliminate saturated, peppered or non-linear
+          frames. Suggested hipercam values: 58000, 58000, 58000, 40000 and
+          40000 for CCDs 1, 2, 3, 4 and 5. Enter values separated by spaces.
+          ULTRACAM values 49000, 29000, 27000 for CCDs 1, 2 and 3.
+
+       clobber : bool [hidden]
+          clobber any pre-existing output files
+
+       output : str
+          output file. will be set by default to match the input name.
+
+     .. Note::
+
+        This routine writes the files returned by 'grab' to
+        automatically generated files, typically in .hipercam/tmp, to
+        avoid polluting the working directory. These are removed at
+        the end, but may not be if you ctrl-C. You should check
+        .hipercam/tmp for redundant files every so often
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: makefringe(args=None)
+
+   
+   ``makefringe [source] (run first last [twait tmax] | flist) bias
+   dark flat fpair ([nhalf]) ccd fwhm [clobber] output``
+
+   Averages a set of images to make a frame for defringing (referred
+   to elsewhere as a "fringe map").
+
+   At long wavelengths, CCDs suffer what is known as "fringing",
+   which in terms of structure looks something like the coloured
+   patterns you see when there is a thin layer of oil on water. Both
+   patterns are caused by interference.  In the case of CCDs this is
+   caused by sky emission lines and is variable in strength, and
+   additive in nature, but seems mostly fairly fixed in position.
+
+   De-fringing in |hiper| is implemented according to the method
+   suggested by Snodgrass & Carry (2013Msngr.152...14S). The idea is
+   to create a set of pairs of points marking the peak and troughs of
+   fringes. The differences in intensity between these point pairs in
+   the data to be corrected is compared with the differences for the
+   same pairs in a reference "fringe map" by taking their
+   ratios. Many pairs are used so that the median can be taken to
+   eliminate ratios affected by celestial targets or cosmic rays. The
+   median ratio is used to scale the reference data and thereby
+   subtract the fringes. ``makefringe`` is used to make the reference
+   fringe map. It works as follows: given a single run or a list of
+   files, it reads them all in, optionally debiases, dark-subtracts
+   and flat-fields them, calculates a median count level of each one
+   which is subtracted from each CCD individually. The pixel-by-pixel
+   median of all frames is then calculated. It is also possible (and
+   a good idea) to apply the fringe pair ratio measurements to scale
+   each frame before combining them, which allows frames of similar
+   pattern but varying amplitude to be combined. Finally, the output
+   can be smoothed because fringes are usually a medium- to
+   large-scale pattern.
+
+   Parameters:
+
+       source : string [hidden]
+          Data source, five options for built-in sources:
+
+              | 'hs' : HiPERCAM server
+              | 'hl' : local HiPERCAM FITS file
+              | 'us' : ULTRACAM server
+              | 'ul' : local ULTRACAM .xml/.dat files
+              | 'hf' : list of HiPERCAM hcm FITS-format files
+
+          'hf' is used to look at sets of frames generated by 'grab' or
+          converted from foreign data formats. The standard
+          start-off default for ``source`` can be set using the
+          environment variable HIPERCAM_DEFAULT_SOURCE. e.g. in bash
+          :code:`export HIPERCAM_DEFAULT_SOURCE="us"` would ensure it
+          always started with the ULTRACAM server by default. If
+          unspecified, it defaults to 'hl'.
+
+          Any instruments installed via plugins can be used as a source by
+          specifying either ``<instrument>:local`` or ``<instrument>:server``.
+
+       run : string [if source ends 's' or 'l']
+          run number to access, e.g. 'run034'
+
+       first : int [if source ends 's' or 'l']
+          exposure number to start from. 1 = first frame ('0' is
+          not supported).
+
+       last : int [if source ends 's' or 'l']
+          last exposure number must be >= first or 0 for the whole lot.
+
+       twait : float [if source ends 's' or 'l'; hidden]
+          time to wait between attempts to find a new exposure, seconds.
+
+       tmax : float [if source ends 's' or 'l'; hidden]
+          maximum time to wait between attempts to find a new exposure,
+          seconds.
+
+       flist : string [if source ends 'f']
+          name of file list. Assumed that bias, flat-fielding etc have been applied to
+          these already.
+
+       bias : str
+          Name of bias frame to subtract, 'none' to ignore.
+
+       dark : str
+          Name of dark frame to subtract, 'none' to ignore.
+
+       flat : str
+          Name of flat field, 'none' to ignore.
+
+       fpair : str
+          FringePair file (see setfringe), or 'none' to ignore. If specified
+          if will be used to scale the frames prior to combining.
+
+       nhalf : int [if fpair is not 'none']
+          When calculating the differences for fringe measurement,
+          a region extending +/-nhalf binned pixels will be used when
+          measuring the amplitudes. Basically helps the stats.
+
+       ccd : str
+          CCD(s) to process, '0' for all, '1 3' for '1' and '3' only, etc.
+
+       fwhm : float
+          FWHM (unbinned pixels) of gaussian smoothing to apply to the output.
+          0 to ignore. Should be << smallest scale between fringes. Probably
+          no more than 4.
+
+       clobber : bool [hidden]
+          clobber any pre-existing output files
+
+       output  : str
+          output file. Set by default to match the last part of "run"
+          (but it will have a different extension so they won't
+          clash). The default is 
+
+     .. Note::
+
+        This routine writes the files returned by 'grab' to
+        automatically generated files, typically in .hipercam/tmp, to
+        avoid polluting the working directory. These are removed at
+        the end, but may not be if you ctrl-C. You should check
+        .hipercam/tmp for redundant files every so often
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: makemovie(args=None)
+
+   
+   ``makemovie [source] (run first last | flist) trim ([ncol nrow])
+   (ccd (nx)) bias flat defect log (targ comp ymin ymax yscales
+   yoffset location fraction lpad) cmap width height dstore ndigit fext msub iset
+   (ilo ihi | plo phi) xlo xhi ylo yhi [dpi (style (ms lw))]``
+
+   ``makemovie`` is for generating stills to combine into a movie for
+   presentations. It can optionally also read a log file from the run
+   to display an evolving light curve. There are lots of fiddly
+   parameters mostly to do with the plot positioning, so try it out
+   on a small number of frames first before going mad.
+
+   Parameters:
+
+       source : str [hidden]
+          Data source, five options for built-in sources:
+
+            |  'hs' : HiPERCAM server
+            |  'hl' : local HiPERCAM FITS file
+            |  'us' : ULTRACAM server
+            |  'ul' : local ULTRACAM .xml/.dat files
+            |  'hf' : list of HiPERCAM hcm FITS-format files
+
+          'hf' is used to look at sets of frames generated by 'grab'
+          or converted from foreign data formats. The standard
+          start-off default for ``source`` can be set using the
+          environment variable HIPERCAM_DEFAULT_SOURCE. e.g. in bash
+          :code:`export HIPERCAM_DEFAULT_SOURCE="us"` would ensure it
+          always started with the ULTRACAM server by default. If
+          unspecified, it defaults to 'hl'.
+
+          Any instruments installed via plugins can be used as a source by
+          specifying either ``<instrument>:local`` or ``<instrument>:server``.
+
+       run : str [if source ends 's' or 'l']
+          run number to access, e.g. 'run034'
+
+       flist : str [if source ends 'f']
+          name of file list
+
+       first : int [if source ends 's' or 'l']
+          exposure number to start from. 1 = first frame.
+
+       last : int [if source ends 's' or 'l']
+          last exposure
+
+       trim : bool [if source starts with 'u']
+          True to trim columns and/or rows off the edges of windows nearest
+          the readout which can sometimes contain bad data.
+
+       ncol : int [if trim, hidden]
+          Number of columns to remove (on left of left-hand window, and right
+          of right-hand windows)
+
+       nrow : int [if trim, hidden]
+          Number of rows to remove (bottom of windows)
+
+       ccd : str
+          CCD(s) to plot, '0' for all, '1 3' to plot '1' and '3' only, etc. If
+          you plot more than one, then a legend is added to any light curve panel
+          to distinguish the light curves.
+
+       nx : int [if more than 1 CCD]
+          number of panels across to display for the image display.
+
+       bias : str
+          Name of bias frame to subtract, 'none' to ignore.
+
+       dark : str
+          Name of dark frame to subtract, 'none' to ignore.
+
+       flat : str
+          Name of flat field to divide by, 'none' to ignore. Should normally
+          only be used in conjunction with a bias, although it does allow you
+          to specify a flat even if you haven't specified a bias.
+
+       defect : str
+          Name of defect file, 'none' to ignore.
+
+       fmap : str
+          Name of fringe map (see e.g. `makefringe`), 'none' to ignore.
+
+       fpair : str [if fringe is not 'none']
+          Name of fringe pair file (see e.g. `setfringe`). Required if
+          a fringe map has been specified.
+
+       nhalf : int [if fringe is not 'none', hidden]
+          When calculating the differences for fringe measurement,
+          a region extending +/-nhalf binned pixels will be used when
+          measuring the amplitudes. Basically helps the stats.
+
+       rmin : float [if fringe is not 'none', hidden]
+          Minimum individual ratio to accept prior to calculating the overall
+          median in order to reduce the effect of outliers. Although all ratios
+          should be positive, you might want to set this a little below zero
+          to allow for some statistical fluctuation.
+
+       rmax : float [if fringe is not 'none', hidden]
+          Maximum individual ratio to accept prior to calculating the overall
+          median in order to reduce the effect of outliers. Probably typically
+          < 1 if fringe map was created from longer exposure data.
+
+       log : str
+          Name of reduce log file for light curve plot, 'none' to ignore
+
+       targ : str [if log defined]
+          Target aperture
+
+       comp : str [if log defined]
+          Comparison aperture
+
+       ymin : float [if log defined]
+          Minimum Y value for light curve plot
+
+       ymax : float [if log defined]
+          Maximum Y value for light curve plot
+
+       ynorm : list(float) [if log defined]
+          Normalisation factors, one per CCD for light curve plot
+
+       yoffset : list(float) [if log defined]
+          Offsets, one per CCD for light curve plot
+
+       location : str [if log defined]
+          Offsets, one per CCD for light curve plot
+
+       fraction : float [if log defined]
+          Fraction of figure to occupy, by height if location is South,
+          by width if it is East
+
+       lpad : tuple(float) [if log defined]
+          padding on left, bottom, right and top of light curve plot as fraction
+          of allocated width and height
+
+       cmap : str
+          The matplotlib colour map to use. "Greys" gives the usual greyscale.
+          "none" will give whatever the current default is. Many other choices:
+          "viridis", "jet", "hot", "Oranges", etc. Enter an invalid one and
+          the program will fail but return a huge list of possibles in the
+          process.
+
+       width : float
+          plot width in inches.
+
+       height : float
+          plot height in inches.
+
+       dstore : str
+          root directory for plot files. Will get names like dstore/run003_001.png.
+
+       ndigit : int
+          number of digits in frame counter, i.e. the '001' of the previous section.
+
+       fext : str
+          file extension 'png', 'jpeg' for images generated
+
+       msub : bool
+          subtract the median from each window before scaling for the
+          image display or not. This happens after any bias subtraction.
+
+       iset : str [single character]
+          determines how the intensities are determined. There are three
+          options: 'a' for automatic simply scales from the minimum to the
+          maximum value found on a per CCD basis. 'd' for direct just takes
+          two numbers from the user. 'p' for percentile dtermines levels
+          based upon percentiles determined from the entire CCD on a per CCD
+          basis.
+
+       ilo : list(float) [if iset='d']
+          lower intensity level, one per image
+
+       ihi : list(float) [if iset='d']
+          upper intensity level, one per image
+
+       plo : float [if iset='p']
+          lower percentile level
+
+       phi : float [if iset='p']
+          upper percentile level
+
+       xlo : float
+          left-hand X-limit for plot, initially at least since it is
+          possible to re-size. For iset='p' these limits also set the
+          region of the frame over which the percentil will be
+          calculated. You will usually want yhi-ylo ~ xhi-xlo in
+          magnitude because the aspect ratio is preserved.
+
+       xhi : float
+          right-hand X-limit for plot (can be < xlo to invert the display)
+
+       ylo : float
+          lower Y-limit for plot
+
+       yhi : float
+          upper Y-limit for plot (can be < ylo)
+
+       dpi : int [hidden]
+          dots per inch of output. Default 72. Allows control over font size versus image size,
+          in combination with width and height.
+
+       style : str [hidden, if log defined]
+          style for light curves 'dots', 'line', 'both'. The line will be grey for the 'both' option.
+
+       ms : float [hidden, if log defined and style==dots or both]
+          markersize. Controls dot size which is useful when fiddling with dpi
+
+       lw : float [hidden, if log defined and style==line or both]
+          line width
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: makefield(args=None)
+
+   
+   Script to generate an artificial star field which is saved to a disk
+   file, a first step in generating fake data. The resulting files are needed
+   by makedata if you want to add in artificial star fields. If the name
+   supplied corresponds to an existing file, an attempt will be made to read
+   it in first and then add to it. In this way a complex field can be
+   generated. The targets are distributed at random, with random peak heights
+   based on constant luminosity objects distributed throughout 3D space, and
+   random angles uniform over the input range. All targets otherwise have the
+   same shape thus multiple calls are needed to generate a field of objects
+   of multiple shapes. Ellipsoidal "Moffat" functions [1/(1+r^2)^beta] are
+   used.
+
+   Arguments::
+
+      fname : (string)
+         file to add to. Will be created if it does not exist. [input, optional / output]
+
+      ntarg : (int)
+         The number of targets to add to the field.
+
+      x1 : (float)
+         The left-hand limit of the field [unbinned pixels]
+
+      x2 : (float)
+         The right-hand limit of the field [unbinned pixels]
+
+      y1 : (float)
+         The lowest limit of the field [unbinned pixels]
+
+      y2 : (float)
+         The highest limit of the field [unbinned pixels]
+
+      h1 : (float)
+         Minimum peak height [counts per unbinned pixel]
+
+      h2 : (float)
+         Maximum peak height [counts per unbinned pixel]
+
+      angle1 : (float)
+         Lower limit on axis 1, anti-clockwise from X-axis [degrees]
+
+      angle2 : (float)
+         Upper limit on axis 1, anti-clockwise from X-axis [degrees]
+
+      fwhm1 : (float)
+         FWHM along axis 1 [unbinned pixels]
+
+      fwhm2 : (float)
+         FWHM along axis 2 [unbinned pixels]
+
+      beta : (float)
+         Moffat function exponent
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: mstats(args=None)
+
+   
+   ``mstats [source] run [temp] (ndigit) first last [twait tmax] bias
+   [dtype]``
+
+   This downloads a sequence of images from a raw data file and writes 
+   out stats (min, max, mean, median, rms) for each window to a file
+
+   Parameters:
+
+      source  : string [hidden]
+          Data source, four options:
+
+             | 'hs' : HiPERCAM server
+             | 'hl' : local HiPERCAM FITS file
+             | 'us' : ULTRACAM server
+             | 'ul' : local ULTRACAM .xml/.dat files
+
+      run     : string
+          run name to access
+
+      first   : int
+          First frame to access
+
+      last    : int
+          Last frame to access, 0 for the lot
+
+      twait   : float [hidden]
+          time to wait between attempts to find a new exposure, seconds.
+
+      tmax    : float [hidden]
+          maximum time to wait between attempts to find a new exposure,
+          seconds.
+
+      bias    : string
+          Name of bias frame to subtract, 'none' to ignore.
+
+      format  : string
+          output format for numbers. e.g. the default '9.3f'
+          might give 12345.678 (9 characters, 3 digits after d.p.)
+
+      outfile : string
+          file for output (extension .stats)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: ncal(args=None)
+
+   
+   ``ncal [source] (run first last [twait tmax] | flist) trim ([ncol
+   nrow]) (ccd) bias dark flat xybox read gain grain``
+
+   Calibrates noise characteristics of CCDs by plotting estimator
+   of RMS vs signal level from a series of frames. The estimate
+   is the mean of the absolute difference between each pixel
+   and the mean of its 8 near-neighbours. This is very local and
+   fairly robust. Assuming gaussian noise, the RMS is sqrt(4*Pi/9)
+   times this value, and this is what is plotted as the RMS by this
+   routine. `ncal` is best to applied to a series of frames with
+   a large dynamic range, ideally starting from bias-like frames
+   to well exposed sky flats. A long flat-field run going to low
+   levels, or a run into twilight at the end of the night could be
+   good places to start.
+
+   Parameters:
+
+       source : str [hidden]
+          Data source, five options for built-in sources:
+
+            |  'hs' : HiPERCAM server
+            |  'hl' : local HiPERCAM FITS file
+            |  'us' : ULTRACAM server
+            |  'ul' : local ULTRACAM .xml/.dat files
+            |  'hf' : list of HiPERCAM hcm FITS-format files
+
+          'hf' is used to look at sets of frames generated by 'grab'
+          or converted from foreign data formats. The standard
+          start-off default for ``source`` can be set using the
+          environment variable HIPERCAM_DEFAULT_SOURCE. e.g. in bash
+          :code:`export HIPERCAM_DEFAULT_SOURCE="us"` would ensure it
+          always started with the ULTRACAM server by default. If
+          unspecified, it defaults to 'hl'.
+
+          Any instruments installed via plugins can be used as a source by
+          specifying either ``<instrument>:local`` or ``<instrument>:server``.
+
+       run : str [if source ends 's' or 'l']
+          run number to access, e.g. 'run034'
+
+       flist : str [if source ends 'f']
+          name of file list
+
+       first : int [if source ends 's' or 'l']
+          exposure number to start from. 1 = first frame; set = 0 to always
+          try to get the most recent frame (if it has changed).  For data
+          from the |hiper| server, a negative number tries to get a frame not
+          quite at the end.  i.e. -10 will try to get 10 from the last
+          frame. This is mainly to sidestep a difficult bug with the
+          acquisition system.
+
+       last : int [if source ends 's' or 'l']
+          Last frame to access, 0 for the lot
+
+       twait : float [if source ends 's' or 'l'; hidden]
+          time to wait between attempts to find a new exposure, seconds.
+
+       tmax : float [if source ends 's' or 'l'; hidden]
+          maximum time to wait between attempts to find a new exposure,
+          seconds.
+
+       trim : bool [if source starts with 'u']
+          True to trim columns and/or rows off the edges of windows nearest
+          the readout which can sometimes contain bad data.
+
+       ncol : int [if trim, hidden]
+          Number of columns to remove (on left of left-hand window, and right
+          of right-hand windows)
+
+       nrow : int [if trim, hidden]
+          Number of rows to remove (bottom of windows)
+
+       ccd : str
+          The CCD to analyse.
+
+       bias : str
+          Name of bias frame to subtract, 'none' to ignore.
+
+       dark : str
+          Name of dark frame to subtract, 'none' to ignore
+
+       flat : str
+          Name of flat field to divide by, 'none' to ignore. Should normally
+          only be used in conjunction with a bias, although it does allow you
+          to specify a flat even if you haven't specified a bias.
+
+       xybox : int
+          the stats will be taken over boxes of xybox-squared pixels
+          to keep the number of points and scatter under control.
+
+       read : float
+          readout noise, RMS ADU, for overplotting a model
+
+       gain : float
+          gain, e-/count, for overploting a model
+
+       grain : float
+          fractional RMS variation due to flat-field variations,
+          if you didn't include a flat field.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: nrtplot(args=None)
+
+   
+   ``nrtplot [source] (run first [twait tmax] | flist) trim ([ncol
+   nrow]) (ccd (nx)) [imwidth pause tupdate plotall] bias [lowlevel
+   highlevel] dark flat fmap (fpair [nhalf rmin rmax]) defect setup
+   [drurl cmap imwidth imheight memory] msub iset (ilo ihi | plo phi)
+   xlo xhi ylo yhi profit [method beta fwhm fwhm_min shbox smooth
+   fhbox hmin read gain thresh (fwnmax fwymax fwwidth fwheight)]
+   [fcosmic] (contrast crthresh nbthresh sathresh readout)``
+
+   This is 'nrtplot' "new" rtplot, a matplotlib-based replacement for
+   the current PGPLOT one. Under development.
+
+   Plots a sequence of images as a movie in near 'real time', hence
+   'rt'. Designed to be used to look at images coming in while at the
+   telescope, 'nrtplot' comes with many options, a large number of
+   which are hidden by default, and many of which are only prompted
+   if other arguments are set correctly. If you want to see them all,
+   invoke as 'nrtplot prompt'.  This is worth doing once to know
+   nrtplot's capabilities.
+
+   nrtplot can source data from both the ULTRACAM and HiPERCAM
+   servers, from local 'raw' ULTRACAM and HiPERCAM files (i.e. .xml +
+   .dat for ULTRACAM, 3D FITS files for HiPERCAM) and from lists of
+   HiPERCAM '.hcm' files.
+
+   nrtplot optionally allows the selection of targets to be fitted
+   with gaussian or moffat profiles, and, if successful, will plot
+   circles of 2x the measured FWHM in green over the selected
+   targets. In this case it can also plot the history of the FWHMs as
+   an aid to focussing. You can also click on targets on the fly to
+   get one-off measurement which are just printed to the screen. See
+   below for a note on this.
+
+   You can re-size and zoom & pan during plotting, although it takes
+   some getting used owing to the way the program blocks. For re-sizing,
+   you may need to keep the left-button of the mouse down for a while
+   for anything to happen. See the parameter 'memory' below which can
+   help.
+
+   When you first run it, try to get the initial fit parameters about
+   right; it doesn't like to be miles out at the start for some reason
+   and will refuse to fit.
+
+   Experimental: I have added options to apply L.A.cosmic just to see what
+   it returns at the moment.
+
+   Parameters:
+
+       source : str [hidden]
+          Data source, five options for built-in sources:
+
+            |  'hs' : HiPERCAM server
+            |  'hl' : local HiPERCAM FITS file
+            |  'us' : ULTRACAM server
+            |  'ul' : local ULTRACAM .xml/.dat files
+            |  'hf' : list of HiPERCAM hcm FITS-format files
+
+          'hf' is used to look at sets of frames generated by 'grab'
+          or converted from foreign data formats. The standard
+          start-off default for ``source`` can be set using the
+          environment variable HIPERCAM_DEFAULT_SOURCE. e.g. in bash
+          :code:`export HIPERCAM_DEFAULT_SOURCE="us"` would ensure it
+          always started with the ULTRACAM server by default. If
+          unspecified, it defaults to 'hl'.
+
+          Any instruments installed via plugins can be used as a source by
+          specifying either ``<instrument>:local`` or ``<instrument>:server``. 
+
+       run : str [if source is not 'hf']
+          run number to access, e.g. 'run034'
+
+       flist : str [if source is 'hf']
+          name of file list
+
+       first : int [if source is not 'hf']
+          exposure number to start from. 1 = first frame; set = 0 to always
+          try to get the most recent frame (if it has changed).  For data
+          from the |hiper| server, a negative number tries to get a frame not
+          quite at the end.  i.e. -10 will try to get 10 from the last
+          frame. This is mainly to sidestep a difficult bug with the
+          acquisition system.
+
+       twait : float [if source is not 'hf'; hidden]
+          time to wait between attempts to find a new exposure, seconds.
+
+       tmax : float [if source is not 'hf'; hidden]
+          maximum time to wait between attempts to find a new exposure,
+          seconds.
+
+       trim : bool [if source starts with 'u']
+          True to trim columns and/or rows off the edges of windows nearest
+          the readout which can sometimes contain bad data.
+
+       ncol : int [if trim, hidden]
+          Number of columns to remove (on left of left-hand window, and right
+          of right-hand windows)
+
+       nrow : int [if trim, hidden]
+          Number of rows to remove (bottom of windows)
+
+       ccd : str
+          CCD(s) to plot, '0' for all, '1 3' to plot '1' and '3' only, etc.
+
+       nx : int [if more than 1 CCD]
+          number of panels across to display for the image display.
+
+       pause : float [hidden]
+          seconds to pause between frames (defaults to 0). This is in addition
+          to any time taken per frame to read and display it, so is just to slow
+          things not to set an exact rate.
+
+       tupdate : float [hidden]
+          target number of seconds between plot updates. This is to
+          make the plots more responsive and get round issues with
+          plots freezing until the next frame comes through which can
+          be especially annoying with virtual desktops. Experiments
+          with ULTRACAM@NTT indicated 0.2 to 0.6 secs or so works OK.
+          Main impact seems to be on drpc CPU.
+
+       plotall : bool [hidden]
+          plot all frames regardless of status (i.e. including blank frames
+          when nskips are enabled (defaults to False). The profile fitting
+          will still be disabled for bad frames.
+
+       bias : str
+          Name of bias frame to subtract, 'none' to ignore.
+
+       lowlevel : float [hidden]
+          Level below which a warning about low bias levels is warned. Set=0
+          to ignore. Applied to first window of first CCD. 2000 about
+          right for ULTRACAM.
+
+       highlevel : float [hidden]
+          Level above which a warning about high bias levels is warned. Set=0
+          to ignore. Applied to first window of first CCD. 3500 about
+          right for ULTRACAM.
+
+       dark : str
+          Name of dark frame to subtract, 'none' to ignore
+
+       flat : str
+          Name of flat field to divide by, 'none' to ignore. Should normally
+          only be used in conjunction with a bias, although it does allow you
+          to specify a flat even if you haven't specified a bias.
+
+       fmap : str
+          Name of fringe map (see e.g. `makefringe`), 'none' to ignore.
+
+       fpair : str [if fmap is not 'none']
+          Name of fringe pair file (see e.g. `setfringe`). Required if
+          a fringe map has been specified.
+
+       nhalf : int [if fmap is not 'none', hidden]
+          When calculating the differences for fringe measurement,
+          a region extending +/-nhalf binned pixels will be used when
+          measuring the amplitudes. Basically helps the stats.
+
+       rmin : float [if fmap is not 'none', hidden]
+          Minimum individual ratio to accept prior to calculating the overall
+          median in order to reduce the effect of outliers. Although all ratios
+          should be positive, you might want to set this a little below zero
+          to allow for some statistical fluctuation.
+
+       rmax : float [if fmap is not 'none', hidden]
+          Maximum individual ratio to accept prior to calculating the overall
+          median in order to reduce the effect of outliers. Probably typically
+          < 1 if fringe map was created from longer exposure data.
+
+       defect : str
+          Name of defect file, 'none' to ignore.
+
+       setup : bool
+          True/yes to access the current windows from hdriver. Useful
+          during observing when setting up windows, but not normally
+          otherwise. Next argument (hidden) is the URL to get to
+          hdriver. Once setup, you should probably turn this off to
+          avoid overloading hdriver, especially if in drift mode as
+          it makes a request for the windows for every frame.
+
+       drurl : str [if setup; hidden]
+          URL needed to access window setting from the camera
+          driver (ultracam, ultraspec, hipercam). The internal server
+          in the camera driver must be switched on which can be done
+          from the GUI.
+
+       cmap : str [hidden]
+          The matplotlib colour map to use. "Greys" gives the usual greyscale.
+          "none" will give whatever the current default is. Many other choices:
+          "viridis", "jet", "hot", "Oranges", etc. Enter an invalid one and
+          the program will fail but return a huge list of possibles in the
+          process. Note that some will not work well with the colours used
+          to plot annotations.
+
+       imwidth : float [hidden]
+          image display plot width in inches (0 for default, and note
+          that this will also make the height go to its default)
+
+       imheight : float [hidden]
+          image display plot height in inches (0 for default, and note
+          that this will also make the width go to its default)
+
+       memory : bool [hidden]
+          stores the image display dimensions at the end as defaults for
+          imwidth and imheight next time (or not). This helps when you are
+          repeatedly re-starting nrtplot for the same sort of display.
+
+       msub : bool
+          subtract the median from each window before scaling for the
+          image display or not. This happens after any bias subtraction.
+
+       iset : str [single character]
+          determines how the intensities are determined. There are three
+          options: 'a' for automatic simply scales from the minimum to the
+          maximum value found on a per CCD basis. 'd' for direct just takes
+          two numbers from the user. 'p' for percentile dtermines levels
+          based upon percentiles determined from the entire CCD on a per CCD
+          basis.
+
+       ilo : float [if iset='d']
+          lower intensity level
+
+       ihi : float [if iset='d']
+          upper intensity level
+
+       plo : float [if iset='p']
+          lower percentile level
+
+       phi : float [if iset='p']
+          upper percentile level
+
+       xlo : float
+          left-hand X-limit for plot, initially at least since it is
+          possible to re-size. For iset='p' these limits also set the
+          region of the frame over which the percentil will be
+          calculated. You will usually want yhi-ylo ~ xhi-xlo in
+          magnitude because the aspect ratio is preserved.
+
+       xhi : float
+          right-hand X-limit for plot (can be < xlo to invert the display)
+
+       ylo : float
+          lower Y-limit for plot
+
+       yhi : float
+          upper Y-limit for plot (can be < ylo)
+
+       profit : bool
+          If profit=True, you say yes, then you will get the option
+          of selecting a fixed set of objects with a cursor, and the
+          program will then attempt to track these from frame to
+          frame, and fit their profile. You may need to adjust
+          'first' to see anything. Depending on 'fnmax', it will also
+          then plot a history of the FWHM measurements, which is
+          useful for focussing. The parameters used for profile fits
+          are hidden and you may want to invoke the command with
+          'prompt' the first time you try profile fitting. NB There
+          is also an option for "on-the-fly" fits of any target: see
+          the note below.
+
+       method : str [hidden]
+          this defines the profile fitting method, either a gaussian or a
+          moffat profile. The latter is usually best.
+
+       beta : float [method == 'm'; hidden]
+          default Moffat exponent
+
+       fwhm : float [hidden]
+          default FWHM, unbinned pixels. Do try to get this about right as
+          it affects whether the profile can be fitted at all.
+
+       fwhm_min : float [hidden]
+          minimum FWHM to allow, unbinned pixels.
+
+       shbox : float [hidden]
+          half width of box for searching for a star, unbinned
+          pixels. The above-threshold target closest to the centre of
+          the box in a region +/- shbox around an intial position
+          will be selected. It may not be the brightest, depending
+          upon your threshold settings, so use those to filter faint
+          objects. If profit=True, 'shbox' should be large enough to
+          allow for likely changes in position from frame to frame,
+          but not too large to avoid jumping to brighter targets or
+          possibly cosmic rays.
+
+       smooth : float [hidden]
+          FWHM for gaussian smoothing, binned pixels. The initial position
+          for fitting is determined by finding the maximum flux in a smoothed
+          version of the image in a box of width +/- shbox around the starter
+          position. Typically should be comparable to the stellar width. Its
+          main purpose is to combat cosmic rays which tend only to occupy a
+          single pixel.
+
+       fhbox : float [hidden]
+          half width of box for profile fit, unbinned pixels. The fit box is
+          centred on the position located by the initial search. It should
+          normally be > ~2x the expected FWHM, and usually smaller than shbox
+
+       hmin : float [hidden]
+          height threshold to accept a fit. If the height is below this
+          value, the position will not be updated. This is to help in cloudy
+          conditions. The limit is applied to the image after it has been
+          smoothed to make less vulnerable to seeing fluctuations. This
+          can mean it can be quite small.
+
+       read : float [hidden]
+          readout noise, RMS ADU, for assigning uncertainties. Set to a -ve
+          value to try to ascertain on the fly; this is advisable either if
+          you don't have a bias or you apply 'msub', and it will default to
+          this if not specified in this case. The value returned in this case
+          includes sky noise, i.e it should be roughly sqrt(R**2+S/G) where
+          R is the true read noise, S are the sky counts per pixel, and G the
+          gain. If read is set -ve, two fits are carried out per target. The
+          second of these should usually be pretty fast. The first is carried
+          out with an assumed large read noise of 20 in order to soften the
+          weights. The results reported apply to the second fit.
+
+       gain : float [hidden]
+          gain, ADU/count, for assigning uncertainties.
+
+       thresh : float [hidden]
+          sigma rejection threshold for fits
+
+       fwnmax : int [if profit; hidden]
+          maximum number of frames to buffer the FWHM plot (< 2 ==>
+          no plot). It allows the FWHMs of multiple stars to be
+          tracked which might be useful for focussing. The plot
+          starts to "slide" once the buffers are filled.
+
+       fwymax : float [if profit; hidden]
+          maximum FWHM to plot on Y-axis [unbinned pixels]. It is
+          possible to alter the value of the fly by zooming and panning
+          the plot.
+
+       fwwidth : float [if profit; hidden]
+          FWHM display plot width in inches (0 for default, which will
+          also cause the height to go to its default value)
+
+       fwheight : float [if profit; hidden]
+          FWHM display plot height in inches (0 for default, which will
+          also cause the width to go to its default value)
+
+       fcosmic : bool [hidden, defaults to False]
+          True to identify cosmic rays using L.A.cosmic (van Dokkum 2001,
+          PASP, 113, 1420) as implemented in Python package "lascosmic".
+          Experimental at the moment. Just returns the number of cosmic
+          rays found.
+
+       crthresh : float
+          Threshold signal-to-noise ratio of cosmic rays
+
+       nbthresh : float
+          Threshold signal-to-noise ratio of pixels neighbouring
+          cosmic rays
+
+       sathresh : float
+          Threshold to flag saturated pixels
+
+       readout : float
+          readout noise, RMS ADU, for assigning uncertainties. (NB
+          at the moment this is separate from "read", but they may
+          be merged at some point)
+
+   .. Note::
+
+       To help with *dithered* long exposures especially, for which
+       'profit' performs very poorly, clicking on any object will
+       attempt a one-off profile fit, with results that are reported
+       to the terminal. It's a little cludgy in that the profile fits
+       are only carried out and reported *after* the next frame has
+       been plotted, but it's better than nothing.
+
+       If you don't apply bias subtraction and/or you do subtract the
+       median, then the usual method to estimate the read noise fails.
+       In that case, setting 'read' < 0 will force an attempt to measure
+       the read noise from fluctuations in the sky. You need to ensure
+       that fhbox is large enough to encompass sky regions well away from
+       the target in this case.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: pfolder(args=None)
+
+   
+   ``pfolder log [device width height] ccd aper``
+
+   Folds data from reduce logs on user specified ephemeris (in MJD)
+   and plots the results. Rather specific routine to help with timing
+   tests where the LED switches on on the second and off on the half second.
+
+   Parameters:
+
+     log     : string
+         name of reduce log file (text file with loads of columns)
+
+     device  : string [hidden, defaults to 'term']
+        'term' for interactive plot, file name such as 'plot.pdf'
+        for a hardcopy.
+
+     width   : float [hidden]
+        plot width (inches). Set = 0 to let the program choose.
+
+     height  : float [hidden]
+        plot height (inches). Set = 0 to let the program choose. BOTH
+        width AND height must be non-zero to have any effect
+
+     ccd     : string
+        the CCD to consider, e.g. '1'
+
+     aper    : string
+        the aperture to consider
+
+     t0      : float
+        zero point of the ephemeris in MJD (i.e. no light travel correction)
+
+     period  : float
+        period to fold on [seconds]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: plog(args=None)
+
+   
+   ``plog log [device width height] ccd1 aper1 param1 ccd2 (aper2 param2
+   scheme) [title]``
+
+   Provides quick-look plots of HiPERCAM |reduce| logs.
+
+   Parameters:
+
+     log : string
+         name of |reduce| ASCII log file (text file with loads of columns)
+
+     device : string [hidden, defaults to 'term']
+        'term' for interactive plot, file name such as 'plot.pdf'
+        for a hardcopy.
+
+     width : float [hidden]
+        plot width (inches). Set = 0 to let the program choose.
+
+     height : float [hidden]
+        plot height (inches). Set = 0 to let the program choose. BOTH
+        width AND height must be non-zero to have any effect
+
+     ccd1 : str
+        first CCD to consider, e.g. '1'
+
+     aper1 : str
+        first aperture to consider
+
+     param1 : str
+        first parameter to consider. Choices are 'x' = X position,
+        'y' = Y position, 'f' = FWHM, 'b' = Moffat beta, 's' = sky,
+        'm' = maximum counts in aperture
+
+     ccd2 : str
+        second CCD to consider; '!' to ignore. Can be (and typically
+        would be) the same as ccd1.
+
+     aper2 : str [if ccd2 != '!']
+        second aperture to consider
+
+     param2 : str [if ccd2 != '!']
+        second parameter. See param1 for choices
+
+     scheme : str [if ccd2 != '!']
+        how to plot if both apertures are chosen. Choices:
+
+           | 'd' = difference, i.e. plot 1-2
+           | 'b' = both plotted on same panel
+           | 'r' = ratio, i.e. 1 / 2, good for relative photom
+           | 's' = scatter plot, 2 vs 1.
+
+     title : str [hidden]
+        plot title. Defaults to the run number if not specified
+
+     badtime : bool [hidden]
+        plot points marked as bad time in the log file. Default False.
+
+   .. Note::
+
+      Points marked bad, or flagged as having bad times or junk are
+      ignored. i.e.  bitmask = BAD_TIME | JUNK is passed to every
+      invocation of Tseries.mplot.  Be careful with linked apertures
+      where all x, y, FWHM, beta automatically have negative errors
+      since they are not fitted. See |flagcloud| for how to flag up
+      junk data.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: redanal(args=None)
+
+   
+   ``redanal aper log``
+
+   This provides some basic stats on a log file such as the fraction of duff
+   points for each aperture of each CCD, how much targets have moved and the
+   like. The aim is to help with setting parameters in the reduce file in
+   difficult cases and to diagnose problems. It will probably be added to with
+   time.
+
+   Parameters:
+
+     aper : string
+        the aperture file used for the reduction.
+
+     log : string
+        the log file.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: reduce(args=None)
+
+   
+   ``reduce [source] rfile (run first last [twait tmax]| flist) trim
+   ([ncol nrow]) log lplot implot (ccd nx msub xlo xhi ylo yhi iset
+   (ilo ihi | plo phi))``
+
+   Reduces a sequence of multi-CCD images, plotting lightcurves as
+   images come in. It can extract with either simple aperture
+   photometry or Tim Naylor's optimal photometry, on specific targets
+   defined in an aperture file using |setaper|.
+
+   reduce can source data from both the ULTRACAM and HiPERCAM
+   servers, from local 'raw' ULTRACAM and HiPERCAM files (i.e. .xml +
+   .dat for ULTRACAM, 3D FITS files for HiPERCAM) and from lists of
+   HiPERCAM '.hcm' files. If you have data from a different
+   instrument you should convert into the FITS-based hcm format.
+
+   reduce is primarily configured from a file with extension
+   ".red". This contains a series of directives, e.g. to say how to
+   re-position and re-size the apertures. An initial reduce file is
+   best generated with the script |genred| after you have created an
+   aperture file. This contains lots of help on what to do. |genred|
+   tries to get something usable fast for observing purposes, but the
+   parameters can nearly always be tweaked to produce better
+   outcomes.
+
+   A reduce run can be terminated at any point with ctrl-C without doing
+   any harm. You may often want to do this at the start in order to adjust
+   parameters of the reduce file.
+
+   Parameters:
+
+       source : str [hidden]
+          Data source, five options for built-in sources:
+
+            |  'hs': HiPERCAM server
+            |  'hl': local HiPERCAM FITS file
+            |  'us': ULTRACAM server
+            |  'ul': local ULTRACAM .xml/.dat files
+            |  'hf': list of HiPERCAM hcm FITS-format files
+
+          'hf' is used to look at sets of frames generated by 'grab'
+          or converted from foreign data formats. The standard
+          start-off default for ``source`` can be set using the
+          environment variable HIPERCAM_DEFAULT_SOURCE. e.g. in bash
+          :code:`export HIPERCAM_DEFAULT_SOURCE="us"` would ensure it
+          always started with the ULTRACAM server by default.  If
+          unspecified, it defaults to 'hl'.
+
+          Any instruments installed via plugins can be used as a source by
+          specifying either ``<instrument>:local`` or ``<instrument>:server``.
+
+       run : str [if source ends 's' or 'l']
+          run number to access, e.g. 'run034' or a file list. If a run,
+          then reduce and log below will be set to have the same name by
+          default.
+
+       first : int [if source ends 's' or 'l']
+          first frame to reduce. 1 = first frame; set = 0 to always try to
+          get the most recent frame (if it has changed).
+
+       last : int [if source ends 's' or 'l', hidden]
+          last frame to reduce. 0 to just continue until the end.  This is
+          not prompted for by default and must be set explicitly.  It
+          defaults to 0 if not set. Its purpose is to allow accurate
+          profiling tests.
+
+       twait : float [if source ends 's'; hidden]
+          time to wait between attempts to find a new exposure, seconds.
+
+       tmax : float [if source ends 's'; hidden]
+          maximum time to wait between attempts to find a new exposure,
+          seconds.
+
+       flist : string [if source ends 'f']
+          name of file list
+
+       trim : bool
+          True to trim columns and/or rows off the edges of windows nearest
+          the readout. Particularly useful with ULTRACAM windowed data where
+          the first few rows and columns can contain bad data.
+
+       ncol : int [if trim, hidden]
+          Number of columns to remove (on left of left-hand window, and right
+          of right-hand windows)
+
+       nrow : int [if trim, hidden]
+          Number of rows to remove (bottom of windows)
+
+       rfile : str
+          the "reduce" file, i.e. ASCII text file suitable for reading by
+          ConfigParser. Best seen by example as it has many parts. If you
+          are reducing a run, this will be set to have the same root name by
+          default (but a different extension to avoid name clashes).
+
+       log : str
+          log file for the results. If you are reducing a run, this
+          will be set to have the same root name by default (but a
+          different extension to avoid name clashes)
+
+       tkeep : float
+          maximum number of minutes of data to store in internal buffers, 0
+          for the lot. When large numbers of frames are stored, performance
+          can be slowed (although I am not entirely clear why) in which case
+          it makes sense to lose the earlier points (without affecting the
+          saving to disk). This parameter also gives operation similar to that
+          of "max_xrange" parameter in the ULTRACAM pipeline whereby just
+          the last few minutes are shown.
+
+       lplot : bool
+          flag to indicate you want to plot the light curve. Saves time not
+          to especially in high-speed runs.
+
+       implot : bool
+          flag to indicate you want to plot images.
+
+       ccd : string [if implot]
+          CCD(s) to plot, '0' for all, '1 3' to plot '1' and '3' only, etc.
+
+       nx : int [if implot]
+          number of panels across to display.
+
+       msub : bool [if implot]
+          subtract the median from each window before scaling for the
+          image display or not. This happens after any bias subtraction.
+
+       xlo : float [if implot]
+          left-hand X-limit for plot
+
+       xhi : float [if implot]
+          right-hand X-limit for plot (can actually be < xlo)
+
+       ylo : float [if implot]
+          lower Y-limit for plot
+
+       yhi : float [if implot]
+          upper Y-limit for plot (can be < ylo)
+
+       iset : string [if implot]
+          determines how the intensities are determined. There are three
+          options: 'a' for automatic simply scales from the minimum to the
+          maximum value found on a per CCD basis. 'd' for direct just takes
+          two numbers from the user. 'p' for percentile dtermines levels
+          based upon percentiles determined from the entire CCD on a per CCD
+          basis.
+
+       ilo : float [if implot and iset='d']
+          lower intensity level
+
+       ihi : float [if implot and iset='d']
+          upper intensity level
+
+       plo : float [if implot and iset='p']
+          lower percentile level
+
+       phi : float [if implot and iset='p']
+          upper percentile level
+
+   .. Warning::
+
+      The transmission plot generated with reduce is not reliable in the
+      case of optimal photometry since it is highly correlated with the
+      seeing. If you are worried about the transmission during observing,
+      you should always use normal aperture photometry.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: rtplot(args=None)
+
+   
+   ``rtplot [source device width height] (run first [twait tmax] |
+   flist) trim ([ncol nrow]) (ccd (nx)) [pause plotall] bias
+   [lowlevel highlevel] flat defect setup [drurl] msub iset (ilo ihi
+   | plo phi) xlo xhi ylo yhi (profit [fdevice fwidth fheight method
+   beta fwhm fwhm_min shbox smooth splot fhbox hmin read gain
+   thresh])``
+
+   Plots a sequence of images as a movie in near 'real time', hence
+   'rt'. Designed to be used to look at images coming in while at the
+   telescope, 'rtplot' comes with many options, a large number of
+   which are hidden by default, and many of which are only prompted
+   if other arguments are set correctly. If you want to see them all,
+   invoke as 'rtplot prompt'.  This is worth doing once to know
+   rtplot's capabilities.
+
+   rtplot can source data from both the ULTRACAM and HiPERCAM
+   servers, from local 'raw' ULTRACAM and HiPERCAM files (i.e. .xml +
+   .dat for ULTRACAM, 3D FITS files for HiPERCAM) and from lists of
+   HiPERCAM '.hcm' files.
+
+   rtplot optionally allows the selection of targets to be fitted
+   with gaussian or moffat profiles, and, if successful, will plot
+   circles of 2x the measured FWHM in green over the selected
+   targets. This option only works if a single CCD is being plotted.
+
+   Parameters:
+
+       source : str [hidden]
+          Data source, five options for built-in sources:
+
+            |  'hs' : HiPERCAM server
+            |  'hl' : local HiPERCAM FITS file
+            |  'us' : ULTRACAM server
+            |  'ul' : local ULTRACAM .xml/.dat files
+            |  'hf' : list of HiPERCAM hcm FITS-format files
+
+          'hf' is used to look at sets of frames generated by 'grab'
+          or converted from foreign data formats. The standard
+          start-off default for ``source`` can be set using the
+          environment variable HIPERCAM_DEFAULT_SOURCE. e.g. in bash
+          :code:`export HIPERCAM_DEFAULT_SOURCE="us"` would ensure it
+          always started with the ULTRACAM server by default. If
+          unspecified, it defaults to 'hl'.
+
+          Any instruments installed via plugins can be used as a source by
+          specifying either ``<instrument>:local`` or ``<instrument>:server``.
+
+       device : str [hidden]
+         Plot device. PGPLOT is used so this should be a PGPLOT-style name,
+         e.g. '/xs', '1/xs' etc. At the moment only ones ending /xs are
+         supported.
+
+       width : float [hidden]
+          plot width (inches). Set = 0 to let the program choose.
+
+       height : float [hidden]
+          plot height (inches). Set = 0 to let the program choose. BOTH width
+          AND height must be non-zero to have any effect
+
+       run : str [if source ends 's' or 'l']
+          run number to access, e.g. 'run034'
+
+       flist : str [if source ends 'f']
+          name of file list
+
+       first : int [if source ends 's' or 'l']
+          exposure number to start from. 1 = first frame; set = 0 to always
+          try to get the most recent frame (if it has changed).  For data
+          from the |hiper| server, a negative number tries to get a frame not
+          quite at the end.  i.e. -10 will try to get 10 from the last
+          frame. This is mainly to sidestep a difficult bug with the
+          acquisition system.
+
+       twait : float [if source ends 's' or 'l'; hidden]
+          time to wait between attempts to find a new exposure, seconds.
+
+       tmax : float [if source ends 's' or 'l'; hidden]
+          maximum time to wait between attempts to find a new exposure,
+          seconds.
+
+       trim : bool [if source starts with 'u']
+          True to trim columns and/or rows off the edges of windows nearest
+          the readout which can sometimes contain bad data.
+
+       ncol : int [if trim, hidden]
+          Number of columns to remove (on left of left-hand window, and right
+          of right-hand windows)
+
+       nrow : int [if trim, hidden]
+          Number of rows to remove (bottom of windows)
+
+       ccd : str
+          CCD(s) to plot, '0' for all, '1 3' to plot '1' and '3' only, etc.
+
+       nx : int [if more than 1 CCD]
+          number of panels across to display.
+
+       pause : float [hidden]
+          seconds to pause between frames (defaults to 0)
+
+       plotall : bool [hidden]
+          plot all frames regardless of status (i.e. including blank frames
+          when nskips are enabled (defaults to False). The profile fitting
+          will still be disabled for bad frames.
+
+       bias : str
+          Name of bias frame to subtract, 'none' to ignore.
+
+       lowlevel : float [hidden]
+          Level below which a warning about low bias levels is warned. Set=0
+          to ignore. Applied to first window of first CCD. 2000 about
+          right for ULTRACAM.
+
+       highlevel : float [hidden]
+          Level above which a warning about high bias levels is warned. Set=0
+          to ignore. Applied to first window of first CCD. 3500 about
+          right for ULTRACAM.
+
+       flat : str
+          Name of flat field to divide by, 'none' to ignore. Should normally
+          only be used in conjunction with a bias, although it does allow you
+          to specify a flat even if you haven't specified a bias.
+
+       defect : str
+          Name of defect file, 'none' to ignore.
+
+       setup : bool
+          True/yes to access the current windows from hdriver. Useful
+          during observing when seeting up windows, but not normally
+          otherwise. Next argument (hidden) is the URL to get to
+          hdriver. Once setup, you should probably turn this off to
+          avoid overloading hdriver, especially if in drift mode as
+          it makes a request for the windows for every frame.
+
+       drurl : str [if setup; hidden]
+          URL needed to access window setting from the camera
+          driver (ultracam, ultraspec, hipercam). The internal server 
+          in the camera driver must be switched on which can be done
+          from the GUI.
+
+       msub : bool
+          subtract the median from each window before scaling for the
+          image display or not. This happens after any bias subtraction.
+
+       iset : str [single character]
+          determines how the intensities are determined. There are three
+          options: 'a' for automatic simply scales from the minimum to the
+          maximum value found on a per CCD basis. 'd' for direct just takes
+          two numbers from the user. 'p' for percentile dtermines levels
+          based upon percentiles determined from the entire CCD on a per CCD
+          basis.
+
+       ilo : float [if iset='d']
+          lower intensity level
+
+       ihi : float [if iset='d']
+          upper intensity level
+
+       plo : float [if iset='p']
+          lower percentile level
+
+       phi : float [if iset='p']
+          upper percentile level
+
+       xlo : float
+          left-hand X-limit for plot
+
+       xhi : float
+          right-hand X-limit for plot (can actually be < xlo)
+
+       ylo : float
+          lower Y-limit for plot
+
+       yhi : float
+          upper Y-limit for plot (can be < ylo)
+
+       profit : bool [if plotting a single CCD only]
+          carry out profile fits or not. If you say yes, then on the first
+          plot, you will have the option to pick objects with a cursor. The
+          program will then attempt to track these from frame to frame, and
+          fit their profile. You may need to adjust 'first' to see anything.
+          The parameters used for profile fits are hidden and you may want to
+          invoke the command with 'prompt' the first time you try profile
+          fitting.
+
+       fdevice : str [if profit; hidden]
+          plot device for profile fits, PGPLOT-style name.
+          e.g. '/xs', '2/xs' etc.
+
+       fwidth : float [if profit; hidden]
+          fit plot width (inches). Set = 0 to let the program choose.
+
+       fheight : float [if profit; hidden]
+          fit plot height (inches). Set = 0 to let the program choose.
+          BOTH fwidth AND fheight must be non-zero to have any effect
+
+       method : str [if profit; hidden]
+          this defines the profile fitting method, either a gaussian or a
+          moffat profile. The latter is usually best.
+
+       beta : float [if profit and method == 'm'; hidden]
+          default Moffat exponent
+
+       fwhm : float [if profit; hidden]
+          default FWHM, unbinned pixels.
+
+       fwhm_min : float [if profit; hidden]
+          minimum FWHM to allow, unbinned pixels.
+
+       shbox : float [if profit; hidden]
+          half width of box for searching for a star, unbinned pixels. The
+          brightest target in a region +/- shbox around an intial position
+          will be found. 'shbox' should be large enough to allow for likely
+          changes in position from frame to frame, but try to keep it as
+          small as you can to avoid jumping to different targets and to
+          reduce the chances of interference by cosmic rays.
+
+       smooth : float [if profit; hidden]
+          FWHM for gaussian smoothing, binned pixels. The initial position
+          for fitting is determined by finding the maximum flux in a smoothed
+          version of the image in a box of width +/- shbox around the starter
+          position. Typically should be comparable to the stellar width. Its
+          main purpose is to combat cosmi rays which tend only to occupy a
+          single pixel.
+
+       splot : bool [if profit; hidden]
+          Controls whether an outline of the search box and a target number
+          is plotted (in red) or not.
+
+       fhbox : float [if profit; hidden]
+          half width of box for profile fit, unbinned pixels. The fit box is
+          centred on the position located by the initial search. It should
+          normally be > ~2x the expected FWHM.
+
+       hmin : float [if profit; hidden]
+          height threshold to accept a fit. If the height is below this
+          value, the position will not be updated. This is to help in cloudy
+          conditions.
+
+       read : float [if profit; hidden]
+          readout noise, RMS ADU, for assigning uncertainties
+
+       gain : float [if profit; hidden]
+          gain, ADU/count, for assigning uncertainties
+
+       thresh : float [if profit; hidden]
+          sigma rejection threshold for fits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: rupdate(args=None)
+
+   
+   ``rupdate rfile``
+
+   As changes are made to 'reduce', old reduce files can become
+   obsolete. This script tries to bring old reduce files up to date
+   by adding in the new options but in a way that should give the old
+   behaviour. The file is modified in place.
+
+   There are some cases where a full update might not be possible and
+   a further manual edit of the reduce file might be required.
+
+   Parameters:
+
+       rfile    : string
+          the output reduce file created using |setaper|. This will be read
+          for the targets. The main target will be assumed to have been
+          called '1', the main comparison '2'. If there is a '3' it will be
+          plotted relative to '2'; all others will be ignored for plotting
+          purposes.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: setaper(args=None)
+
+   
+   ``setaper mccd aper ccd [linput width height] rtarg rsky1 rsky2 xlo
+   xhi ylo yhi nx msub [cmap] iset (ilo ihi | plo phi) [profit method (beta
+   betafix betamax) fwhm fwfix (fwmin) shbox smooth splot fhbox read
+   gain thresh]``
+
+   Interactive definition of photometric extraction apertures. This
+   is a matplotlib-based routine allowing you to place apertures on
+   targets using the cursor. It is an essential prerequisite to
+   running |reduce|.  You are advised at the minimum to have
+   subtracted the bias from the frame of interest since that makes
+   the assignment of uncertainties to the data used when making
+   profile fits much more reliable.
+
+   Parameters:
+
+     mccd   : string
+        name of an MCCD file, as produced by e.g. 'grab'
+
+     aper   : string
+        the name of an aperture file. If it exists it will be read so that
+        apertures can be added to it. If it does not exist, it will be
+        created on exiting the routine. The aperture files are is a fairly
+        readable / editiable text format
+
+     ccd    : string
+        CCD(s) to plot, '0' for all. If not '0' then '1', '2' or even '3 4'
+        are possible inputs (without the quotes). '3 4' will plot CCD '3' and
+        CCD '4'. If you want to plot more than one CCD, then you will be
+        prompted for the number of panels in the X direction. This parameter
+        will not be prompted if there is only one CCD in the file.
+
+     linput  : string [hidden]
+        sets the way in which the apertures are labelled. 'n' = numerical
+        input, with the program just incrementing by 1 for each successive
+        aperture; 's' = single character (without requiring the user to hit
+        hit <CR>); 'm' = multi-character, ending with <CR>.
+        Allowed characters are 0-9, a-z, A-Z, no spaces or punctuation, but a
+        single '0' on its own is not permitted.
+
+     width  : float [hidden]
+        plot width (inches). Set = 0 to let the program choose.
+
+     height : float [hidden]
+        plot height (inches). Set = 0 to let the program choose. BOTH width
+        AND height must be non-zero to have any effect
+
+     rtarg  : float [unbinned pixels]
+        radius of target aperture. The exact value of this does not matter
+        too much since it is normally overridden in 'reduce', but typically
+        one aims for 1.5 to 2.5 x FWHM, seeing, depending upon the target
+        brightness.
+
+     rsky1  : float [unbinned pixels]
+        inner radius of sky aperture.
+
+     rsky2  : float [unbinned pixels]
+        radius of target aperture
+
+     xlo : float
+        left X-limit to restrict region used to compute percentile
+        limits. This allows you to only consider useful data if for
+        example there are bias strips, and makes setting the percentile
+        limits less fiddly.
+
+     xhi : float
+        right X-limit. See comments for xlo as well.
+
+     ylo : float
+        bottom Y-limit. See comments for xlo as well.
+
+     yhi : float
+        top Y-limit. See comments for xlo as well.
+
+     nx     : int
+        number of panels across to display, prompted if more than one CCD is
+        to be plotted.
+
+     msub : bool
+        True/False to subtract median from each window before scaling
+
+     cmap : str [hidden]
+        Colour map to use. "Greys" is usual greyscale. "none" to get matplotlib
+        default.
+
+     iset   : string [single character]
+        determines how the intensities are determined. There are three
+        options: 'a' for automatic simply scales from the minimum to the
+        maximum value found on a per CCD basis. 'd' for direct just takes two
+        numbers from the user. 'p' for percentile dtermines levels based upon
+        percentiles determined from the entire CCD on a per CCD bais.
+
+     ilo    : float [if iset=='d']
+        lower intensity level
+
+     ihi    : float [if iset=='d']
+        upper intensity level
+
+     plo    : float [if iset=='p']
+        lower percentile level
+
+     phi    : float [if iset=='p']
+        upper percentile level
+
+     profit : bool [hidden]
+        start aperture selection with profile fitting-based position
+        refinement (or not). Can be toggled at any point.
+
+     method : string [hidden]
+        this defines the profile fitting method, if profile fitting is used
+        to refine the aperture position. Either a gaussian or a moffat
+        profile, 'g' or 'm'.  The latter should usually be best.
+
+     beta : float [if method == 'm'; hidden]
+        default Moffat exponent
+
+     betafix : bool [if method == 'm'; hidden]
+        fix beta or not
+
+     beta_max : bool [if method == 'm' and not betafix; hidden]
+        maximum value of beta. Moffat profiles are degenerate
+        with gaussians at large beta so the idea is to avoid wandering
+        to huge beta.
+
+     fwhm : float [hidden]
+        default FWHM, unbinned pixels. It helps to get this of the right order of
+        mag at the start; too large is better than too small.
+
+     fwfix: bool [hidden]
+        don't fit the FWHM. Can be more robust; the position is still fitted.
+
+     fwmin : float [if not fwfix; hidden]
+        minimum FWHM to allow, unbinned pixels.
+
+     shbox : float [hidden]
+        half width of box for searching for a star, unbinned pixels. The
+        brightest target in a region +/- shbox around an intial position will
+        be found. 'shbox' should be large enough to allow for likely changes
+        in position from frame to frame, but try to keep it as small as you
+        can to avoid jumping to different targets and to reduce the chances
+        of interference by cosmic rays.
+
+     smooth : float [hidden]
+        FWHM for gaussian smoothing, binned pixels. The initial position for
+        fitting is determined by finding the maximum flux in a smoothed
+        version of the image in a box of width +/- shbox around the starter
+        position. Typically should be comparable to the stellar width. Its
+        main purpose is to combat cosmic rays which tend only to occupy a
+        single pixel.
+
+     splot : bool [hidden]
+        Controls whether an outline of the search box and a target number
+        is plotted (in red) or not.
+
+     fhbox : float [hidden]
+        half width of box for profile fit, unbinned pixels. The fit box is
+        centred on the position located by the initial search. It should
+        normally be > ~2x the expected FWHM.
+
+     read : float [hidden]
+        readout noise, RMS ADU, for assigning uncertainties
+
+     gain : float [hidden]
+        gain, ADU/count, for assigning uncertainties
+
+     thresh : float [hidden]
+        thresh rejection threshold. Be careful. Bad combinations of this
+        and the initial FWHM can cause wholessale rejection of good pixels,
+        so don't be overzealous.
+
+     ndiv : int [hidden]
+        sub-division factor for fits. 0=no sub-division. Otherwise it will used
+        ndiv*ndiv sub-evaluations per *unbinned* pixel
+
+   There are a few conveniences to make setaper easier:
+
+     1. The plot is initialised in pan mode whereby you can move around and
+        scale using the left and right mouse buttons.
+
+     2. All input is accomplished with the keyboard; the mouse buttons are
+        only for navigating the image.
+
+     3. The label input can be switched between sequential numerical,
+        single- and multi-character input ('linput').
+
+   Various standard keyboard shortcuts (e.g. 's' to save) are disabled as
+   they just confuse things and are of limited use in setaper in any case.
+
+   Some aspects of the usage of matplotlib in setaper are tricky. It is
+   possible that particular 'backends' will cause problems. I have tested
+   this with Qt4Agg, Qt5agg and GTK3Agg. One aspect is the cursor icon in pan
+   mode is a rather indistinct hand where one can't tell what is being
+   pointed at. I have therefore suppressed this, but only for the tested
+   backends. Others would need require further investigation.
+
+   When in `setaper`, help is always available by hitting 'h'. Most of the
+   options are self-evident. A few which may not be are:
+
+     | e(xtra)    : add extra pixels to the target aperture. This allows you
+     |              to sculpt the shape of the extraction aperure to perhaps
+     |              include the flux of a blended star.
+     |
+     | l(ink)     : link one aperture to another in the same CCD for
+     |              re-positioning. If a target is very faint or will
+     |              disappear, this will make sure that its position
+     |              is defined relative to another, brighter star. Best
+     |              to choose one close by because of potential refractive
+     |              distortion.
+     |
+     | r(eference): toggle whether an aperture is a reference aperture. The
+     |              re-positioning can work in two steps: first position
+     |              reference stars, then the other stars, using the reference
+     |              stars to provide a first cut at the position shift of the
+     |              rest.
+     |
+     | i(njected) : toggle whether an aperture is a COMPO aperture and has
+     |              been injected. These apertures move differently on the
+     |              CCD from non-injected apertures and need to be labelled
+     |              so that aperture positioning can be done correctly.
+     |
+     | C(opy)     : copy apertures of the CCD the cursor is in to all others.
+     |              This basically clones apertures across the CCDs. You will
+     |              need to re-centre each on afterwards.
+
+   .. Warning::
+
+      The aperture positions immediately after a copy reflect the origin CCD,
+      and may be somewhat off if there are significant offsets between CCDs.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: setdefect(args=None)
+
+   
+   ``setdefect mccd defect ccd [width height] nx msub [cmap] ffield
+   (auto (hlo hhi severity)) hsbox iset (ilo ihi | plo phi)``
+
+   Interactive definition of CCD defects. This is a matplotlib-based routine
+   allowing you to define defects using the cursor. Various routines allow
+   you to overplot defects, above all |rtplot| / |nrtplot|. Point-like and
+   line-like defects of two different colours (orange for moderate, red for
+   severe can be marked). Hot pixels can be marked by their count rate as
+   measured in dark frames.
+
+   You should apply this in stages using bias frames and flat fields
+   to set the point and line defects, and a darkframe from |makedark|
+   to set hot pixels. The latter can be set semi-automatically by
+   flagging pixels between pre-set rate values.
+
+   Parameters:
+
+     mccd : str
+        name of an MCCD file, as produced by e.g. 'grab'
+
+     defect : str
+        the name of a defect file. If it exists it will be read so that
+        defects can be added to it. If it does not exist, it will be
+        created on exiting the routine. The defect files are in a fairly
+        readable / editiable text format
+
+     ccd : str
+        CCD(s) to plot, '0' for all. If not '0' then '1', '2' or even '3 4'
+        are possible inputs (without the quotes). '3 4' will plot CCD '3' and
+        CCD '4'. If you want to plot more than one CCD, then you will be
+        prompted for the number of panels in the X direction. This parameter
+        will not be prompted if there is only one CCD in the file.
+
+     width : float [hidden]
+        plot width (inches). Set = 0 to let the program choose.
+
+     height : float [hidden]
+        plot height (inches). Set = 0 to let the program choose. BOTH width
+        AND height must be non-zero to have any effect
+
+     nx : int
+        number of panels across to display, prompted if more than one CCD is
+        to be plotted.
+
+     msub : bool
+        True/False to subtract median from each window before scaling
+
+     cmap : str [hidden]
+        The colour map to use. "Greys" is the usual; "Greys_r" reverses it.
+        There are many others; typing an incorrect one will give a list. "none"
+        for matplotlib default.
+
+     ffield : bool
+        If True, all defects will be assumed to be flat-field or poor
+        charge transfer defects as opposed to hot pixels. The latter
+        should be set from dark frames, and have a different impact
+        than the first two types in that they are worst for faint
+        targets. Hot pixels and flat-field defects are shown with the
+        same colours for moderate and severe, but different symbols
+        (filled circles for flat-field defects, stars for hot
+        pixels). If you say "no" in order to add hot pixels, the line
+        defect option is not available.
+
+     auto : bool [if ffield==False]
+        Hot pixels can be set automatically if wanted. If so then a
+        few extra parameters are needed. This only makes sense if you
+        are feeding setdefect with a dark frame produced by
+        |makedark| so that the intensity levels mean something.
+
+     hlo : float [if auto]
+        lower limit to flag as a hot pixel as a count rate per second
+
+     hhi : float [if auto]
+        upper limit to flag as a hot pixel as a count rate per second
+
+     severity : str [if auto]
+        'm' for moderate, 'n' for nasty. Controls colour used to plot
+        the hot pixel; it will be labelled with a rate as well.
+
+     hsbox : int
+        half-width in binned pixels of stats box as offset from central pixel
+        hsbox = 1 gives a 3x3 box; hsbox = 2 gives 5x5 etc. This is used by
+        the "show" option when setting defects.
+
+     iset : str [single character]
+        determines how the intensities are determined. There are three
+        options: 'a' for automatic simply scales from the minimum to the
+        maximum value found on a per CCD basis. 'd' for direct just takes two
+        numbers from the user. 'p' for percentile dtermines levels based upon
+        percentiles determined from the entire CCD on a per CCD bais.
+
+     ilo : float [if iset=='d']
+        lower intensity level
+
+     ihi : float [if iset=='d']
+        upper intensity level
+
+     plo : float [if iset=='p']
+        lower percentile level
+
+     phi : float [if iset=='p']
+        upper percentile level
+
+   There are a few conveniences to make setdefect easier:
+
+     1. The plot is initialised in pan mode whereby you can move around and
+        scale using the left and right mouse buttons.
+
+     2. All input is accomplished with the keyboard; the mouse buttons are
+        only for navigating the image.
+
+     3. The label input can be switched between sequential numerical,
+        single- and multi-character input ('linput').
+
+   Various standard keyboard shortcuts (e.g. 's' to save) are disabled as
+   they just confuse things and are of limited use in setdefect in any case.
+
+   Some aspects of the usage of matplotlib in setdefect are tricky. It is
+   possible that particular 'backends' will cause problems. I have tested
+   this with Qt4Agg, Qt5agg and GTK3Agg. One aspect is the cursor icon in pan
+   mode is a rather indistinct hand where one can't tell what is being
+   pointed at. I have therefore suppressed this, but only for the tested
+   backends. Others would need require further investigation.
+
+   NB At the end of this routine, it re-orders the defects so that the severe
+   ones follows the moderates. This helps emphasize the severe ones over the
+   moderates when running rtplot.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: setfringe(args=None)
+
+   
+   ``setfringe fmap fringe ccd [width height] nx [cmap nhalf] iset (ilo ihi
+   | plo phi)``
+
+   Interactive definition of CCD fringe pairs. The idea is to place a large
+   number of such pairs at the peaks and valleys of a fringe map file. To
+   defringe a file, the differences of intensity for each pair will be evaluated
+   in the data and the fringe map and the ratio of these differences taken. The
+   median of these ratios will be used to scale the fringe map which will then be
+   subtracted. The use of a median allows the odd ratio to be ruined by stars,
+   as long as a large number of pairs are defined.
+
+   Parameters:
+
+     fmap : str
+        name of an MCCD file showing fringes with objects removed, e.g.
+        as produced by 'makefringe'
+
+     fringe : str
+        the name of a file of fringe pairs. If it exists it will be
+        read so that more fringe pairs can be added to it. If it does
+        not exist, it will be created on exiting the routine. The
+        files are in a fairly readable / editable text format
+
+     ccd : str
+        CCD(s) to plot, '0' for all. If not '0' then '1', '2' or even '3 4'
+        are possible inputs (without the quotes). '3 4' will plot CCD '3' and
+        CCD '4'. If you want to plot more than one CCD, then you will be
+        prompted for the number of panels in the X direction. This parameter
+        will not be prompted if there is only one CCD in the file.
+
+     width : float [hidden]
+        plot width (inches). Set = 0 to let the program choose.
+
+     height : float [hidden]
+        plot height (inches). Set = 0 to let the program choose. BOTH width
+        AND height must be non-zero to have any effect
+
+     nx : int
+        number of panels across to display, prompted if more than one CCD is
+        to be plotted.
+
+     cmap : str [hidden]
+        The colour map to use. "Greys" is the usual; "Greys_r" reverses it.
+        There are many others; typing an incorrect one will give a list. "none"
+        for matplotlib default.
+
+     nhalf : int [hidden]
+        half-width in binned pixels of stats box as offset from central pixel
+        nhalf = 1 gives a 3x3 box; hsbox = 2 gives 5x5 etc. This is used by
+        the "show" option when setting FringePair and when reporting FringePair
+        differences.
+
+     iset : str [single character]
+        determines how the intensities are determined. There are three
+        options: 'a' for automatic simply scales from the minimum to the
+        maximum value found on a per CCD basis. 'd' for direct just takes two
+        numbers from the user. 'p' for percentile dtermines levels based upon
+        percentiles determined from the entire CCD on a per CCD bais.
+
+     ilo : float [if iset=='d']
+        lower intensity level
+
+     ihi : float [if iset=='d']
+        upper intensity level
+
+     plo : float [if iset=='p']
+        lower percentile level
+
+     phi : float [if iset=='p']
+        upper percentile level
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: shiftadd(args=None)
+
+   
+   ``shiftadd [source]  (run first last twait tmax | flist) rfilen refccd
+   fthresh reprmethod [(reprorder | consflux reprkernel kwidth regwidth)]
+   trim ([ncol nrow]) method [(sigma maxiters)] [overwrite] output``
+
+   Averages images from a run using mean combination, but shifting each
+   image based on the positions of stars.
+
+   Parameters:
+
+       source : str [hidden]
+          Data source, five options for built-in sources:
+
+             | 'hs' : HiPERCAM server
+             | 'hl' : local HiPERCAM FITS file
+             | 'us' : ULTRACAM server
+             | 'ul' : local ULTRACAM .xml/.dat files
+             | 'hf' : list of HiPERCAM hcm FITS-format files
+
+          'hf' is used to look at sets of frames generated by 'grab'
+          or converted from foreign data formats. The standard
+          start-off default for ``source`` can be set using the
+          environment variable HIPERCAM_DEFAULT_SOURCE. e.g. in bash
+          :code:`export HIPERCAM_DEFAULT_SOURCE="us"` would ensure it
+          always started with the ULTRACAM server by default. If
+          unspecified, it defaults to 'hl'.
+
+          Any instruments installed via plugins can be used as a source by
+          specifying either ``<instrument>:local`` or ``<instrument>:server``.
+
+       run : str [if source ends 's' or 'l']
+          run number to access, e.g. 'run034'
+
+       flist : str [if source ends 'f']
+          name of file list
+
+       first : int [if source ends 's' or 'l']
+          exposure number to start from. 1 = first frame ('0' is
+          not supported).
+
+       last : int [if source ends 's' or 'l']
+          last exposure number must be >= first, or 0 for the lot
+
+       twait : float [if source ends 's' or 'l'; hidden]
+          time to wait between attempts to find a new exposure, seconds.
+
+       tmax : float [if source ends 's' or 'l'; hidden]
+          maximum time to wait between attempts to find a new exposure,
+          seconds.
+
+       rfilen : str
+           name of reduce file.
+
+       refccd : str
+           reference CCD to use for finding offsets
+
+       fthresh : float
+           maximum FWHM to allow, in unbinned pixels on the reference CCD.
+           frames with FWHM > fthresh will be ignored.
+
+       reprmethod : str
+           Method to use for reprojecting the data, three options:
+
+               | 'interp': the fastest, but does not conserve flux
+               | 'adaptive': slower, but conserves flux
+               | 'exact': the slowest but most accurate, only available
+                 if the input data contains WCS info (currently HiPERCAM only)
+
+           The default is 'adaptive'.
+           See https://reproject.readthedocs.io for details.
+
+       reprorder : int [if reprmethod is 'interp'; hidden]
+           Order of interpolation to use. 0 is nearest neighbour, 1 is
+           bilinear, 2 is quadratic, 3 is cubic. 1 is the default.
+
+       consflux : bool [if reprmethod is 'adaptive'; hidden]
+           conserve flux when reprojecting. True is the default.
+
+       reprkernel : str [if reprmethod is 'adaptive'; hidden]
+           The averaging kernel to use. Allowed values are 'Hann' and 'Gaussian'.
+           The Gaussian kernel produces better photometric accuracy and stronger
+           anti-aliasing at the cost of some blurring (on the scale of a few
+           pixels). If not specified, the Gaussain kernel is used by default.
+
+       kwidth : float [if reprmethod is 'adaptive'; hidden]
+           The width of the kernel in pixels, expressed as the standard
+           deviation of the Gaussian kernel. Is not used for the Hann kernel.
+           Reducing this width may introduce photometric errors or leave input
+           pixels under-sampled, while increasing it may improve the degree of
+           anti-aliasing but will increase blurring of the output image.
+           If this width is changed from the default, a proportional change
+           should be made to the value of regwidth to maintain an
+           equivalent degree of photometric accuracy. Default is 1.3.
+
+       regwidth : float [if reprmethod is 'adaptive'; hidden]
+           The width in pixels of the output-image region which, when
+           transformed to the input plane, defines the region to be sampled
+           for each output pixel.  Used only for the Gaussian kernel, which
+           otherwise has infinite extent. This value sets a trade-off between
+           accuracy and computation time, with better accuracy at higher values.
+           The default value of 4, with the default kernel width,
+           should limit the most extreme errors to less than one percent.
+           Higher values will offer even more photometric accuracy.
+
+       trim : bool
+          True to trim columns and/or rows off the edges of windows nearest
+          the readout. Useful for ULTRACAM particularly.
+
+       ncol : int [if trim, hidden]
+          Number of columns to remove (on left of left-hand window, and right
+          of right-hand windows)
+
+       nrow : int [if trim, hidden]
+          Number of rows to remove (bottom of windows)
+
+       method : str [hidden, defaults to 'm']
+          'm' for median, 'c' for clipped mean.
+
+       sigma : float [hidden; if method == 'c']
+          With clipped mean combination, pixels that deviate by more than
+          sigma RMS from the mean are kicked out. This is carried out in an
+          iterative manner. sigma <= 0 implies no rejection, just a straight
+          average. sigma=3 is typical.
+
+       maxiters : int [hidden; if method == 'c']
+           Maximum number of iterations in sigma clipping. 3 is typical.
+
+       overwrite : bool [hidden]
+          overwrite any pre-existing output files
+
+       output  : string
+          output file
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: splice(args=None)
+
+   
+   ``splice input1 input2 ccd [win] output``
+
+   Merges two multi-CCD images so that parts of input1 are replaced
+   by equivalent parts of input2. This can be useful e.g. to create
+   a combined flat field out of different frames.
+
+   Parameters:
+
+      input1 : str
+          first input frame
+
+      input2 : str
+          second input frame
+
+      ccd : str
+          the CCD(s) to transfer, '0' for all of them. '1 3', i.e.
+          separate with spaces for more than one CCD.
+
+      win : str [hidden]
+          the window(s) to transfer, '0' for all of them (default). The
+          same windows must exist in the selected CCDs of both inputs 
+
+      output : str
+          output file.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: stats(args=None)
+
+   
+   ``stats input [format]``
+
+   Lists basic stats of a multi-CCD image, i.e. the minimum, maximum, mean,
+   median and standard deviation of each window of each CCD. The output
+   format can be altered to suit preference.
+
+   Parameters:
+
+     input  : string
+        name of the MCCD file
+
+     format : string [hidden, defaults to 9.3f]
+        C-style format code as used in Python format statements for output of
+        the numerical values. e.g. '300.00' is '6.2f' (6 characters toal, 2
+        after the decimal point), '1.22e24' is '.2e' (as many characters as
+        needed, 2 after the decimal point)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: tanalysis(args=None)
+
+   
+   ``tanalysis [source] run [mintim dcmax] details (plot [check (output)])``
+
+   .. Warning::
+
+      This script should only be run if you know what you are doing.
+
+   Analyses timing data in |hiper|, ULTRACAM or ULTRASPEC data.  You
+   must first have made copy of the timing bytes (see ``tbytes'' and
+   ``atbytes''). It looks for a timing bytes file in a sub-directory
+   of the directory the script is run from called "tbytes". If the
+   file does not exist, the script will exit.
+
+   On occasion there are problems with ULTRACAM, ULTRASPEC and, very
+   rarely, |hiper| timestamps. The main purpose of this script is to
+   provide an analysis of the timing to spot these is as clear a way
+   as possible. Some of the problems are::
+
+     1) ULTRASPEC null timestamps: ULTRASPEC runs occasionally feature
+        weird null timestamps. They don't replace the proper ones but
+        push them down the line so they turn up later.
+
+     2) Extra OK-looking timestamps: on three occasions, genuine but
+        spurious timestamps have been added to the FIFO buffer. Again
+        these are extra, and push the real ones down the line.
+
+   Parameters:
+
+       source : string [hidden]
+          Data source, two options:
+
+             | 'hl' : local HiPERCAM FITS file
+             | 'ul' : ULTRA(CAM|SPEC) server
+
+       run : string
+          run number to access, e.g. 'run0034'. This will also be
+          used to generate the name for the timing bytes file
+          (extension '.tbts'). If a file of this name already exists,
+          the script will attempt to read and compare the bytes of
+          the two files and report any changes.  The timing bytes
+          file will be written to the present working directory, not
+          necessarily the location of the data file.
+
+       mintim : int [hidden]
+          Minimum number of times to attempt to do anything
+          with. This must be at least 4 so that there are 3+ time
+          differences to try to get a median time, but in practice it
+          is probably advisable to use a larger number still.
+
+       dcmax : float [hidden]
+          Maximum differential in terms of cycle number from exact integers
+          to use to indicate "failed" times. Pre 2010-02 needs to be looser
+          than post 2010-02. Number of order 0.002 is fine post 2010-02,
+          whereas 0.02 is more like it pre 2010-02.
+
+       details : bool
+          Print out detailed information on problem times
+
+       plot : bool
+          True to make diagnostic plots if problem runs found
+
+       check : bool [if plot, hidden]
+          True simply to check a run for timing problems, not try to
+          fix them. Defaults to True, and is also hidden by
+          default. If you set check=False, the code also attempts to
+          fix the times and generate a new data file. At the moment
+          it is very specific code set to try to correct for spurious
+          extra timestamps as happened for the following runs:
+          2011-10-31 run022, 2013-12-31 run031 and 2015-06-22
+          run024. It works by calculating its best estimate of cycle
+          numbers and rejecting any too far off being integers. The
+          corrected times are analysed for duplications and gaps. You
+          do not want any duplications (and ideally no gaps either).
+          You will be asked one final time if you want to proceed.
+
+       output : str [if not check]
+          Name of the modified data file. For safety this will not overwrite
+          any existing file. It is up to the user to move / copy / rename files
+          appropriately. Take care to check the results before deleting any
+          original data. Keeping a copy is probably advisable.
+
+   .. Note::
+
+      The final frame on many runs can be terminated early and thus ends with
+      an out of sequence timestamp (it comes earlier than expected). The script
+      regards such a run as being "OK" if there are not other issues.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: tbytes(args=None)
+
+   
+   ``tbytes [source] ([old]) run``
+
+   Reads all timing bytes from a |hiper|, ULTRACAM or ULTRASPEC run
+   and dumps them to a disk file. Designed as a safety fallback for
+   correcting timing issues where one wants to manipulate the raw
+   data.
+
+   Parameters:
+
+       source : string [hidden]
+          Data source, two options:
+
+             | 'hl' : local HiPERCAM FITS file
+             | 'ul' : ULTRA(CAM|SPEC) server
+
+       old : bool [if source=='ul', hidden, defaults to False]
+          Will attempt first to read timing bytes from an old version
+          of the data file, i.e. one with extension '.dat.old' rather
+          than plain '.dat' (applies to ULTRA(CAM|SPEC) data only. Such
+          files are generated by the null timestamp correction script
+          routinely applied to ULTRASPEC data for example. 'old' will
+          switch to False by default if not explicitly set.
+
+       run : str
+          run number to access, e.g. 'run0034'. This will also be
+          used to generate the name for the timing bytes file
+          (extension '.tbts'). If a file of this name already exists,
+          the script will attempt to read and compare the bytes of
+          the two files and report any changes.  The timing bytes
+          file will be written to the present working directory,
+          unless it contains a sub-directory named "tbytes", in which
+          case the timing data will be read/written from/to there.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: uls(args=None)
+
+   
+   Gives an 'ls'-like listing of the runs available on the ULTRACAM file
+   server. Just invoke as 'uls' with no arguments.
+
+   See |hls| for the |hiper| equivalent.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+

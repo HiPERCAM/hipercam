@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>hipercam.scripts.setaper &#8212; HiPERCAM pipeline 1.6.8.dev12+g30055e846 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/bootstrap-astropy.css?v=177ce38d" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css?v=fd3f3429" />
+    
+    <script src="../../../../_static/documentation_options.js?v=adfd3a0b"></script>
+    <script src="../../../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script type="text/javascript" src="../../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../../_static/copybutton.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="hipercam.scripts.setdefect" href="../setdefect/index.html" />
+    <link rel="prev" title="hipercam.scripts.rupdate" href="../rupdate/index.html" />
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../../index.html"><span id="logotext1">astro</span><span id="logotext2"></span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="../setdefect/index.html" title="hipercam.scripts.setdefect">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="../rupdate/index.html" title="hipercam.scripts.rupdate">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../../../../index.html">HiPERCAM pipeline 1.6.8.dev12+g30055e846 documentation</a>
+	 &#187;
+      </li>
+      <li><a href="../../../index.html" >API Reference</a> &#187;</li>
+      <li><a href="../../index.html" >hipercam</a> &#187;</li>
+      <li><a href="../index.html" accesskey="U">hipercam.scripts</a> &#187;</li>
+      
+      <li>hipercam.scripts.setaper</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-hipercam.scripts.setaper">
+<span id="hipercam-scripts-setaper"></span><h1>hipercam.scripts.setaper<a class="headerlink" href="#module-hipercam.scripts.setaper" title="Link to this heading">¶</a></h1>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.scripts.setaper.setaper" title="hipercam.scripts.setaper.setaper"><code class="xref py py-obj docutils literal notranslate"><span class="pre">setaper</span></code></a>([args])</p></td>
+<td><p><a href="#id1"><span class="problematic" id="id2">``</span></a>setaper mccd aper ccd [linput width height] rtarg rsky1 rsky2 xlo</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.scripts.setaper.setaper">
+<span class="sig-prename descclassname"><span class="pre">hipercam.scripts.setaper.</span></span><span class="sig-name descname"><span class="pre">setaper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.scripts.setaper.setaper" title="Link to this definition">¶</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">setaper</span> <span class="pre">mccd</span> <span class="pre">aper</span> <span class="pre">ccd</span> <span class="pre">[linput</span> <span class="pre">width</span> <span class="pre">height]</span> <span class="pre">rtarg</span> <span class="pre">rsky1</span> <span class="pre">rsky2</span> <span class="pre">xlo</span>
+<span class="pre">xhi</span> <span class="pre">ylo</span> <span class="pre">yhi</span> <span class="pre">nx</span> <span class="pre">msub</span> <span class="pre">[cmap]</span> <span class="pre">iset</span> <span class="pre">(ilo</span> <span class="pre">ihi</span> <span class="pre">|</span> <span class="pre">plo</span> <span class="pre">phi)</span> <span class="pre">[profit</span> <span class="pre">method</span> <span class="pre">(beta</span>
+<span class="pre">betafix</span> <span class="pre">betamax)</span> <span class="pre">fwhm</span> <span class="pre">fwfix</span> <span class="pre">(fwmin)</span> <span class="pre">shbox</span> <span class="pre">smooth</span> <span class="pre">splot</span> <span class="pre">fhbox</span> <span class="pre">read</span>
+<span class="pre">gain</span> <span class="pre">thresh]</span></code></p>
+<p>Interactive definition of photometric extraction apertures. This
+is a matplotlib-based routine allowing you to place apertures on
+targets using the cursor. It is an essential prerequisite to
+running <a href="#id3"><span class="problematic" id="id4">|reduce|</span></a>.  You are advised at the minimum to have
+subtracted the bias from the frame of interest since that makes
+the assignment of uncertainties to the data used when making
+profile fits much more reliable.</p>
+<p>Parameters:</p>
+<blockquote>
+<div><dl class="simple">
+<dt>mccd<span class="classifier">string</span></dt><dd><p>name of an MCCD file, as produced by e.g. ‘grab’</p>
+</dd>
+<dt>aper<span class="classifier">string</span></dt><dd><p>the name of an aperture file. If it exists it will be read so that
+apertures can be added to it. If it does not exist, it will be
+created on exiting the routine. The aperture files are is a fairly
+readable / editiable text format</p>
+</dd>
+<dt>ccd<span class="classifier">string</span></dt><dd><p>CCD(s) to plot, ‘0’ for all. If not ‘0’ then ‘1’, ‘2’ or even ‘3 4’
+are possible inputs (without the quotes). ‘3 4’ will plot CCD ‘3’ and
+CCD ‘4’. If you want to plot more than one CCD, then you will be
+prompted for the number of panels in the X direction. This parameter
+will not be prompted if there is only one CCD in the file.</p>
+</dd>
+<dt>linput<span class="classifier">string [hidden]</span></dt><dd><p>sets the way in which the apertures are labelled. ‘n’ = numerical
+input, with the program just incrementing by 1 for each successive
+aperture; ‘s’ = single character (without requiring the user to hit
+hit &lt;CR&gt;); ‘m’ = multi-character, ending with &lt;CR&gt;.
+Allowed characters are 0-9, a-z, A-Z, no spaces or punctuation, but a
+single ‘0’ on its own is not permitted.</p>
+</dd>
+<dt>width<span class="classifier">float [hidden]</span></dt><dd><p>plot width (inches). Set = 0 to let the program choose.</p>
+</dd>
+<dt>height<span class="classifier">float [hidden]</span></dt><dd><p>plot height (inches). Set = 0 to let the program choose. BOTH width
+AND height must be non-zero to have any effect</p>
+</dd>
+<dt>rtarg<span class="classifier">float [unbinned pixels]</span></dt><dd><p>radius of target aperture. The exact value of this does not matter
+too much since it is normally overridden in ‘reduce’, but typically
+one aims for 1.5 to 2.5 x FWHM, seeing, depending upon the target
+brightness.</p>
+</dd>
+<dt>rsky1<span class="classifier">float [unbinned pixels]</span></dt><dd><p>inner radius of sky aperture.</p>
+</dd>
+<dt>rsky2<span class="classifier">float [unbinned pixels]</span></dt><dd><p>radius of target aperture</p>
+</dd>
+<dt>xlo<span class="classifier">float</span></dt><dd><p>left X-limit to restrict region used to compute percentile
+limits. This allows you to only consider useful data if for
+example there are bias strips, and makes setting the percentile
+limits less fiddly.</p>
+</dd>
+<dt>xhi<span class="classifier">float</span></dt><dd><p>right X-limit. See comments for xlo as well.</p>
+</dd>
+<dt>ylo<span class="classifier">float</span></dt><dd><p>bottom Y-limit. See comments for xlo as well.</p>
+</dd>
+<dt>yhi<span class="classifier">float</span></dt><dd><p>top Y-limit. See comments for xlo as well.</p>
+</dd>
+<dt>nx<span class="classifier">int</span></dt><dd><p>number of panels across to display, prompted if more than one CCD is
+to be plotted.</p>
+</dd>
+<dt>msub<span class="classifier">bool</span></dt><dd><p>True/False to subtract median from each window before scaling</p>
+</dd>
+<dt>cmap<span class="classifier">str [hidden]</span></dt><dd><p>Colour map to use. “Greys” is usual greyscale. “none” to get matplotlib
+default.</p>
+</dd>
+<dt>iset<span class="classifier">string [single character]</span></dt><dd><p>determines how the intensities are determined. There are three
+options: ‘a’ for automatic simply scales from the minimum to the
+maximum value found on a per CCD basis. ‘d’ for direct just takes two
+numbers from the user. ‘p’ for percentile dtermines levels based upon
+percentiles determined from the entire CCD on a per CCD bais.</p>
+</dd>
+<dt>ilo<span class="classifier">float [if iset==’d’]</span></dt><dd><p>lower intensity level</p>
+</dd>
+<dt>ihi<span class="classifier">float [if iset==’d’]</span></dt><dd><p>upper intensity level</p>
+</dd>
+<dt>plo<span class="classifier">float [if iset==’p’]</span></dt><dd><p>lower percentile level</p>
+</dd>
+<dt>phi<span class="classifier">float [if iset==’p’]</span></dt><dd><p>upper percentile level</p>
+</dd>
+<dt>profit<span class="classifier">bool [hidden]</span></dt><dd><p>start aperture selection with profile fitting-based position
+refinement (or not). Can be toggled at any point.</p>
+</dd>
+<dt>method<span class="classifier">string [hidden]</span></dt><dd><p>this defines the profile fitting method, if profile fitting is used
+to refine the aperture position. Either a gaussian or a moffat
+profile, ‘g’ or ‘m’.  The latter should usually be best.</p>
+</dd>
+<dt>beta<span class="classifier">float [if method == ‘m’; hidden]</span></dt><dd><p>default Moffat exponent</p>
+</dd>
+<dt>betafix<span class="classifier">bool [if method == ‘m’; hidden]</span></dt><dd><p>fix beta or not</p>
+</dd>
+<dt>beta_max<span class="classifier">bool [if method == ‘m’ and not betafix; hidden]</span></dt><dd><p>maximum value of beta. Moffat profiles are degenerate
+with gaussians at large beta so the idea is to avoid wandering
+to huge beta.</p>
+</dd>
+<dt>fwhm<span class="classifier">float [hidden]</span></dt><dd><p>default FWHM, unbinned pixels. It helps to get this of the right order of
+mag at the start; too large is better than too small.</p>
+</dd>
+<dt>fwfix: bool [hidden]</dt><dd><p>don’t fit the FWHM. Can be more robust; the position is still fitted.</p>
+</dd>
+<dt>fwmin<span class="classifier">float [if not fwfix; hidden]</span></dt><dd><p>minimum FWHM to allow, unbinned pixels.</p>
+</dd>
+<dt>shbox<span class="classifier">float [hidden]</span></dt><dd><p>half width of box for searching for a star, unbinned pixels. The
+brightest target in a region +/- shbox around an intial position will
+be found. ‘shbox’ should be large enough to allow for likely changes
+in position from frame to frame, but try to keep it as small as you
+can to avoid jumping to different targets and to reduce the chances
+of interference by cosmic rays.</p>
+</dd>
+<dt>smooth<span class="classifier">float [hidden]</span></dt><dd><p>FWHM for gaussian smoothing, binned pixels. The initial position for
+fitting is determined by finding the maximum flux in a smoothed
+version of the image in a box of width +/- shbox around the starter
+position. Typically should be comparable to the stellar width. Its
+main purpose is to combat cosmic rays which tend only to occupy a
+single pixel.</p>
+</dd>
+<dt>splot<span class="classifier">bool [hidden]</span></dt><dd><p>Controls whether an outline of the search box and a target number
+is plotted (in red) or not.</p>
+</dd>
+<dt>fhbox<span class="classifier">float [hidden]</span></dt><dd><p>half width of box for profile fit, unbinned pixels. The fit box is
+centred on the position located by the initial search. It should
+normally be &gt; ~2x the expected FWHM.</p>
+</dd>
+<dt>read<span class="classifier">float [hidden]</span></dt><dd><p>readout noise, RMS ADU, for assigning uncertainties</p>
+</dd>
+<dt>gain<span class="classifier">float [hidden]</span></dt><dd><p>gain, ADU/count, for assigning uncertainties</p>
+</dd>
+<dt>thresh<span class="classifier">float [hidden]</span></dt><dd><p>thresh rejection threshold. Be careful. Bad combinations of this
+and the initial FWHM can cause wholessale rejection of good pixels,
+so don’t be overzealous.</p>
+</dd>
+<dt>ndiv<span class="classifier">int [hidden]</span></dt><dd><p>sub-division factor for fits. 0=no sub-division. Otherwise it will used
+ndiv*ndiv sub-evaluations per <em>unbinned</em> pixel</p>
+</dd>
+</dl>
+</div></blockquote>
+<p>There are a few conveniences to make setaper easier:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p>The plot is initialised in pan mode whereby you can move around and
+scale using the left and right mouse buttons.</p></li>
+<li><p>All input is accomplished with the keyboard; the mouse buttons are
+only for navigating the image.</p></li>
+<li><p>The label input can be switched between sequential numerical,
+single- and multi-character input (‘linput’).</p></li>
+</ol>
+</div></blockquote>
+<p>Various standard keyboard shortcuts (e.g. ‘s’ to save) are disabled as
+they just confuse things and are of limited use in setaper in any case.</p>
+<p>Some aspects of the usage of matplotlib in setaper are tricky. It is
+possible that particular ‘backends’ will cause problems. I have tested
+this with Qt4Agg, Qt5agg and GTK3Agg. One aspect is the cursor icon in pan
+mode is a rather indistinct hand where one can’t tell what is being
+pointed at. I have therefore suppressed this, but only for the tested
+backends. Others would need require further investigation.</p>
+<p>When in <cite>setaper</cite>, help is always available by hitting ‘h’. Most of the
+options are self-evident. A few which may not be are:</p>
+<blockquote>
+<div><div class="line-block">
+<div class="line">e(xtra)    : add extra pixels to the target aperture. This allows you</div>
+<div class="line-block">
+<div class="line">to sculpt the shape of the extraction aperure to perhaps</div>
+<div class="line">include the flux of a blended star.</div>
+<div class="line"><br /></div>
+</div>
+<div class="line">l(ink)     : link one aperture to another in the same CCD for</div>
+<div class="line-block">
+<div class="line">re-positioning. If a target is very faint or will</div>
+<div class="line">disappear, this will make sure that its position</div>
+<div class="line">is defined relative to another, brighter star. Best</div>
+<div class="line">to choose one close by because of potential refractive</div>
+<div class="line">distortion.</div>
+<div class="line"><br /></div>
+</div>
+<div class="line">r(eference): toggle whether an aperture is a reference aperture. The</div>
+<div class="line-block">
+<div class="line">re-positioning can work in two steps: first position</div>
+<div class="line">reference stars, then the other stars, using the reference</div>
+<div class="line">stars to provide a first cut at the position shift of the</div>
+<div class="line">rest.</div>
+<div class="line"><br /></div>
+</div>
+<div class="line">i(njected) : toggle whether an aperture is a COMPO aperture and has</div>
+<div class="line-block">
+<div class="line">been injected. These apertures move differently on the</div>
+<div class="line">CCD from non-injected apertures and need to be labelled</div>
+<div class="line">so that aperture positioning can be done correctly.</div>
+<div class="line"><br /></div>
+</div>
+<div class="line">C(opy)     : copy apertures of the CCD the cursor is in to all others.</div>
+<div class="line-block">
+<div class="line">This basically clones apertures across the CCDs. You will</div>
+<div class="line">need to re-centre each on afterwards.</div>
+</div>
+</div>
+</div></blockquote>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The aperture positions immediately after a copy reflect the origin CCD,
+and may be somewhat off if there are significant offsets between CCDs.</p>
+</div>
+</dd></dl>
+
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><h3>Table of Contents</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../news.html">HiPERCAM pipeline news</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../observers.html">Observer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../commands.html">HiPERCAM commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api/api.html">The API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../installation.html">Getting the software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../files.html">Useful files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../plugins.html">Writing an instrument plugin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api/bugs.html">Reporting problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../makingmovies.html">Making HiPERCAM movies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../phaseII.html">HiPERCAM Phase II</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">hipercam</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../../aperture/index.html">hipercam.aperture</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../ccd/index.html">hipercam.ccd</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../core/index.html">hipercam.core</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../defect/index.html">hipercam.defect</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../extraction/index.html">hipercam.extraction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../fitting/index.html">hipercam.fitting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../fringe/index.html">hipercam.fringe</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../group/index.html">hipercam.group</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../hcam/index.html">hipercam.hcam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../header/index.html">hipercam.header</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../hlog/index.html">hipercam.hlog</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../instruments/index.html">hipercam.instruments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../mpl/index.html">hipercam.mpl</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../pgp/index.html">hipercam.pgp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../psf_reduction/index.html">hipercam.psf_reduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../reduction/index.html">hipercam.reduction</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../index.html">hipercam.scripts</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="../aligntool/index.html">hipercam.scripts.aligntool</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../arith/index.html">hipercam.scripts.arith</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../atanalysis/index.html">hipercam.scripts.atanalysis</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../atbytes/index.html">hipercam.scripts.atbytes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../averun/index.html">hipercam.scripts.averun</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../calsearch/index.html">hipercam.scripts.calsearch</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../carith/index.html">hipercam.scripts.carith</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../combine/index.html">hipercam.scripts.combine</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../exploss/index.html">hipercam.scripts.exploss</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../filtid/index.html">hipercam.scripts.filtid</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../fits2hcm/index.html">hipercam.scripts.fits2hcm</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../flagcloud/index.html">hipercam.scripts.flagcloud</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../ftargets/index.html">hipercam.scripts.ftargets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../genred/index.html">hipercam.scripts.genred</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../grab/index.html">hipercam.scripts.grab</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../harchive/index.html">hipercam.scripts.harchive</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../hfilter/index.html">hipercam.scripts.hfilter</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../hinfo/index.html">hipercam.scripts.hinfo</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../hist/index.html">hipercam.scripts.hist</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../hlog2col/index.html">hipercam.scripts.hlog2col</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../hlog2fits/index.html">hipercam.scripts.hlog2fits</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../hlogger/index.html">hipercam.scripts.hlogger</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../hls/index.html">hipercam.scripts.hls</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../hmeta/index.html">hipercam.scripts.hmeta</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../hpackage/index.html">hipercam.scripts.hpackage</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../hplot/index.html">hipercam.scripts.hplot</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../joinup/index.html">hipercam.scripts.joinup</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../jtrawl/index.html">hipercam.scripts.jtrawl</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../logsearch/index.html">hipercam.scripts.logsearch</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../ltimes/index.html">hipercam.scripts.ltimes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../ltrans/index.html">hipercam.scripts.ltrans</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../makebias/index.html">hipercam.scripts.makebias</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../makedark/index.html">hipercam.scripts.makedark</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../makeflat/index.html">hipercam.scripts.makeflat</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../makefringe/index.html">hipercam.scripts.makefringe</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../makemovie/index.html">hipercam.scripts.makemovie</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../makestuff/index.html">hipercam.scripts.makestuff</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../mstats/index.html">hipercam.scripts.mstats</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../ncal/index.html">hipercam.scripts.ncal</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../nrtplot/index.html">hipercam.scripts.nrtplot</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../pbands/index.html">hipercam.scripts.pbands</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../pfolder/index.html">hipercam.scripts.pfolder</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../plog/index.html">hipercam.scripts.plog</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../psfaper/index.html">hipercam.scripts.psfaper</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../redanal/index.html">hipercam.scripts.redanal</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../redplt/index.html">hipercam.scripts.redplt</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../reduce/index.html">hipercam.scripts.reduce</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../rtplot/index.html">hipercam.scripts.rtplot</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../rupdate/index.html">hipercam.scripts.rupdate</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">hipercam.scripts.setaper</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../setdefect/index.html">hipercam.scripts.setdefect</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../setfringe/index.html">hipercam.scripts.setfringe</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../shiftadd/index.html">hipercam.scripts.shiftadd</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../splice/index.html">hipercam.scripts.splice</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../stats/index.html">hipercam.scripts.stats</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../tanalysis/index.html">hipercam.scripts.tanalysis</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../tbytes/index.html">hipercam.scripts.tbytes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../uls/index.html">hipercam.scripts.uls</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../spooler/index.html">hipercam.spooler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../target/index.html">hipercam.target</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../tests/index.html">hipercam.tests</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../ucam/index.html">hipercam.ucam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../utils/index.html">hipercam.utils</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../window/index.html">hipercam.window</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="../rupdate/index.html"
+                          title="previous chapter">hipercam.scripts.rupdate</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="../setdefect/index.html"
+                          title="next chapter">hipercam.scripts.setdefect</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../../../_sources/autoapi/hipercam/scripts/setaper/index.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<form action="../../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../../../../_sources/autoapi/hipercam/scripts/setaper/index.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2017, T.R. Marsh.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 7.4.7. &nbsp;
+  </p>
+</footer>
+  </body>
+</html>

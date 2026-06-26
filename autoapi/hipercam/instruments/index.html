@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>hipercam.instruments &#8212; HiPERCAM pipeline 1.6.8.dev12+g30055e846 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/bootstrap-astropy.css?v=177ce38d" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=fd3f3429" />
+    
+    <script src="../../../_static/documentation_options.js?v=adfd3a0b"></script>
+    <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script type="text/javascript" src="../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="hipercam.mpl" href="../mpl/index.html" />
+    <link rel="prev" title="hipercam.hlog" href="../hlog/index.html" />
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../index.html"><span id="logotext1">astro</span><span id="logotext2"></span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="../mpl/index.html" title="hipercam.mpl">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="../hlog/index.html" title="hipercam.hlog">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../../../index.html">HiPERCAM pipeline 1.6.8.dev12+g30055e846 documentation</a>
+	 &#187;
+      </li>
+      <li><a href="../../index.html" >API Reference</a> &#187;</li>
+      <li><a href="../index.html" accesskey="U">hipercam</a> &#187;</li>
+      
+      <li>hipercam.instruments</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-hipercam.instruments">
+<span id="hipercam-instruments"></span><h1>hipercam.instruments<a class="headerlink" href="#module-hipercam.instruments" title="Link to this heading">¶</a></h1>
+<p>Protocols and optional abstract base classes for supporting third-party
+instruments as first-class citizens in the hipercam pipeline.</p>
+<p>Plugin discovery is via the <code class="docutils literal notranslate"><span class="pre">hipercam.instruments</span></code> entry-point group.
+Third-party packages register themselves with an entry pointing to a module
+that satisfies <code class="xref py py-class docutils literal notranslate"><span class="pre">InstrumentModuleProtocol</span></code>.</p>
+<p>Example <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code> registration:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">project</span><span class="o">.</span><span class="n">entry</span><span class="o">-</span><span class="n">points</span><span class="o">.</span><span class="s2">&quot;hipercam.instruments&quot;</span><span class="p">]</span>
+<span class="n">myinstrument</span> <span class="o">=</span> <span class="s2">&quot;mypackage.mymodule&quot;</span>
+</pre></div>
+</div>
+<p>The registered module must expose:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">Rdata</span></code>     — data-reading class (iterable, callable, context-manager)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">supports_server_access</span></code> — boolean indicating if server access is supported</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">get_ccd_pars(resource,</span> <span class="pre">server=False)</span></code> — returns CCD geometry as an
+<code class="xref py py-class docutils literal notranslate"><span class="pre">OrderedDict</span></code></p></li>
+</ul>
+<p>Convenience base class  <a class="reference internal" href="#hipercam.instruments.RdataBase" title="hipercam.instruments.RdataBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">RdataBase</span></code></a> is provided for plugin authors
+who want to reduce boilerplate, but inheriting from it is <strong>not</strong> required.</p>
+<section id="exceptions">
+<h2>Exceptions<a class="headerlink" href="#exceptions" title="Link to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.instruments.IendError" title="hipercam.instruments.IendError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">IendError</span></code></a></p></td>
+<td><p>Exception for the standard way to reach the end of a raw data file.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.instruments.RdataBase" title="hipercam.instruments.RdataBase"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RdataBase</span></code></a></p></td>
+<td><p>Optional ABC for data-reading classes.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.instruments.discover_instruments" title="hipercam.instruments.discover_instruments"><code class="xref py py-obj docutils literal notranslate"><span class="pre">discover_instruments</span></code></a>(→ dict)</p></td>
+<td><p>Discover all registered instrument plugins.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.instruments.available_instruments" title="hipercam.instruments.available_instruments"><code class="xref py py-obj docutils literal notranslate"><span class="pre">available_instruments</span></code></a>(→ list)</p></td>
+<td><p>Return a list of available instrument plugins.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.instruments.load_instrument" title="hipercam.instruments.load_instrument"><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_instrument</span></code></a>(name)</p></td>
+<td><p>Load and validate a named instrument plugin.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">¶</a></h2>
+<dl class="py exception">
+<dt class="sig sig-object py" id="hipercam.instruments.IendError">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.instruments.</span></span><span class="sig-name descname"><span class="pre">IendError</span></span><a class="headerlink" href="#hipercam.instruments.IendError" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="../index.html#hipercam.HipercamError" title="hipercam.HipercamError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">hipercam.HipercamError</span></code></a></p>
+<p>Exception for the standard way to reach the end of a raw data file.</p>
+<p>Raised when an attempt is made to read a frame beyond the end of the
+available data. This allows iterators to die silently on normal
+end-of-file while still propagating unexpected errors.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.instruments.RdataBase">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.instruments.</span></span><span class="sig-name descname"><span class="pre">RdataBase</span></span><a class="headerlink" href="#hipercam.instruments.RdataBase" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+<p>Optional ABC for data-reading classes.</p>
+<p>Allows for subclasses to be used as a context manager by providing <a class="reference internal" href="#hipercam.instruments.RdataBase.__enter__" title="hipercam.instruments.RdataBase.__enter__"><code class="xref py py-meth docutils literal notranslate"><span class="pre">__enter__()</span></code></a>
+and <a class="reference internal" href="#hipercam.instruments.RdataBase.__exit__" title="hipercam.instruments.RdataBase.__exit__"><code class="xref py py-meth docutils literal notranslate"><span class="pre">__exit__()</span></code></a> methods that delegate to <a class="reference internal" href="#hipercam.instruments.RdataBase.__del__" title="hipercam.instruments.RdataBase.__del__"><code class="xref py py-meth docutils literal notranslate"><span class="pre">__del__()</span></code></a>.</p>
+<p><a class="reference internal" href="#hipercam.instruments.RdataBase.__next__" title="hipercam.instruments.RdataBase.__next__"><code class="xref py py-meth docutils literal notranslate"><span class="pre">__next__()</span></code></a> catches <a class="reference internal" href="#hipercam.instruments.IendError" title="hipercam.instruments.IendError"><code class="xref py py-class docutils literal notranslate"><span class="pre">IendError</span></code></a> and converts it to <code class="xref py py-class docutils literal notranslate"><span class="pre">StopIteration</span></code>,
+allowing use of Rdata as an iterator in a for loop or comprehension.</p>
+<p>Subclasses must implement <a class="reference internal" href="#hipercam.instruments.RdataBase.__call__" title="hipercam.instruments.RdataBase.__call__"><code class="xref py py-meth docutils literal notranslate"><span class="pre">__call__()</span></code></a>, <code class="xref py py-meth docutils literal notranslate"><span class="pre">seek_frame()</span></code>, and <code class="xref py py-meth docutils literal notranslate"><span class="pre">seek_last()</span></code>.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.instruments.RdataBase.__enter__">
+<span class="sig-name descname"><span class="pre">__enter__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.instruments.RdataBase.__enter__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.instruments.RdataBase.__exit__">
+<span class="sig-name descname"><span class="pre">__exit__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.instruments.RdataBase.__exit__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.instruments.RdataBase.__iter__">
+<span class="sig-name descname"><span class="pre">__iter__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.instruments.RdataBase.__iter__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.instruments.RdataBase.__next__">
+<span class="sig-name descname"><span class="pre">__next__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.instruments.RdataBase.__next__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.instruments.RdataBase.__del__">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">__del__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.instruments.RdataBase.__del__" title="Link to this definition">¶</a></dt>
+<dd><p>Release any resources held by this reader, e.g. open file handles.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.instruments.RdataBase.__call__">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nframe</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.instruments.RdataBase.__call__" title="Link to this definition">¶</a></dt>
+<dd><p>Reads one exposure from the run the <code class="xref py py-class docutils literal notranslate"><span class="pre">Rdata</span></code> is attached to. If
+<cite>nframe</cite> is None, then it will read the frame it is positioned at. If
+nframe is an integer &gt; 0, it will try to read that particular frame;
+if nframe == 0, it reads the last complete frame. nframe == 1 gives
+the first frame. If all works, an MCCD object is returned. It raises
+an HendError if it reaches the end of a local disk file. If it fails
+to read from the server it returns None, but does not raise an
+Exception in order to allow continued attempts as reading from what
+might be a growing file.</p>
+<p>It maintains an attribute ‘nframe’ corresponding to the frame that the
+file pointer is positioned to read next (most relevant to reading of a
+local file). If it is set to read the last file and that file doesn’t
+change it returns None as a sign of failure.</p>
+<p>Parameters:</p>
+<blockquote>
+<div><dl class="simple">
+<dt>nframe<span class="classifier">int</span></dt><dd><p>frame number to get, starting at 1. 0 for the last (complete)
+frame. ‘None’ indicates that the next frame is wanted, unless
+self.nframe = 0 in which case it will try to get the most recent
+frame, whatever that is.</p>
+</dd>
+</dl>
+</div></blockquote>
+<p>Apart from reading the raw bytes, the main job of this routine is to
+divide up and re-package the bytes read into Windows suitable for
+constructing CCD objects.</p>
+<p>If access via a server is requested, it is assumed that the file being
+accessed could be being added to.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.instruments.discover_instruments">
+<span class="sig-prename descclassname"><span class="pre">hipercam.instruments.</span></span><span class="sig-name descname"><span class="pre">discover_instruments</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="headerlink" href="#hipercam.instruments.discover_instruments" title="Link to this definition">¶</a></dt>
+<dd><p>Discover all registered instrument plugins.</p>
+<p>Returns a <code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code> mapping instrument name to its
+<code class="xref py py-class docutils literal notranslate"><span class="pre">importlib.metadata.EntryPoint</span></code> object.</p>
+<p>Built-in instruments (<code class="docutils literal notranslate"><span class="pre">hipercam</span></code>, <code class="docutils literal notranslate"><span class="pre">ultracam</span></code>, <code class="docutils literal notranslate"><span class="pre">ultraspec</span></code>) are
+always present when the hipercam package is installed, because they are
+registered in hipercam’s own <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code>.</p>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">hipercam.instruments</span><span class="w"> </span><span class="kn">import</span> <span class="n">discover_instruments</span>
+<span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">ep</span> <span class="ow">in</span> <span class="n">discover_instruments</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">ep</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.instruments.available_instruments">
+<span class="sig-prename descclassname"><span class="pre">hipercam.instruments.</span></span><span class="sig-name descname"><span class="pre">available_instruments</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span></span></span><a class="headerlink" href="#hipercam.instruments.available_instruments" title="Link to this definition">¶</a></dt>
+<dd><p>Return a list of available instrument plugins.</p>
+<p>This is useful to provide a list of possible values for “resource” in
+the command line scripts like reduce, which expands when plugins are
+added.</p>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">hipercam.instruments</span><span class="w"> </span><span class="kn">import</span> <span class="n">available_instruments</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">available_instruments</span><span class="p">())</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.instruments.load_instrument">
+<span class="sig-prename descclassname"><span class="pre">hipercam.instruments.</span></span><span class="sig-name descname"><span class="pre">load_instrument</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.instruments.load_instrument" title="Link to this definition">¶</a></dt>
+<dd><p>Load and validate a named instrument plugin.</p>
+<p>Loads the module registered under the <code class="docutils literal notranslate"><span class="pre">hipercam.instruments</span></code>
+entry-point group with the given <em>name</em>, checks that it exposes all
+required attributes, and returns it.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>name</strong><span class="classifier">str</span></dt><dd><p>The instrument name as registered in the entry-point group,
+e.g. <code class="docutils literal notranslate"><span class="pre">'hipercam'</span></code>, <code class="docutils literal notranslate"><span class="pre">'ultracam'</span></code>, <code class="docutils literal notranslate"><span class="pre">'ultraspec'</span></code>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt>module</dt><dd><p>The loaded instrument module.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt>HipercamError</dt><dd><p>If no plugin with that name is registered, or if the loaded module
+is missing required attributes.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><h3>Table of Contents</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../news.html">HiPERCAM pipeline news</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../observers.html">Observer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../commands.html">HiPERCAM commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/api.html">The API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Getting the software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../files.html">Useful files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plugins.html">Writing an instrument plugin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/bugs.html">Reporting problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../makingmovies.html">Making HiPERCAM movies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../phaseII.html">HiPERCAM Phase II</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">hipercam</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../aperture/index.html">hipercam.aperture</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ccd/index.html">hipercam.ccd</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../core/index.html">hipercam.core</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../defect/index.html">hipercam.defect</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extraction/index.html">hipercam.extraction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../fitting/index.html">hipercam.fitting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../fringe/index.html">hipercam.fringe</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../group/index.html">hipercam.group</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../hcam/index.html">hipercam.hcam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../header/index.html">hipercam.header</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../hlog/index.html">hipercam.hlog</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">hipercam.instruments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../mpl/index.html">hipercam.mpl</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../pgp/index.html">hipercam.pgp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../psf_reduction/index.html">hipercam.psf_reduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reduction/index.html">hipercam.reduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../scripts/index.html">hipercam.scripts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../spooler/index.html">hipercam.spooler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../target/index.html">hipercam.target</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../tests/index.html">hipercam.tests</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ucam/index.html">hipercam.ucam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../utils/index.html">hipercam.utils</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../window/index.html">hipercam.window</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="../hlog/index.html"
+                          title="previous chapter">hipercam.hlog</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="../mpl/index.html"
+                          title="next chapter">hipercam.mpl</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../../_sources/autoapi/hipercam/instruments/index.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../../../_sources/autoapi/hipercam/instruments/index.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2017, T.R. Marsh.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 7.4.7. &nbsp;
+  </p>
+</footer>
+  </body>
+</html>

@@ -1,0 +1,73 @@
+hipercam.scripts.hlog2col
+=========================
+
+.. py:module:: hipercam.scripts.hlog2col
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   hipercam.scripts.hlog2col.hlog2col
+
+
+Module Contents
+---------------
+
+.. py:function:: hlog2col(args=None)
+
+   
+   ``hlog2col log ap1 ap2``
+
+   Converts a |hiper| ASCII log into one or more column format files
+   of one aperture versus another for each CCD. This tacks on the date
+   of the start of the night in order to distinguish run log names of the
+   the same number.
+
+   Parameters:
+
+     log : str
+        name of the log file (should end .log). The output FITS file
+        will have the same root name but end .fits. The routine will
+        abort if there is a pre-existing file of the same name.
+
+     origin : str
+        'h' or 'u' depending upon whether the log file was created with
+        the hipercam or old ultracam pipeline.
+
+     offset :float [hidden]
+        offset in days to subtract from first time to get date at start
+        of the night. 0.7 should mostly work. offset is subtracted and
+        the MJD truncated to integer
+
+     ap1 : str
+        name of first aperture
+
+     ap2 : str
+        name of second aperture
+
+     type : str
+        output type 'l' for linear; 'm' for magnitudes. Linear has the
+        advantage of handling negative values.
+
+   The output files will get names like 2021-01-12_run014_2_3_4.dat meaning
+   CCD 2, aperture 3 divided by 4 of run014 from the night starting 2021-01-12.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+

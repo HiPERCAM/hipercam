@@ -1,0 +1,1422 @@
+hipercam.reduction
+==================
+
+.. py:module:: hipercam.reduction
+
+.. autoapi-nested-parse::
+
+   This contains code used in common by the script reduce.py
+
+   ..
+       !! processed by numpydoc !!
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   hipercam.reduction.NaN
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   hipercam.reduction.Rfile
+   hipercam.reduction.ProcessCCDs
+   hipercam.reduction.Panel
+   hipercam.reduction.BaseBuffer
+   hipercam.reduction.LightCurve
+   hipercam.reduction.Xposition
+   hipercam.reduction.Yposition
+   hipercam.reduction.Transmission
+   hipercam.reduction.Seeing
+   hipercam.reduction.LogWriter
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   hipercam.reduction.setup_plots
+   hipercam.reduction.setup_plot_buffers
+   hipercam.reduction.static_vars
+   hipercam.reduction.update_plots
+   hipercam.reduction.initial_checks
+   hipercam.reduction.moveApers
+   hipercam.reduction.ccdproc
+   hipercam.reduction.extractFlux
+   hipercam.reduction.plotLight
+   hipercam.reduction.plotPosition
+   hipercam.reduction.plotTrans
+   hipercam.reduction.plotSeeing
+   hipercam.reduction.ctrans
+   hipercam.reduction.toBool
+
+
+Module Contents
+---------------
+
+.. py:data:: NaN
+
+.. py:class:: Rfile
+
+   Bases: :py:obj:`collections.OrderedDict`
+
+
+   
+   Class to read and interpret reduce setup files. Similar to
+   configparser but a bit freer. Basically reads lots of lines like
+   'ncpu = 1' with sections defined by lines like '[general]'.
+
+   The script genred writes out such files.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:method:: read(filename, readcal=True)
+      :classmethod:
+
+
+      
+      Builds an Rfile from a reduce file. A few checks for viability are
+      applied.
+
+      readcal -- can be used to turn off default reading of
+                 calibration data (e.g. see genred)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: crop(mccd)
+
+      
+      This uses a template file 'mccd' to try to get the calibration
+      files into the same format.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+.. py:function:: setup_plots(rfile, ccds, nx, plot_lims, implot=True, lplot=True)
+
+   
+   Perform initial setup of image and lightcurve plots for reduction outputs
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: setup_plot_buffers(rfile)
+
+.. py:function:: static_vars(**kwargs)
+
+.. py:function:: update_plots(results, rfile, implot, lplot, imdev, lcdev, pccd, ccds, msub, nx, iset, plo, phi, ilo, ihi, xlo, xhi, ylo, yhi, lpanel, xpanel, ypanel, tpanel, spanel, tkeep, lbuffer, xbuffer, ybuffer, tbuffer, sbuffer)
+
+   
+   Plot updater routine.
+
+   Arguments::
+
+      results : list
+         contains tuples with the results for groups of frames for
+         each CCD. See LogWriter.write for more details on its
+         structure.
+
+      rfile : Rfile
+         reduce file parameters
+
+      implot : bool
+         whether to plot images
+
+      lplot : bool
+         whether to plot light curves
+
+      imdev : hipercam.pgp.Device
+         represents the image plot device (if any)
+
+      lcdev : hipercam.pgp.Device
+         represents the light curve plot device (if any)
+
+      pccd : MCCD [only matters if imdev]
+         current debiassed, flat-fielded frame. In the case of frame
+         groups, this will be the last one added.
+
+      ccds : list [only matters if imdev]
+         list of CCD labels to be plotted
+
+      msub : bool [only matters if imdev]
+         True to force subtraction of median value
+
+      nx : int [only matters if imdev]
+         Number of panels in X for image display
+
+      iset : character [only matters if imdev]
+         'a', 'd', or 'p' to define image display levels
+
+      plo : float [only matters if imdev and iset =='p']
+         Lower percentile level
+
+      phi : float [only matters if imdev and iset =='p']
+         Upper percentile level
+
+      ilo : float [only matters if imdev and iset =='d']
+         Lower intensity level
+
+      ihi : float [only matters if imdev and iset =='d']
+         Upper intensity level
+
+      xlo : int
+         left X-limit for determination of percentiles
+
+      xhi : int
+         right X-limit for determination of percentiles
+
+      ylo : int
+         lower Y-limit for determination of percentiles
+
+      yhi : int
+         upper Y-limit for determination of percentiles
+
+      lpanel, xpanel, ypanel, tpanel, spanel, tkeep, lbuffer,
+       xbuffer, ybuffer, tbuffer, sbuffer -- need doing.
+
+      lbuffer : list of LightCurve
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: initial_checks(mccd, rfile)
+
+   
+   Perform sanity checks of aperture settings, and process calibrations
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:class:: ProcessCCDs(rfile, read, gain, ccdproc, pool)
+
+   
+   Function object replacing old "process_ccds" function. It
+   handles some of the persistent objects & arguemts required by
+   that routine more gracefully.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:attribute:: rfile
+
+
+   .. py:attribute:: read
+
+
+   .. py:attribute:: gain
+
+
+   .. py:attribute:: ccdproc
+
+
+   .. py:attribute:: pool
+
+
+   .. py:attribute:: mwins
+
+
+   .. py:attribute:: store
+
+
+   .. py:method:: __call__(pccds, bccds, mccds, nframes)
+
+      
+      Carries out the multi-processing reduction of a set of frames
+
+      Arguments::
+
+         pccds : list of MCCDs
+            processed frames (debiassed, flat-fielded). The idea is
+            to read in a few frames before sending them off to
+            parallel processing in order to reduce the overheads
+            that are incurred by processing each frame as it comes
+            in (old method). All frames should have an identical set
+            of CCDs in them.
+
+         bccds : list of MCCDs
+            purely debiassed versions, used for variance computation
+
+         mccds : list of MCCDs
+            their unprocessed counterparts, used to determine saturation.
+
+      Returns with list of ccdproc results, one set for each CCD.
+      See 'ccdproc' in reduce.py for definition of the return which
+      should be the same for any version.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+.. py:function:: moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store)
+
+   
+   Encapsulates aperture re-positioning. 'store' is a dictionary of results
+   that will be used to start the fits from one frame to the next. It must
+   start as {'mfwhm': -1., 'mbeta': -1.}. The values of these will be revised
+   and extra stuff added in addition.
+
+   It operates by first shifting any reference apertures, then non-linked
+   apertures, and finally linked apertures. The overall sequence is quite
+   complex and is described elsewhere.
+
+   Arguments::
+
+      cnam : string
+          CCD label
+
+      ccd : CCD
+          the processed CCD.
+
+      bccd : CCD
+          debiassed only CCD.
+
+      read : CCD
+          readnoise
+
+      gain : CCD
+          gain, e-/ADU.
+
+      ccdwin : dict
+          the Window label corresponding to each Aperture
+
+      rfile : Rfile
+          reduce file configuration parameters
+
+      store : dict
+          used to store various parameters needed further down the
+          line.  Initialise to {'mfwhm': -1., 'mbeta': -1.}. For each
+          aperture in ccdaper, parameters `xe`, `ye`, `fwhm`,
+          `fwhme`, `beta`, `betae`, `dx`, `dy` will be added. They
+          represent: the uncertainty in the fitted X, Y position (ex,
+          ey), the fitted FWHM and its uncertainty (fwhm, fwhme), the
+          same for beta and its uncertainty (beta, betae), and
+          finally the change in x and y position.
+
+   Returns: True or False to indicate whether to move onto extraction or not.
+   If False, extraction will be skipped.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: ccdproc(extraction_fn, cnam, ccds, bccds, rccds, nframes, read, gain, ccdwin, rfile, store)
+
+   
+   Processing steps for a sequential set of images from the same
+   CCD. This is designed for parallelising the processing across CCDs
+   of multi-arm cameras like ULTRACAM and HiPERCAM using
+   multiprocessing. To be called *after* checking that any processing
+   is needed.
+
+   Arguments::
+
+      extraction_fn : function
+         callable to process a single CCD. For the signature of this function
+         see the docstring to extractFlux below.
+
+      cnam : string
+         name of CCD, for information purposes (e.g. 'red', '3', etc)
+
+      ccds : List of CCDs
+         the CCDs for processing which should have been debiassed, flat
+         fielded and multiplied by the gain to get into electrons.
+
+      bccds : List of CCDs
+         the CCDs for processing which should just have been debiassed
+
+      rccds : List of CCDs
+         unprocessed CCDs, one-to-one correspondence with 'ccds', used
+         to measure saturation
+
+      nframes : List of ints
+         frame numbers for each CCD
+
+      read : CCD
+         readnoise frame divided by the flatfield
+
+      gain : CCD
+         gain frame dmultiplied by the flatfield
+
+      ccdwin : dict
+         label of the Window enclosing each aperture
+
+      rfile : Rfile object
+         reduction control parameters. rfile.aper used to store the aperture
+         parameters.
+
+      store : dict
+         dictionary of results
+
+   Returns: (cnam, list[res]) where 'res' represents a tuple
+   of results for each input CCD and contains the following:
+
+   (nframe, store, ccdaper, results, mjdint, mjdfrac, mjdok, expose)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: extractFlux(cnam, ccd, bccd, rccd, read, gain, ccdwin, rfile, store)
+
+   
+   This extracts the flux of all apertures of a given CCD.
+
+   The steps are (1) aperture resizing, (2) sky background estimation, (3)
+   flux extraction. The apertures are assumed to be correctly positioned.
+
+   It returns the results as a dictionary keyed on the aperture label. Each
+   entry returns a list:
+
+   [x, ex, y, ey, fwhm, efwhm, beta, ebeta, counts, countse, sky, esky,
+   nsky, nrej, flag]
+
+   flag = bitmask. See hipercam.core to see all the options which are
+   referred to by name in the code e.g. ALL_OK. The various flags can
+   signal that there no sky pixels (NO_SKY), the sky aperture was off
+   the edge of the window (SKY_AT_EDGE), etc.
+
+   This code::
+
+      >> bset = flag & TARGET_SATURATED
+
+   determines whether the data saturation flag is set for example.
+
+   Arguments::
+
+      cnam : string
+         CCD identifier label
+
+      ccd : CCD
+          the fully processed CCD (debiassed, dark-corrected, flat-fielded, fringe-corrected)
+
+      bccd : CCD
+          debiassed-only CCD. Used in variance computation.
+
+      rccd : CCD
+         corresponding raw CCD, used to work out whether data are
+         saturated in target aperture.
+
+      read : CCD
+          readnoise divided by the flat-field
+
+      gain : CCD
+          gain multiplied by the flat field
+
+      ccdwin : dictionary of strings
+          the Window label corresponding to each Aperture
+
+      rfile : Rfile
+          reduce file configuration parameters
+
+      store : dict of dicts
+          see moveApers for what this contains.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:class:: Panel(device, xv1, xv2, yv1, yv2, xlabel, ylabel, tlabel, xopt, yopt, x1, x2, y1, y2)
+
+   
+   Keeps track of the configuration of particular panels of plots so that
+   they can be easily re-plotted and selected for additional plotting if
+   need be.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:attribute:: device
+
+
+   .. py:attribute:: xv1
+
+
+   .. py:attribute:: xv2
+
+
+   .. py:attribute:: yv1
+
+
+   .. py:attribute:: yv2
+
+
+   .. py:attribute:: xlabel
+
+
+   .. py:attribute:: ylabel
+
+
+   .. py:attribute:: tlabel
+
+
+   .. py:attribute:: xopt
+
+
+   .. py:attribute:: yopt
+
+
+   .. py:attribute:: x1
+
+
+   .. py:attribute:: x2
+
+
+   .. py:attribute:: y1
+
+
+   .. py:attribute:: y2
+
+
+   .. py:method:: plot()
+
+      
+      Plot the Panel. After running this you can plot to the Panel. If you plot
+      to another Panel, you can return to this one using 'select'.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: select()
+
+      
+      Selects this panel as the one to plot to. You can only use this if you
+      have plotted the panel.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+.. py:function:: plotLight(panel, tzero, results, rfile, tkeep, lbuffer)
+
+   
+   Plots one set of results in the light curve panel. Handles storage of
+   points for future re-plots, computing new plot limits where needed.
+
+   It returns a bool which if True means that there is a need to re-plot, and
+   a maximum time of a plotted point for use in adjusting the X-axis.  The
+   latter is returned as None if no plot is plotted.  This is deferred since
+   there may be other panels to be adjusted as well since if a plot is
+   cleared, everything has to be re-built.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: plotPosition(xpanel, ypanel, tzero, results, rfile, tkeep, xbuffer, ybuffer)
+
+   
+   Plots one set of results in the seeing panel. Handles storage of
+   points for future re-plots, computing new plot limits where needed.
+
+   It returns a bool which if True means that there is a need to re-plot.
+   This is deferred since there may be other panels to be adjusted as well
+   since if a plot is cleared, everything has to be re-built.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: plotTrans(panel, tzero, results, rfile, tkeep, tbuffer)
+
+   
+   Plots one set of results in the transmission panel. Handles storage of
+   points for future re-plots, computing new plot limits where needed.
+
+   It returns a bool which if True means that there is a need to re-plot.
+   This is deferred since there may be other panels to be adjusted as well
+   since if a plot is cleared, everything has to be re-built.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: plotSeeing(panel, tzero, results, rfile, tkeep, sbuffer)
+
+   
+   Plots one set of results in the seeing panel. Handles storage of
+   points for future re-plots, computing new plot limits where needed.
+
+   It returns a bool which if True means that there is a need to re-plot.
+   This is deferred since there may be other panels to be adjusted as well
+   since if a plot is cleared, everything has to be re-built.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:class:: BaseBuffer(plot_config)
+
+   
+   Base class for buffer classes to define a few things in common.
+   Container for light curves so they can be re-plotted as they come in.
+   There should be one of these per plot line in the 'light' section.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:attribute:: cnam
+
+
+   .. py:attribute:: targ
+
+
+   .. py:attribute:: dcol
+
+
+   .. py:attribute:: ecol
+
+
+   .. py:attribute:: t
+      :value: []
+
+
+
+   .. py:attribute:: f
+      :value: []
+
+
+
+   .. py:attribute:: fe
+      :value: []
+
+
+
+   .. py:attribute:: symb
+      :value: []
+
+
+
+   .. py:method:: trim(tkeep)
+
+      
+      Trims points more than tkeep minutes before the last point.
+      Assumes times rise monotonically. Nothing done if tkeep <= 0,
+      or if the first point does not exceed tkeep by at least 1.
+      The idea is to avoid doing this too often. Returns the first time
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: tstart()
+
+      
+      Returns the start time of the buffer, 0 if one is not defined
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+.. py:class:: LightCurve(plot_config, linear)
+
+   Bases: :py:obj:`BaseBuffer`
+
+
+   
+   Container for light curves so they can be re-plotted as they come in.
+   There should be one of these per plot line in the 'light' section.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:attribute:: comp
+
+
+   .. py:attribute:: off
+
+
+   .. py:attribute:: fac
+
+
+   .. py:attribute:: linear
+
+
+   .. py:method:: add_point(results, tzero, tmax, fmin, fmax, skipbadt)
+
+      
+      Extracts the data to be plotted on the light curve plot for the
+      given the results of a CCD group reduction as returned by a
+      ProcessCCDs object. Assuming all is OK (errors > 0 for both
+      comparison and target), it stores (t, f, fe) for possible
+      re-plotting, plots the point and returns the value of 'f'
+      plotted to help with re-scaling or None if nothing was
+      plotted.
+
+      Arguments::
+
+         results : list of results for each CCD group
+            see reduce.py for usage, ProcessCCDs for more insight
+
+         tzero : float
+            time offset zero point
+
+         tmax : float
+            the maximum time plotted so far (minutes). None if not yet set.
+
+         fmin : float
+            minimum flux plotted so far. None if not yet set.
+
+         fmax : float
+            maximum flux plotted so far. None if not yet set.
+
+         skipbadt : bool
+            controls whether points with bad times are skipped or included.
+            Unfortunately, hipercam flags times as bad even when they are not.
+
+      Returns (potentially) new values of (tmax, fmin, fmax), according to
+      what was plotted.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+.. py:class:: Xposition(plot_config)
+
+   Bases: :py:obj:`BaseBuffer`
+
+
+   
+   Container for X measurements so they can be re-plotted as they come in.
+   There should be one of these per plot line in the 'position' section.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:attribute:: xzero
+      :value: None
+
+
+
+   .. py:method:: add_point(results, tzero, tmax, xmin, xmax, skipbadt)
+
+      
+      Extracts the data to be plotted on the position plot.
+
+      Arguments::
+
+         results : list of results for each CCD group
+            see reduce.py for usage, ProcessCCDs for more insight
+
+         tzero : float
+            time offset zero point
+
+         tmax : float
+            the maximum time plotted so far (minutes). None if not yet set.
+
+         xmin : float
+            minimum X plotted so far. None if not yet set.
+
+         xmax : float
+            maximum X plotted so far. None if not yet set.
+
+      Returns (potentially) new values of (tmax, xmin, xmax), according to
+      what was plotted.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+.. py:class:: Yposition(plot_config)
+
+   Bases: :py:obj:`BaseBuffer`
+
+
+   
+   Container for Y measurements so they can be re-plotted as they come in.
+   There should be one of these per plot line in the 'position' section.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:attribute:: yzero
+      :value: None
+
+
+
+   .. py:method:: add_point(results, tzero, tmax, ymin, ymax, skipbadt)
+
+      
+      Extracts the data to be plotted on the position plot.
+
+      Arguments::
+
+         results : list of results for each CCD group
+            see reduce.py for usage, ProcessCCDs for more insight
+
+         tzero : float
+            time offset zero point
+
+         tmax : float
+            the maximum time plotted so far (minutes). None if not yet set.
+
+         ymin : float
+            minimum Y plotted so far. None if not yet set.
+
+         ymax : float
+            maximum Y plotted so far. None if not yet set.
+
+      Returns (potentially) new values of (tmax, ymin, ymax), according to
+      what was plotted.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+.. py:class:: Transmission(plot_config)
+
+   Bases: :py:obj:`BaseBuffer`
+
+
+   
+   Container for light curves so they can be re-plotted as they come in.
+   There should be one of these per plot line in the 'light' section.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:attribute:: fmax
+      :value: None
+
+
+
+   .. py:method:: add_point(results, tzero, tmax, skipbadt)
+
+      
+      Extracts the data to be plotted on the transmission plot for given the
+      time and the results (for all CCDs, as returned by
+      extractFlux. Assuming all is OK (errors > 0), it stores (t, f, fe) for
+      possible re-plotting, plots the point and returns the value of 'f'
+      plotted to help with re-scaling or None if nothing was plotted.  't'
+      is the time in minutes since the start of the run
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+.. py:class:: Seeing(plot_config, scale)
+
+   Bases: :py:obj:`BaseBuffer`
+
+
+   
+   Container for light curves so they can be re-plotted as they come in.
+   There should be one of these per plot line in the 'light' section.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:attribute:: scale
+
+
+   .. py:method:: add_point(results, tzero, tmax, fmax, skipbadt)
+
+      
+      Extracts the data to be plotted on the transmission plot for given the
+      time and the results (for all CCDs, as returned by
+      extractFlux. Assuming all is OK (errors > 0), it stores (t, f, fe) for
+      possible re-plotting, plots the point and returns the value of 'f'
+      plotted to help with re-scaling or None if nothing was plotted.  't'
+      is the time in minutes since the start of the run
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+.. py:function:: ctrans(cname)
+
+   
+   Translates a colour name (cname) into a PGPLOT index
+   which is the return value. Defaults to index 1 and prints
+   a message if cname not recognised. Returns None if cname is None
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: toBool(rfile, section, param)
+
+   
+   Converts yes / no / true / false string responses into boolean
+   True / False. This is used a few times in the code to read a
+   reduce file.
+
+   Arguments::
+
+      rfile : Rfile
+        the reduce file, an Odict of Odicts
+
+     section : str
+        the section name
+
+     param : str
+        the parameter
+
+   Returns nothing; rfile modified on exit. A ValueError is
+   raised if the initial value is neither 'yes', 'no', 'true'
+   of 'false' (case-independent)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:class:: LogWriter(filename, rfile, hipercam_version, plist)
+
+   
+   Context manager to handle opening logfiles, writing headers to logfiles
+   and safe exit.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:attribute:: rfile
+
+
+   .. py:attribute:: filename
+
+
+   .. py:attribute:: hipercam_version
+
+
+   .. py:attribute:: plist
+
+
+   .. py:attribute:: toffset
+
+
+   .. py:method:: __enter__()
+
+
+   .. py:method:: __exit__(*args)
+
+
+   .. py:method:: write_results(results)
+
+      
+      Append results to open logfile.
+
+      Arguments::
+
+         results : list of 2-element tuples.
+            each tuple is composed of (cnam, list) where cnam is a CCD label
+            and list is a list of 8-element tuples each of which is composed
+            of (nframe, store, ccdaper, results, mjdint, mjdfrac, mjdok, expose)
+            storing all the relevant data for the CCD / exposure in question.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: write_header()
+
+

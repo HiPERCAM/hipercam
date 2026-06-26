@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>hipercam.psf_reduction &#8212; HiPERCAM pipeline 1.6.8.dev12+g30055e846 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/bootstrap-astropy.css?v=177ce38d" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=fd3f3429" />
+    
+    <script src="../../../_static/documentation_options.js?v=adfd3a0b"></script>
+    <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script type="text/javascript" src="../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="hipercam.reduction" href="../reduction/index.html" />
+    <link rel="prev" title="hipercam.pgp" href="../pgp/index.html" />
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../index.html"><span id="logotext1">astro</span><span id="logotext2"></span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="../reduction/index.html" title="hipercam.reduction">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="../pgp/index.html" title="hipercam.pgp">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../../../index.html">HiPERCAM pipeline 1.6.8.dev12+g30055e846 documentation</a>
+	 &#187;
+      </li>
+      <li><a href="../../index.html" >API Reference</a> &#187;</li>
+      <li><a href="../index.html" accesskey="U">hipercam</a> &#187;</li>
+      
+      <li>hipercam.psf_reduction</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-hipercam.psf_reduction">
+<span id="hipercam-psf-reduction"></span><h1>hipercam.psf_reduction<a class="headerlink" href="#module-hipercam.psf_reduction" title="Link to this heading">¶</a></h1>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.psf_reduction.IntegratedGaussianPRF2" title="hipercam.psf_reduction.IntegratedGaussianPRF2"><code class="xref py py-obj docutils literal notranslate"><span class="pre">IntegratedGaussianPRF2</span></code></a></p></td>
+<td><p>Circular Gaussian model integrated over pixels.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.psf_reduction.MoffatPSF" title="hipercam.psf_reduction.MoffatPSF"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MoffatPSF</span></code></a></p></td>
+<td><p>Standard Moffat model, but with parameter names that work with photutils</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.psf_reduction.extractFluxPSF" title="hipercam.psf_reduction.extractFluxPSF"><code class="xref py py-obj docutils literal notranslate"><span class="pre">extractFluxPSF</span></code></a>(cnam, ccd, bccd, rccd, read, gain, ...)</p></td>
+<td><p>This extracts the flux of all apertures of a given CCD.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.psf_reduction.IntegratedGaussianPRF2">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.psf_reduction.</span></span><span class="sig-name descname"><span class="pre">IntegratedGaussianPRF2</span></span><a class="headerlink" href="#hipercam.psf_reduction.IntegratedGaussianPRF2" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.modeling.Fittable2DModel</span></code></p>
+<p>Circular Gaussian model integrated over pixels.</p>
+<p>Because it is integrated, this model is considered a PRF, <em>not</em> a
+PSF (see <span class="xref std std-ref">psf-terminology</span> for more about the terminology used
+here.)</p>
+<p>This model is a Gaussian <em>integrated</em> over an area of
+<code class="docutils literal notranslate"><span class="pre">1</span></code> (in units of the model input coordinates, e.g., 1
+pixel). This is in contrast to the apparently similar
+<cite>astropy.modeling.functional_models.Gaussian2D</cite>, which is the value
+of a 2D Gaussian <em>at</em> the input coordinates, with no integration.
+So this model is equivalent to assuming the PSF is Gaussian at a
+<em>sub-pixel</em> level.</p>
+<p>Based on the same named model in photutils, but with different
+std deviations in x and y.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>sigma_x</strong><span class="classifier">float</span></dt><dd><p>Width of the Gaussian PSF in x.</p>
+</dd>
+<dt><strong>sigma_y</strong><span class="classifier">float</span></dt><dd><p>Width of the Gaussian PSF in y.</p>
+</dd>
+<dt><strong>flux</strong><span class="classifier">float, optional</span></dt><dd><p>Total integrated flux over the entire PSF</p>
+</dd>
+<dt><strong>x_0</strong><span class="classifier">float, optional</span></dt><dd><p>Position of the peak in x direction.</p>
+</dd>
+<dt><strong>y_0</strong><span class="classifier">float, optional</span></dt><dd><p>Position of the peak in y direction.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>This model is evaluated according to the following formula:</p>
+<blockquote>
+<div><div class="math">
+<p><span class="math">f(x, y) =
+    \frac{F}{4}
+    \left[
+    {\rm erf} \left(\frac{x - x_0 + 0.5}
+    {\sqrt{2} \sigma_x} \right) -
+    {\rm erf} \left(\frac{x - x_0 - 0.5}
+    {\sqrt{2} \sigma_x} \right)
+    \right]
+    \left[
+    {\rm erf} \left(\frac{y - y_0 + 0.5}
+    {\sqrt{2} \sigma_y} \right) -
+    {\rm erf} \left(\frac{y - y_0 - 0.5}
+    {\sqrt{2} \sigma_y} \right)
+    \right]</span></p>
+</div></div></blockquote>
+<p>where <code class="docutils literal notranslate"><span class="pre">erf</span></code> denotes the error function and <code class="docutils literal notranslate"><span class="pre">F</span></code> the total
+integrated flux.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.psf_reduction.IntegratedGaussianPRF2.flux">
+<span class="sig-name descname"><span class="pre">flux</span></span><a class="headerlink" href="#hipercam.psf_reduction.IntegratedGaussianPRF2.flux" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.psf_reduction.IntegratedGaussianPRF2.x_0">
+<span class="sig-name descname"><span class="pre">x_0</span></span><a class="headerlink" href="#hipercam.psf_reduction.IntegratedGaussianPRF2.x_0" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.psf_reduction.IntegratedGaussianPRF2.y_0">
+<span class="sig-name descname"><span class="pre">y_0</span></span><a class="headerlink" href="#hipercam.psf_reduction.IntegratedGaussianPRF2.y_0" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.psf_reduction.IntegratedGaussianPRF2.sigma_x">
+<span class="sig-name descname"><span class="pre">sigma_x</span></span><a class="headerlink" href="#hipercam.psf_reduction.IntegratedGaussianPRF2.sigma_x" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.psf_reduction.IntegratedGaussianPRF2.sigma_y">
+<span class="sig-name descname"><span class="pre">sigma_y</span></span><a class="headerlink" href="#hipercam.psf_reduction.IntegratedGaussianPRF2.sigma_y" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.psf_reduction.IntegratedGaussianPRF2._erf">
+<span class="sig-name descname"><span class="pre">_erf</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#hipercam.psf_reduction.IntegratedGaussianPRF2._erf" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="hipercam.psf_reduction.IntegratedGaussianPRF2.bounding_box">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">bounding_box</span></span><a class="headerlink" href="#hipercam.psf_reduction.IntegratedGaussianPRF2.bounding_box" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="hipercam.psf_reduction.IntegratedGaussianPRF2.fwhm">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">fwhm</span></span><a class="headerlink" href="#hipercam.psf_reduction.IntegratedGaussianPRF2.fwhm" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.psf_reduction.IntegratedGaussianPRF2.evaluate">
+<span class="sig-name descname"><span class="pre">evaluate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flux</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma_y</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.psf_reduction.IntegratedGaussianPRF2.evaluate" title="Link to this definition">¶</a></dt>
+<dd><p>Model function Gaussian PSF model.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.psf_reduction.MoffatPSF">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.psf_reduction.</span></span><span class="sig-name descname"><span class="pre">MoffatPSF</span></span><a class="headerlink" href="#hipercam.psf_reduction.MoffatPSF" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.modeling.Fittable2DModel</span></code></p>
+<p>Standard Moffat model, but with parameter names that work with photutils</p>
+<p>Different FWHM parameters apply in x and y, the fwhm property gives
+the average of both.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>fwhm_x</strong><span class="classifier">float</span></dt><dd><p>Full-Width at Half-Maximum of profile in x</p>
+</dd>
+<dt><strong>fwhm_y</strong><span class="classifier">float</span></dt><dd><p>Full-Width at Half-Maximum of profile in y</p>
+</dd>
+<dt><strong>beta</strong><span class="classifier">float</span></dt><dd><p>Beta parameter of Moffat profile</p>
+</dd>
+<dt><strong>flux</strong><span class="classifier">float (default 1)</span></dt><dd><p>Total integrated flux over the entire PSF</p>
+</dd>
+<dt><strong>x_0</strong><span class="classifier">float (default 0)</span></dt><dd><p>Position of peak in x direction</p>
+</dd>
+<dt><strong>y_0</strong><span class="classifier">float (default 0)</span></dt><dd><p>Position of peak in y direction</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>This model is evaluated according to the following formula:</p>
+<blockquote>
+<div><div class="math">
+<p><span class="math">f(x, y) = F [1 + ((x-x_o)/lpha_x)**2 + ((y-y_o)/lpha_y)**2]**(-beta)</span></p>
+</div></div></blockquote>
+<p>where <code class="docutils literal notranslate"><span class="pre">F</span></code> is the total integrated flux, and <code class="docutils literal notranslate"><span class="pre">alpha_i</span></code> is chosen
+so the profile has the appropriate FWHM.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.psf_reduction.MoffatPSF.flux">
+<span class="sig-name descname"><span class="pre">flux</span></span><a class="headerlink" href="#hipercam.psf_reduction.MoffatPSF.flux" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.psf_reduction.MoffatPSF.x_0">
+<span class="sig-name descname"><span class="pre">x_0</span></span><a class="headerlink" href="#hipercam.psf_reduction.MoffatPSF.x_0" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.psf_reduction.MoffatPSF.y_0">
+<span class="sig-name descname"><span class="pre">y_0</span></span><a class="headerlink" href="#hipercam.psf_reduction.MoffatPSF.y_0" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.psf_reduction.MoffatPSF.beta">
+<span class="sig-name descname"><span class="pre">beta</span></span><a class="headerlink" href="#hipercam.psf_reduction.MoffatPSF.beta" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.psf_reduction.MoffatPSF.fwhm_x">
+<span class="sig-name descname"><span class="pre">fwhm_x</span></span><a class="headerlink" href="#hipercam.psf_reduction.MoffatPSF.fwhm_x" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.psf_reduction.MoffatPSF.fwhm_y">
+<span class="sig-name descname"><span class="pre">fwhm_y</span></span><a class="headerlink" href="#hipercam.psf_reduction.MoffatPSF.fwhm_y" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.psf_reduction.MoffatPSF.fit_deriv">
+<span class="sig-name descname"><span class="pre">fit_deriv</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#hipercam.psf_reduction.MoffatPSF.fit_deriv" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="hipercam.psf_reduction.MoffatPSF.fwhm">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">fwhm</span></span><a class="headerlink" href="#hipercam.psf_reduction.MoffatPSF.fwhm" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="hipercam.psf_reduction.MoffatPSF.bounding_box">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">bounding_box</span></span><a class="headerlink" href="#hipercam.psf_reduction.MoffatPSF.bounding_box" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.psf_reduction.MoffatPSF.evaluate">
+<span class="sig-name descname"><span class="pre">evaluate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flux</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fwhm_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fwhm_y</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.psf_reduction.MoffatPSF.evaluate" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.psf_reduction.extractFluxPSF">
+<span class="sig-prename descclassname"><span class="pre">hipercam.psf_reduction.</span></span><span class="sig-name descname"><span class="pre">extractFluxPSF</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cnam</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ccd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bccd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rccd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gain</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ccdwin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rfile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">store</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.psf_reduction.extractFluxPSF" title="Link to this definition">¶</a></dt>
+<dd><p>This extracts the flux of all apertures of a given CCD.</p>
+<p>The steps are (1) creation of PSF model, (2) PSF fitting, (3)
+flux extraction. The apertures are assumed to be correctly positioned.</p>
+<p>It returns the results as a dictionary keyed on the aperture label. Each
+entry returns a list:</p>
+<p>[x, ex, y, ey, fwhm, efwhm, beta, ebeta, counts, countse, sky, esky,
+nsky, nrej, flag, cmax]</p>
+<p>flag = bitmask. See hipercam.core to see all the options which are
+referred to by name in the code e.g. ALL_OK. The various flags can
+signal that there no sky pixels (NO_SKY), the sky aperture was off
+the edge of the window (SKY_AT_EDGE), etc.</p>
+<p>This code:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&gt;&gt;</span> <span class="n">bset</span> <span class="o">=</span> <span class="n">flag</span> <span class="o">&amp;</span> <span class="n">TARGET_SATURATED</span>
+</pre></div>
+</div>
+<p>determines whether the data saturation flag is set for example.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>not all arguments are used by this routine, but the call signature is
+fixed to be a drop-in replacement for the normal and optimal photometry
+function called by reduce</p>
+</div>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cnam</span> <span class="p">:</span> <span class="n">string</span>
+   <span class="n">CCD</span> <span class="n">identifier</span> <span class="n">label</span>
+
+<span class="n">ccd</span> <span class="p">:</span> <span class="n">CCD</span>
+    <span class="n">the</span> <span class="n">fully</span> <span class="n">processed</span> <span class="n">CCD</span> <span class="p">(</span><span class="n">debiassed</span><span class="p">,</span> <span class="n">dark</span><span class="o">-</span><span class="n">corrected</span><span class="p">,</span> <span class="n">flat</span><span class="o">-</span><span class="n">fielded</span><span class="p">,</span> <span class="n">fringe</span><span class="o">-</span><span class="n">corrected</span><span class="p">)</span>
+
+<span class="n">bccd</span> <span class="p">:</span> <span class="n">CCD</span>
+    <span class="n">debiassed</span><span class="o">-</span><span class="n">only</span> <span class="n">CCD</span><span class="o">.</span> <span class="n">Used</span> <span class="ow">in</span> <span class="n">variance</span> <span class="n">computation</span><span class="o">.</span>
+
+<span class="n">rccd</span> <span class="p">:</span> <span class="n">CCD</span>
+   <span class="n">corresponding</span> <span class="n">raw</span> <span class="n">CCD</span><span class="p">,</span> <span class="n">used</span> <span class="n">to</span> <span class="n">work</span> <span class="n">out</span> <span class="n">whether</span> <span class="n">data</span> <span class="n">are</span>
+   <span class="n">saturated</span> <span class="ow">in</span> <span class="n">target</span> <span class="n">aperture</span><span class="o">.</span>
+
+<span class="n">read</span> <span class="p">:</span> <span class="n">CCD</span>
+    <span class="n">readnoise</span> <span class="n">divided</span> <span class="n">by</span> <span class="n">the</span> <span class="n">flat</span><span class="o">-</span><span class="n">field</span>
+
+<span class="n">gain</span> <span class="p">:</span> <span class="n">CCD</span>
+    <span class="n">gain</span> <span class="n">multiplied</span> <span class="n">by</span> <span class="n">the</span> <span class="n">flat</span> <span class="n">field</span>
+
+<span class="n">ccdwin</span> <span class="p">:</span> <span class="n">dictionary</span> <span class="n">of</span> <span class="n">strings</span>
+    <span class="n">the</span> <span class="n">Window</span> <span class="n">label</span> <span class="n">corresponding</span> <span class="n">to</span> <span class="n">each</span> <span class="n">Aperture</span>
+
+<span class="n">rfile</span> <span class="p">:</span> <span class="n">Rfile</span>
+    <span class="n">reduce</span> <span class="n">file</span> <span class="n">configuration</span> <span class="n">parameters</span>
+
+<span class="n">store</span> <span class="p">:</span> <span class="nb">dict</span> <span class="n">of</span> <span class="n">dicts</span>
+    <span class="n">see</span> <span class="n">moveApers</span> <span class="k">for</span> <span class="n">what</span> <span class="n">this</span> <span class="n">contains</span><span class="o">.</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><h3>Table of Contents</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../news.html">HiPERCAM pipeline news</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../observers.html">Observer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../commands.html">HiPERCAM commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/api.html">The API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Getting the software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../files.html">Useful files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plugins.html">Writing an instrument plugin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/bugs.html">Reporting problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../makingmovies.html">Making HiPERCAM movies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../phaseII.html">HiPERCAM Phase II</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">hipercam</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../aperture/index.html">hipercam.aperture</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ccd/index.html">hipercam.ccd</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../core/index.html">hipercam.core</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../defect/index.html">hipercam.defect</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extraction/index.html">hipercam.extraction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../fitting/index.html">hipercam.fitting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../fringe/index.html">hipercam.fringe</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../group/index.html">hipercam.group</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../hcam/index.html">hipercam.hcam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../header/index.html">hipercam.header</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../hlog/index.html">hipercam.hlog</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../instruments/index.html">hipercam.instruments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../mpl/index.html">hipercam.mpl</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../pgp/index.html">hipercam.pgp</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">hipercam.psf_reduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reduction/index.html">hipercam.reduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../scripts/index.html">hipercam.scripts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../spooler/index.html">hipercam.spooler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../target/index.html">hipercam.target</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../tests/index.html">hipercam.tests</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ucam/index.html">hipercam.ucam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../utils/index.html">hipercam.utils</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../window/index.html">hipercam.window</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="../pgp/index.html"
+                          title="previous chapter">hipercam.pgp</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="../reduction/index.html"
+                          title="next chapter">hipercam.reduction</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../../_sources/autoapi/hipercam/psf_reduction/index.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../../../_sources/autoapi/hipercam/psf_reduction/index.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2017, T.R. Marsh.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 7.4.7. &nbsp;
+  </p>
+</footer>
+  </body>
+</html>

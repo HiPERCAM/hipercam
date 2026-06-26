@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Writing an instrument plugin &#8212; HiPERCAM pipeline 1.6.8.dev12+g30055e846 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="_static/bootstrap-astropy.css?v=177ce38d" />
+    <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=fd3f3429" />
+    
+    <script src="_static/documentation_options.js?v=adfd3a0b"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script type="text/javascript" src="_static/sidebar.js"></script>
+    <script type="text/javascript" src="_static/copybutton.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Making HiPERCAM movies" href="makingmovies.html" />
+    <link rel="prev" title="Useful files" href="files.html" />
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="index.html"><span id="logotext1">astro</span><span id="logotext2"></span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="genindex.html">Index</a></li>
+    <li><a title="Module Index" href="py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="makingmovies.html" title="Making HiPERCAM movies">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="files.html" title="Useful files">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="index.html">HiPERCAM pipeline 1.6.8.dev12+g30055e846 documentation</a>
+	 &#187;
+      </li>
+      
+      <li>Writing an instrument plugin</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="writing-an-instrument-plugin">
+<h1>Writing an instrument plugin<a class="headerlink" href="#writing-an-instrument-plugin" title="Link to this heading">¶</a></h1>
+<p>The HiPERCAM pipeline supports third-party instruments through a plugin system
+based on Python entry-points.  A plugin is a Python module that exposes a
+small set of classes and a helper function, which the pipeline uses to read raw
+data and present it as a stream of <a class="reference internal" href="autoapi/hipercam/index.html#hipercam.MCCD" title="hipercam.MCCD"><code class="xref py py-class docutils literal notranslate"><span class="pre">MCCD</span></code></a> objects.</p>
+<p>This page explains how to write such a plugin.  As a concrete example
+throughout, we assume an instrument called <code class="docutils literal notranslate"><span class="pre">myinstrument</span></code> that has a single
+1024x1024 CCD and stores its data in a multi-extension FITS file: one primary
+HDU (header only, carrying run-level metadata) followed by one image extension
+per acquired frame.</p>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading">¶</a></h2>
+<p>The pipeline discovers plugins through the <code class="docutils literal notranslate"><span class="pre">hipercam.instruments</span></code>
+entry-point group.  When a data source string of the form
+<code class="docutils literal notranslate"><span class="pre">'&lt;instrument&gt;:local'</span></code> is passed to
+<a class="reference internal" href="autoapi/hipercam/spooler/index.html#hipercam.spooler.data_source" title="hipercam.spooler.data_source"><code class="xref py py-func docutils literal notranslate"><span class="pre">data_source()</span></code></a>, the pipeline calls
+<a class="reference internal" href="autoapi/hipercam/instruments/index.html#hipercam.instruments.load_instrument" title="hipercam.instruments.load_instrument"><code class="xref py py-func docutils literal notranslate"><span class="pre">load_instrument()</span></code></a> with the instrument name, which
+looks up and imports the registered module.  The module must expose the
+following names at module level:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Name</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Rdata</span></code></p></td>
+<td><p>Data-reading class (iterable context manager)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">supports_server_access</span></code></p></td>
+<td><p>Boolean indicating if server access is supported</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">get_ccd_pars</span></code></p></td>
+<td><p>Function returning CCD geometry as an <code class="docutils literal notranslate"><span class="pre">dict</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<p>For a local-only plugin (i.e. one that does not support reading from a
+network server) set supports_server_access to False and the <code class="docutils literal notranslate"><span class="pre">server=True</span></code>
+code paths should raise <code class="xref py py-exc docutils literal notranslate"><span class="pre">NotImplementedError</span></code>.</p>
+<p>The convenience base class <a class="reference internal" href="autoapi/hipercam/instruments/index.html#hipercam.instruments.RdataBase" title="hipercam.instruments.RdataBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">RdataBase</span></code></a> provides
+boilerplate <code class="docutils literal notranslate"><span class="pre">__iter__</span></code>, <code class="docutils literal notranslate"><span class="pre">__next__</span></code>, <code class="docutils literal notranslate"><span class="pre">__enter__</span></code> and <code class="docutils literal notranslate"><span class="pre">__exit__</span></code>
+implementations which allow subclasses to be used as iterators and context managers,
+and is the recommended base class for your <code class="docutils literal notranslate"><span class="pre">Rdata</span></code>.</p>
+</section>
+<section id="package-setup">
+<h2>Package setup<a class="headerlink" href="#package-setup" title="Link to this heading">¶</a></h2>
+<p>Create a Python package with the following minimal layout:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">myinst_plugin</span><span class="o">/</span>
+    <span class="n">src</span><span class="o">/</span>
+        <span class="n">myinst_plugin</span><span class="o">/</span>
+            <span class="fm">__init__</span><span class="o">.</span><span class="n">py</span>
+            <span class="n">instrument</span><span class="o">.</span><span class="n">py</span>
+    <span class="n">pyproject</span><span class="o">.</span><span class="n">toml</span>
+</pre></div>
+</div>
+<p>In <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code> declare the entry-point that registers your instrument
+with the pipeline:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">build</span><span class="o">-</span><span class="n">system</span><span class="p">]</span>
+<span class="n">requires</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;setuptools&gt;=61.0&quot;</span><span class="p">]</span>
+<span class="n">build</span><span class="o">-</span><span class="n">backend</span> <span class="o">=</span> <span class="s2">&quot;setuptools.build_meta&quot;</span>
+
+<span class="p">[</span><span class="n">project</span><span class="p">]</span>
+<span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;myinst_plugin&quot;</span>
+<span class="n">version</span> <span class="o">=</span> <span class="s2">&quot;0.1.0&quot;</span>
+<span class="n">dependencies</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;hipercam&quot;</span><span class="p">,</span> <span class="s2">&quot;astropy&quot;</span><span class="p">,</span> <span class="s2">&quot;numpy&quot;</span><span class="p">]</span>
+
+<span class="p">[</span><span class="n">project</span><span class="o">.</span><span class="n">entry</span><span class="o">-</span><span class="n">points</span><span class="o">.</span><span class="s2">&quot;hipercam.instruments&quot;</span><span class="p">]</span>
+<span class="n">myinstrument</span> <span class="o">=</span> <span class="s2">&quot;myinst_plugin&quot;</span>
+</pre></div>
+</div>
+<p>After installing your package the pipeline will automatically find the plugin by name.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you are using <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">-e</span> <span class="pre">.</span></code> to install your package in
+editable (development) mode, you must re-run <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">-e</span> <span class="pre">.</span></code>
+each time you change the entry-point declaration, even in editable
+(development) mode, so that the entry-point metadata is regenerated.</p>
+</div>
+<p>In <code class="docutils literal notranslate"><span class="pre">__init__.py</span></code> you can put any module-level code you like, but you must
+at least import the module level objects <code class="docutils literal notranslate"><span class="pre">Rdata</span></code>, <code class="docutils literal notranslate"><span class="pre">get_ccd_pars</span></code> and
+<code class="docutils literal notranslate"><span class="pre">supports_server_access</span></code> which we will define in the <code class="docutils literal notranslate"><span class="pre">example.py</span></code> file:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># src/myinst_plugin/__init__.py</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.instrument</span><span class="w"> </span><span class="kn">import</span> <span class="n">Rdata</span><span class="p">,</span> <span class="n">get_ccd_pars</span><span class="p">,</span> <span class="n">supports_server_access</span>
+</pre></div>
+</div>
+</section>
+<section id="module-contract">
+<h2>Module contract<a class="headerlink" href="#module-contract" title="Link to this heading">¶</a></h2>
+<p>Your module must expose the names listed in the overview table.  Below is the
+minimum skeleton:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># src/myinst_plugin/instrument.py</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">hipercam.instruments</span><span class="w"> </span><span class="kn">import</span> <span class="n">IendError</span><span class="p">,</span> <span class="n">RdataBase</span>
+
+<span class="n">supports_server_access</span> <span class="o">=</span> <span class="kc">False</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">Rdata</span><span class="p">(</span><span class="n">RdataBase</span><span class="p">):</span>  <span class="c1"># data reader — the main class</span>
+    <span class="o">...</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">get_ccd_pars</span><span class="p">(</span><span class="n">resource</span><span class="p">,</span> <span class="n">server</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="o">...</span>
+</pre></div>
+</div>
+</section>
+<section id="implementing-rdata">
+<h2>Implementing Rdata<a class="headerlink" href="#implementing-rdata" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">Rdata</span></code> is the central class.  The pipeline expect an initialiser with
+the signature below:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Rdata</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">nframe</span><span class="p">,</span> <span class="n">server</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>where <code class="docutils literal notranslate"><span class="pre">nframe</span></code> (1-based) is the first frame to read and <code class="docutils literal notranslate"><span class="pre">server</span></code> indicates
+if the data should be read from a remote server or a local file.  The <code class="docutils literal notranslate"><span class="pre">server</span></code>
+parameter will always be <code class="docutils literal notranslate"><span class="pre">False</span></code> when accessed via <code class="docutils literal notranslate"><span class="pre">'&lt;instrument&gt;:local'</span></code>.</p>
+<p>Inheriting from <a class="reference internal" href="autoapi/hipercam/instruments/index.html#hipercam.instruments.RdataBase" title="hipercam.instruments.RdataBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">RdataBase</span></code></a> provides
+<code class="docutils literal notranslate"><span class="pre">__iter__</span></code>, <code class="docutils literal notranslate"><span class="pre">__next__</span></code>, <code class="docutils literal notranslate"><span class="pre">__enter__</span></code> and <code class="docutils literal notranslate"><span class="pre">__exit__</span></code> for free.  You only
+need to implement <code class="docutils literal notranslate"><span class="pre">__call__</span></code>  and <code class="docutils literal notranslate"><span class="pre">__del__</span></code>.</p>
+<section id="constructor">
+<h3>Constructor<a class="headerlink" href="#constructor" title="Link to this heading">¶</a></h3>
+<p>In the snippet below we show how to write the constructor for a local-only plugin
+that reads from a multi-extension FITS file.  The constructor opens the file and
+stores the file handle and total number of frames as instance attributes.  The
+<code class="docutils literal notranslate"><span class="pre">__del__</span></code> method ensures that the file is closed when the object is destroyed.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">astropy.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">fits</span> <span class="k">as</span> <span class="n">fits</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hipercam.instruments</span><span class="w"> </span><span class="kn">import</span> <span class="n">IendError</span><span class="p">,</span> <span class="n">RdataBase</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">Rdata</span><span class="p">(</span><span class="n">RdataBase</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Reads frames from a myinstrument raw data file.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fname</span><span class="p">,</span> <span class="n">nframe</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">server</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">server</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                <span class="s2">&quot;myinstrument plugin does not support server access&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">fname</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.fits&quot;</span><span class="p">):</span>
+            <span class="n">fname</span> <span class="o">+=</span> <span class="s2">&quot;.fits&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fname</span> <span class="o">=</span> <span class="n">fname</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_hdul</span>  <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_fname</span><span class="p">,</span> <span class="n">memmap</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="c1"># HDU 0 is header-only; frames start at HDU index 1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ntotal</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_hdul</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="c1"># set the nframe attribute to the first frame to read (1-based)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nframe</span>  <span class="o">=</span> <span class="n">nframe</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_hdul</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">pass</span>
+</pre></div>
+</div>
+</section>
+<section id="reading-a-frame">
+<h3>Reading a frame<a class="headerlink" href="#reading-a-frame" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">__call__</span></code> reads the frame at <code class="docutils literal notranslate"><span class="pre">self.nframe</span></code> (or at a specific frame if
+<code class="docutils literal notranslate"><span class="pre">nframe</span></code> is supplied), builds an <a class="reference internal" href="autoapi/hipercam/index.html#hipercam.MCCD" title="hipercam.MCCD"><code class="xref py py-class docutils literal notranslate"><span class="pre">MCCD</span></code></a>, and advances the
+internal counter. <code class="docutils literal notranslate"><span class="pre">__call__</span></code> should return a <a class="reference internal" href="autoapi/hipercam/index.html#hipercam.MCCD" title="hipercam.MCCD"><code class="xref py py-class docutils literal notranslate"><span class="pre">MCCD</span></code></a> if
+possible and raise <a class="reference internal" href="autoapi/hipercam/instruments/index.html#hipercam.instruments.IendError" title="hipercam.instruments.IendError"><code class="xref py py-class docutils literal notranslate"><span class="pre">IendError</span></code></a> when all frames
+have been read. For data which is still being written to disc, or for server
+access, <code class="docutils literal notranslate"><span class="pre">__call__</span></code> should return <code class="docutils literal notranslate"><span class="pre">None</span></code> to indicate that we are still
+waiting for the data:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nframe</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Read one frame and return it as an MCCD.</span>
+
+<span class="sd">    Raises IendError when all frames have been read.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># seek the requested frame if nframe is supplied;</span>
+    <span class="c1"># otherwise read the next frame in sequence</span>
+    <span class="k">if</span> <span class="n">nframe</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nframe</span> <span class="o">=</span> <span class="n">nframe</span>
+
+    <span class="c1"># for data that is already written, indicate we&#39;ve reached</span>
+    <span class="c1"># the end of the file with an exception</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nframe</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ntotal</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">IendError</span><span class="p">(</span><span class="s2">&quot;end of file reached&quot;</span><span class="p">)</span>
+
+    <span class="c1"># get the header and data for the current frame.</span>
+    <span class="n">hdu</span>   <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hdul</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">nframe</span><span class="p">]</span>  <span class="c1"># 1-based: HDU 0 is the primary</span>
+    <span class="n">data</span>  <span class="o">=</span> <span class="n">hdu</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">fhead</span> <span class="o">=</span> <span class="n">hdu</span><span class="o">.</span><span class="n">header</span>               <span class="c1"># raw FITS header for this extension</span>
+
+    <span class="c1"># delegate construction of the MCCD object to a helper method.</span>
+    <span class="n">mccd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_mccd</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">fhead</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nframe</span><span class="p">)</span>
+
+    <span class="c1"># increment the frame counter so a subsequent call</span>
+    <span class="c1"># (with nframe=None) will read the next frame in sequence.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">nframe</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="c1"># return the MCCD object to the caller</span>
+    <span class="k">return</span> <span class="n">mccd</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="constructing-mccd-objects">
+<h2>Constructing MCCD objects<a class="headerlink" href="#constructing-mccd-objects" title="Link to this heading">¶</a></h2>
+<p>The <a class="reference internal" href="autoapi/hipercam/index.html#hipercam.MCCD" title="hipercam.MCCD"><code class="xref py py-class docutils literal notranslate"><span class="pre">MCCD</span></code></a> is the standard data container used throughout the
+pipeline.  A <a class="reference internal" href="autoapi/hipercam/index.html#hipercam.MCCD" title="hipercam.MCCD"><code class="xref py py-class docutils literal notranslate"><span class="pre">MCCD</span></code></a> consists of a collection of one or more
+<a class="reference internal" href="autoapi/hipercam/index.html#hipercam.CCD" title="hipercam.CCD"><code class="xref py py-class docutils literal notranslate"><span class="pre">CCD</span></code></a> objects, each of which contains one or more
+<a class="reference internal" href="autoapi/hipercam/index.html#hipercam.Window" title="hipercam.Window"><code class="xref py py-class docutils literal notranslate"><span class="pre">Window</span></code></a> objects.</p>
+<p>A <a class="reference internal" href="autoapi/hipercam/index.html#hipercam.CCD" title="hipercam.CCD"><code class="xref py py-class docutils literal notranslate"><span class="pre">CCD</span></code></a> can contain multiple windows to deal with instruments
+that have more than one output amplifier, each reading out a different region
+of the CCD.</p>
+<p>It is assembled from the inside out:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Header  →  Winhead  →  Window  →  CCD  →  MCCD
+</pre></div>
+</div>
+<section id="top-level-header">
+<h3>Top-level header<a class="headerlink" href="#top-level-header" title="Link to this heading">¶</a></h3>
+<p>The top-level header of the <a class="reference internal" href="autoapi/hipercam/index.html#hipercam.MCCD" title="hipercam.MCCD"><code class="xref py py-class docutils literal notranslate"><span class="pre">MCCD</span></code></a> is a
+<a class="reference internal" href="autoapi/hipercam/index.html#hipercam.Header" title="hipercam.Header"><code class="xref py py-class docutils literal notranslate"><span class="pre">hipercam.Header</span></code></a> object, which itself is a lightweight version of an
+<cite>Astropy FITS Header &lt;https://docs.astropy.org/en/stable/io/fits/usage/headers.html&gt;</cite>.
+The pipeline requires the following keywords to be present:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Keyword</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">INSTRUME</span></code></p></td>
+<td><p>str</p></td>
+<td><p>Instrument name</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">TIMSTAMP</span></code></p></td>
+<td><p>str</p></td>
+<td><p>UTC timestamp of the mid-exposure in ISO 8601 format,
+e.g. <code class="docutils literal notranslate"><span class="pre">'2026-04-16T21:30:00.000000000'</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">MJDINT</span></code></p></td>
+<td><p>int</p></td>
+<td><p>Integer part of the UTC mid-exposure MJD</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">MJDFRAC</span></code></p></td>
+<td><p>float</p></td>
+<td><p>Fractional part of the UTC mid-exposure MJD</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">MJDUTC</span></code></p></td>
+<td><p>float</p></td>
+<td><p>Full MJD(UTC), equal to <code class="docutils literal notranslate"><span class="pre">MJDINT</span> <span class="pre">+</span> <span class="pre">MJDFRAC</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">GOODTIME</span></code></p></td>
+<td><p>bool</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">True</span></code> if the timestamp is reliable</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">EXPTIME</span></code></p></td>
+<td><p>float</p></td>
+<td><p>Exposure duration in seconds</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">NFRAME</span></code></p></td>
+<td><p>int</p></td>
+<td><p>Frame number within the run (1-based)</p></td>
+</tr>
+</tbody>
+</table>
+<p>In addition to this, any other FITS keywords may be included as desired.</p>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">astropy.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">fits</span>
+<span class="n">thead</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">Header</span><span class="p">()</span>
+<span class="n">thead</span><span class="p">[</span><span class="s1">&#39;INSTRUME&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;myinstrument&#39;</span><span class="p">,</span> <span class="s1">&#39;Instrument name&#39;</span><span class="p">)</span>
+<span class="n">thead</span><span class="p">[</span><span class="s1">&#39;TIMSTAMP&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">fhead</span><span class="p">[</span><span class="s1">&#39;DATE-OBS&#39;</span><span class="p">],</span> <span class="s1">&#39;UTC timestamp&#39;</span><span class="p">)</span>
+<span class="n">mjd</span>     <span class="o">=</span> <span class="n">fhead</span><span class="p">[</span><span class="s1">&#39;MJD-OBS&#39;</span><span class="p">]</span>
+<span class="n">mjdint</span>  <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">mjd</span><span class="p">)</span>
+<span class="n">mjdfrac</span> <span class="o">=</span> <span class="n">mjd</span> <span class="o">-</span> <span class="n">mjdint</span>
+<span class="n">thead</span><span class="p">[</span><span class="s1">&#39;MJDINT&#39;</span><span class="p">]</span>   <span class="o">=</span> <span class="p">(</span><span class="n">mjdint</span><span class="p">,</span>  <span class="s1">&#39;Integer part of MJD(UTC)&#39;</span><span class="p">)</span>
+<span class="n">thead</span><span class="p">[</span><span class="s1">&#39;MJDFRAC&#39;</span><span class="p">]</span>  <span class="o">=</span> <span class="p">(</span><span class="n">mjdfrac</span><span class="p">,</span> <span class="s1">&#39;Fractional part of MJD(UTC)&#39;</span><span class="p">)</span>
+<span class="n">thead</span><span class="p">[</span><span class="s1">&#39;MJDUTC&#39;</span><span class="p">]</span>   <span class="o">=</span> <span class="p">(</span><span class="n">mjd</span><span class="p">,</span>     <span class="s1">&#39;MJD(UTC)&#39;</span><span class="p">)</span>
+<span class="n">thead</span><span class="p">[</span><span class="s1">&#39;GOODTIME&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kc">True</span><span class="p">,</span>    <span class="s1">&#39;Timestamp reliable&#39;</span><span class="p">)</span>
+<span class="n">thead</span><span class="p">[</span><span class="s1">&#39;EXPTIME&#39;</span><span class="p">]</span>  <span class="o">=</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">fhead</span><span class="p">[</span><span class="s1">&#39;EXPTIME&#39;</span><span class="p">]),</span> <span class="s1">&#39;Exposure time (s)&#39;</span><span class="p">)</span>
+<span class="n">thead</span><span class="p">[</span><span class="s1">&#39;NFRAME&#39;</span><span class="p">]</span>   <span class="o">=</span> <span class="p">(</span><span class="n">nframe</span><span class="p">,</span>  <span class="s1">&#39;Frame number&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="per-ccd-header">
+<h3>Per-CCD header<a class="headerlink" href="#per-ccd-header" title="Link to this heading">¶</a></h3>
+<p>There is no separate header object for a <a class="reference internal" href="autoapi/hipercam/index.html#hipercam.CCD" title="hipercam.CCD"><code class="xref py py-class docutils literal notranslate"><span class="pre">CCD</span></code></a>.  Instead,
+CCD-level information — in particular per-CCD timing data — is stored in the
+header of the <strong>first</strong> <a class="reference internal" href="autoapi/hipercam/index.html#hipercam.Window" title="hipercam.Window"><code class="xref py py-class docutils literal notranslate"><span class="pre">Window</span></code></a> in that CCD.  This header is
+a <a class="reference internal" href="autoapi/hipercam/index.html#hipercam.Header" title="hipercam.Header"><code class="xref py py-class docutils literal notranslate"><span class="pre">hipercam.Header</span></code></a> object (a lightweight FITS-compatible header class).
+Whilst the api of <a class="reference internal" href="autoapi/hipercam/index.html#hipercam.Header" title="hipercam.Header"><code class="xref py py-class docutils literal notranslate"><span class="pre">hipercam.Header</span></code></a> is similar to that of an Astropy FITS Header,
+it is much more efficient and so we use it at the CCD/Window level for speed.
+The CCD/Window level header must carry the same timing keywords as the top-level header:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Keyword</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">TIMSTAMP</span></code></p></td>
+<td><p>UTC timestamp (ISO 8601)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">MJDINT</span></code></p></td>
+<td><p>Integer part of MJD(UTC)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">MJDFRAC</span></code></p></td>
+<td><p>Fractional part of MJD(UTC)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">MJDUTC</span></code></p></td>
+<td><p>Full MJD(UTC)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">GOODTIME</span></code></p></td>
+<td><p>Timestamp reliability flag</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">EXPTIME</span></code></p></td>
+<td><p>Exposure time (s)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">NFRAME</span></code></p></td>
+<td><p>Frame number</p></td>
+</tr>
+</tbody>
+</table>
+<p>It can also contain any other CCD-level keywords as desired (e.g filter names,
+CCD temperature, etc).</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">hipercam.header</span><span class="w"> </span><span class="kn">import</span> <span class="n">Header</span>
+
+<span class="n">ccd_head</span> <span class="o">=</span> <span class="n">Header</span><span class="p">()</span>
+<span class="n">ccd_head</span><span class="p">[</span><span class="s1">&#39;TIMSTAMP&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">fhead</span><span class="p">[</span><span class="s1">&#39;DATE-OBS&#39;</span><span class="p">],</span> <span class="s1">&#39;UTC timestamp&#39;</span><span class="p">)</span>
+<span class="n">ccd_head</span><span class="p">[</span><span class="s1">&#39;MJDINT&#39;</span><span class="p">]</span>   <span class="o">=</span> <span class="p">(</span><span class="n">mjdint</span><span class="p">,</span>  <span class="s1">&#39;Integer part of MJD(UTC)&#39;</span><span class="p">)</span>
+<span class="n">ccd_head</span><span class="p">[</span><span class="s1">&#39;MJDFRAC&#39;</span><span class="p">]</span>  <span class="o">=</span> <span class="p">(</span><span class="n">mjdfrac</span><span class="p">,</span> <span class="s1">&#39;Fractional part of MJD(UTC)&#39;</span><span class="p">)</span>
+<span class="n">ccd_head</span><span class="p">[</span><span class="s1">&#39;MJDUTC&#39;</span><span class="p">]</span>   <span class="o">=</span> <span class="p">(</span><span class="n">mjd</span><span class="p">,</span>     <span class="s1">&#39;MJD(UTC)&#39;</span><span class="p">)</span>
+<span class="n">ccd_head</span><span class="p">[</span><span class="s1">&#39;GOODTIME&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kc">True</span><span class="p">,</span>    <span class="s1">&#39;Timestamp reliable&#39;</span><span class="p">)</span>
+<span class="n">ccd_head</span><span class="p">[</span><span class="s1">&#39;EXPTIME&#39;</span><span class="p">]</span>  <span class="o">=</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">fhead</span><span class="p">[</span><span class="s1">&#39;EXPTIME&#39;</span><span class="p">]),</span> <span class="s1">&#39;Exposure time (s)&#39;</span><span class="p">)</span>
+<span class="n">ccd_head</span><span class="p">[</span><span class="s1">&#39;NFRAME&#39;</span><span class="p">]</span>   <span class="o">=</span> <span class="p">(</span><span class="n">nframe</span><span class="p">,</span>  <span class="s1">&#39;Frame number&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="building-winhead-and-window">
+<h3>Building Winhead and Window<a class="headerlink" href="#building-winhead-and-window" title="Link to this heading">¶</a></h3>
+<p>A <a class="reference internal" href="autoapi/hipercam/index.html#hipercam.Winhead" title="hipercam.Winhead"><code class="xref py py-class docutils literal notranslate"><span class="pre">Winhead</span></code></a> describes the position and binning of a
+rectangular readout region of the CCD. Windows may only take up a subset
+of the full CCD area, and may be binned. For a full-frame 1024x1024 readout
+with 1x1 binning:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">hipercam.window</span><span class="w"> </span><span class="kn">import</span> <span class="n">Winhead</span><span class="p">,</span> <span class="n">Window</span>
+
+<span class="c1"># Winhead(llx, lly, nx, ny, xbin, ybin, outamp, head=ccd_head)</span>
+<span class="c1">#</span>
+<span class="c1">#   llx, lly  — lower-left corner in **unbinned pixels**, 1-based</span>
+<span class="c1">#   nx, ny    — window dimensions in **binned** pixels</span>
+<span class="c1">#   xbin,ybin — binning factors</span>
+<span class="c1">#   outamp    — output amplifier location; &#39;UL&#39;, &#39;UR&#39;, &#39;LL&#39; etc. &#39;&#39; means unknown</span>
+<span class="c1">#   head      — per-CCD header created above, attached to</span>
+<span class="c1">#               the first (and here only) window</span>
+<span class="c1">#</span>
+<span class="n">winhd</span> <span class="o">=</span> <span class="n">Winhead</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1024</span><span class="p">,</span> <span class="mi">1024</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">head</span><span class="o">=</span><span class="n">ccd_head</span><span class="p">)</span>
+<span class="n">win</span>   <span class="o">=</span> <span class="n">Window</span><span class="p">(</span><span class="n">winhd</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If a CCD has more than one readout window, you need to create
+a <a class="reference internal" href="autoapi/hipercam/index.html#hipercam.Window" title="hipercam.Window"><code class="xref py py-class docutils literal notranslate"><span class="pre">Window</span></code></a> object for each one. Only the <strong>first</strong>
+window in the <a class="reference internal" href="autoapi/hipercam/index.html#hipercam.CCD" title="hipercam.CCD"><code class="xref py py-class docutils literal notranslate"><span class="pre">CCD</span></code></a> carries the per-CCD timing header;
+all subsequent windows should omit the <cite>head</cite> parameter.</p>
+</div>
+</section>
+<section id="building-ccd-and-mccd">
+<h3>Building CCD and MCCD<a class="headerlink" href="#building-ccd-and-mccd" title="Link to this heading">¶</a></h3>
+<p>A <a class="reference internal" href="autoapi/hipercam/index.html#hipercam.CCD" title="hipercam.CCD"><code class="xref py py-class docutils literal notranslate"><span class="pre">CCD</span></code></a> is assembled from one or more <a class="reference internal" href="autoapi/hipercam/index.html#hipercam.Window" title="hipercam.Window"><code class="xref py py-class docutils literal notranslate"><span class="pre">Window</span></code></a>
+objects. The <a class="reference internal" href="autoapi/hipercam/index.html#hipercam.Group" title="hipercam.Group"><code class="xref py py-class docutils literal notranslate"><span class="pre">Group</span></code></a> object is a simple wrapper around
+an <code class="docutils literal notranslate"><span class="pre">dict</span></code> that we can use to create a group of windows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">hipercam</span><span class="w"> </span><span class="kn">import</span> <span class="n">Group</span><span class="p">,</span> <span class="n">CCD</span>
+
+<span class="c1"># create an empty Window Group</span>
+<span class="n">winds</span> <span class="o">=</span> <span class="n">Group</span><span class="p">(</span><span class="n">Window</span><span class="p">)</span>
+<span class="c1"># CCD with total size 1024x1024, no pre/over-scan</span>
+<span class="n">ccd</span> <span class="o">=</span> <span class="n">CCD</span><span class="p">(</span><span class="n">winds</span><span class="p">,</span> <span class="n">nxtot</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">nytot</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">nxpad</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">nypad</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="c1"># add the single window to the CCD with label &#39;1&#39;</span>
+<span class="n">ccd</span><span class="p">[</span><span class="s1">&#39;1&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">win</span>
+</pre></div>
+</div>
+<p>Finally we can create a group of one or more CCDs and use it to construct the
+<a class="reference internal" href="autoapi/hipercam/index.html#hipercam.MCCD" title="hipercam.MCCD"><code class="xref py py-class docutils literal notranslate"><span class="pre">MCCD</span></code></a> by providing the group and the top-level header:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ccds</span> <span class="o">=</span> <span class="n">Group</span><span class="p">(</span><span class="n">CCD</span><span class="p">)</span>
+<span class="c1"># add the single CCD to the group with label &#39;1&#39;</span>
+<span class="n">ccds</span><span class="p">[</span><span class="s1">&#39;1&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ccd</span>
+<span class="n">mccd</span> <span class="o">=</span> <span class="n">MCCD</span><span class="p">(</span><span class="n">ccds</span><span class="p">,</span> <span class="n">head</span><span class="o">=</span><span class="n">thead</span><span class="p">)</span>
+<span class="k">return</span> <span class="n">mccd</span>
+</pre></div>
+</div>
+</section>
+<section id="complete-build-mccd-helper">
+<h3>Complete <code class="docutils literal notranslate"><span class="pre">_build_mccd</span></code> helper<a class="headerlink" href="#complete-build-mccd-helper" title="Link to this heading">¶</a></h3>
+<p>Putting all of the above together into a single private method:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">astropy.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">fits</span> <span class="k">as</span> <span class="n">fits</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hipercam.header</span><span class="w"> </span><span class="kn">import</span> <span class="n">Header</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hipercam.group</span><span class="w"> </span><span class="kn">import</span> <span class="n">Group</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hipercam.window</span><span class="w"> </span><span class="kn">import</span> <span class="n">Winhead</span><span class="p">,</span> <span class="n">Window</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hipercam.ccd</span><span class="w"> </span><span class="kn">import</span> <span class="n">CCD</span><span class="p">,</span> <span class="n">MCCD</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_build_mccd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">fhead</span><span class="p">,</span> <span class="n">nframe</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Build an MCCD from a 2-D pixel array and a raw FITS header.&quot;&quot;&quot;</span>
+
+    <span class="c1"># --- timing values extracted from the raw per-frame header ---</span>
+    <span class="n">mjd</span>     <span class="o">=</span> <span class="n">fhead</span><span class="p">[</span><span class="s1">&#39;MJD-OBS&#39;</span><span class="p">]</span>
+    <span class="n">mjdint</span>  <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">mjd</span><span class="p">)</span>
+    <span class="n">mjdfrac</span> <span class="o">=</span> <span class="n">mjd</span> <span class="o">-</span> <span class="n">mjdint</span>
+    <span class="n">tstamp</span>  <span class="o">=</span> <span class="n">fhead</span><span class="p">[</span><span class="s1">&#39;DATE-OBS&#39;</span><span class="p">]</span>
+    <span class="n">exptime</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">fhead</span><span class="p">[</span><span class="s1">&#39;EXPTIME&#39;</span><span class="p">])</span>
+
+    <span class="c1"># --- top-level MCCD header (astropy fits.Header) ---</span>
+    <span class="n">thead</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">Header</span><span class="p">()</span>
+    <span class="n">thead</span><span class="p">[</span><span class="s1">&#39;INSTRUME&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;myinstrument&#39;</span><span class="p">,</span> <span class="s1">&#39;Instrument name&#39;</span><span class="p">)</span>
+    <span class="n">thead</span><span class="p">[</span><span class="s1">&#39;TIMSTAMP&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">tstamp</span><span class="p">,</span>   <span class="s1">&#39;UTC timestamp&#39;</span><span class="p">)</span>
+    <span class="n">thead</span><span class="p">[</span><span class="s1">&#39;MJDINT&#39;</span><span class="p">]</span>   <span class="o">=</span> <span class="p">(</span><span class="n">mjdint</span><span class="p">,</span>   <span class="s1">&#39;Integer part of MJD(UTC)&#39;</span><span class="p">)</span>
+    <span class="n">thead</span><span class="p">[</span><span class="s1">&#39;MJDFRAC&#39;</span><span class="p">]</span>  <span class="o">=</span> <span class="p">(</span><span class="n">mjdfrac</span><span class="p">,</span>  <span class="s1">&#39;Fractional part of MJD(UTC)&#39;</span><span class="p">)</span>
+    <span class="n">thead</span><span class="p">[</span><span class="s1">&#39;MJDUTC&#39;</span><span class="p">]</span>   <span class="o">=</span> <span class="p">(</span><span class="n">mjd</span><span class="p">,</span>      <span class="s1">&#39;MJD(UTC)&#39;</span><span class="p">)</span>
+    <span class="n">thead</span><span class="p">[</span><span class="s1">&#39;GOODTIME&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kc">True</span><span class="p">,</span>     <span class="s1">&#39;Timestamp reliable&#39;</span><span class="p">)</span>
+    <span class="n">thead</span><span class="p">[</span><span class="s1">&#39;EXPTIME&#39;</span><span class="p">]</span>  <span class="o">=</span> <span class="p">(</span><span class="n">exptime</span><span class="p">,</span>  <span class="s1">&#39;Exposure time (s)&#39;</span><span class="p">)</span>
+    <span class="n">thead</span><span class="p">[</span><span class="s1">&#39;NFRAME&#39;</span><span class="p">]</span>   <span class="o">=</span> <span class="p">(</span><span class="n">nframe</span><span class="p">,</span>   <span class="s1">&#39;Frame number&#39;</span><span class="p">)</span>
+
+    <span class="c1"># --- per-CCD header, stored in the first window (hipercam.Header) ---</span>
+    <span class="n">ccd_head</span> <span class="o">=</span> <span class="n">Header</span><span class="p">()</span>
+    <span class="n">ccd_head</span><span class="p">[</span><span class="s1">&#39;TIMSTAMP&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">tstamp</span><span class="p">,</span>  <span class="s1">&#39;UTC timestamp&#39;</span><span class="p">)</span>
+    <span class="n">ccd_head</span><span class="p">[</span><span class="s1">&#39;MJDINT&#39;</span><span class="p">]</span>   <span class="o">=</span> <span class="p">(</span><span class="n">mjdint</span><span class="p">,</span>  <span class="s1">&#39;Integer part of MJD(UTC)&#39;</span><span class="p">)</span>
+    <span class="n">ccd_head</span><span class="p">[</span><span class="s1">&#39;MJDFRAC&#39;</span><span class="p">]</span>  <span class="o">=</span> <span class="p">(</span><span class="n">mjdfrac</span><span class="p">,</span> <span class="s1">&#39;Fractional part of MJD(UTC)&#39;</span><span class="p">)</span>
+    <span class="n">ccd_head</span><span class="p">[</span><span class="s1">&#39;MJDUTC&#39;</span><span class="p">]</span>   <span class="o">=</span> <span class="p">(</span><span class="n">mjd</span><span class="p">,</span>     <span class="s1">&#39;MJD(UTC)&#39;</span><span class="p">)</span>
+    <span class="n">ccd_head</span><span class="p">[</span><span class="s1">&#39;GOODTIME&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kc">True</span><span class="p">,</span>    <span class="s1">&#39;Timestamp reliable&#39;</span><span class="p">)</span>
+    <span class="n">ccd_head</span><span class="p">[</span><span class="s1">&#39;EXPTIME&#39;</span><span class="p">]</span>  <span class="o">=</span> <span class="p">(</span><span class="n">exptime</span><span class="p">,</span> <span class="s1">&#39;Exposure time (s)&#39;</span><span class="p">)</span>
+    <span class="n">ccd_head</span><span class="p">[</span><span class="s1">&#39;NFRAME&#39;</span><span class="p">]</span>   <span class="o">=</span> <span class="p">(</span><span class="n">nframe</span><span class="p">,</span>  <span class="s1">&#39;Frame number&#39;</span><span class="p">)</span>
+
+    <span class="c1"># --- window, CCD, MCCD ---</span>
+    <span class="n">winhd</span>   <span class="o">=</span> <span class="n">Winhead</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1024</span><span class="p">,</span> <span class="mi">1024</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">head</span><span class="o">=</span><span class="n">ccd_head</span><span class="p">)</span>
+    <span class="n">win</span>     <span class="o">=</span> <span class="n">Window</span><span class="p">(</span><span class="n">winhd</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+
+    <span class="c1"># CCD with total size 1024x1024, no pre/over-scan</span>
+    <span class="n">ccd_obj</span> <span class="o">=</span> <span class="n">CCD</span><span class="p">(</span><span class="n">Group</span><span class="p">(</span><span class="n">Window</span><span class="p">),</span> <span class="n">nxtot</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">nytot</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">nxpad</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">nypad</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="c1"># add the single window to the CCD with label &#39;1&#39;</span>
+    <span class="n">ccd</span><span class="p">[</span><span class="s1">&#39;1&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">win</span>
+
+    <span class="n">ccds</span>    <span class="o">=</span> <span class="n">Group</span><span class="p">(</span><span class="n">CCD</span><span class="p">)</span>
+    <span class="n">ccds</span><span class="p">[</span><span class="s1">&#39;1&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ccd_obj</span>
+    <span class="k">return</span> <span class="n">MCCD</span><span class="p">(</span><span class="n">ccds</span><span class="p">,</span> <span class="n">head</span><span class="o">=</span><span class="n">thead</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="implementing-get-ccd-pars">
+<h2>Implementing get_ccd_pars<a class="headerlink" href="#implementing-get-ccd-pars" title="Link to this heading">¶</a></h2>
+<p><code class="xref py py-func docutils literal notranslate"><span class="pre">get_ccd_pars()</span></code> is called by the pipeline to determine CCD geometry
+before any frames are read (for example, to set up display windows).  It must
+return a dictionary mapping each CCD label to a 4-tuple <code class="docutils literal notranslate"><span class="pre">(nxmax,</span> <span class="pre">nymax,</span> <span class="pre">nxpad,</span> <span class="pre">nypad)</span></code>:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Value</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">nxmax</span></code></p></td>
+<td><p>Full unbinned X dimension of the CCD imaging area</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">nymax</span></code></p></td>
+<td><p>Full unbinned Y dimension of the CCD imaging area</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">nxpad</span></code></p></td>
+<td><p>Extra X pixels to allow for pre/over-scan regions (0 if none)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">nypad</span></code></p></td>
+<td><p>Extra Y pixels to allow for pre/over-scan regions (0 if none)</p></td>
+</tr>
+</tbody>
+</table>
+<p><cite>get_ccd_pars</cite> is called with <code class="docutils literal notranslate"><span class="pre">resource</span></code> and <code class="docutils literal notranslate"><span class="pre">server</span></code> arguments, referring to
+the data resource (e.g. filename) and whether it is accessed via a server. This
+allows one, in principle, to read the underlying data to determine the CCD geometry.
+For many instruments this won’t be necessary, as the CCD geometry is fixed and can be
+hard-coded.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">resource</span></code> and <code class="docutils literal notranslate"><span class="pre">server</span></code> arguments are present for flexibility. For example, if
+at some point you upgrade the detectors on your instrument you can use these arguments to
+read in the header of the first frame and determine which CCD geometry to return.</p>
+<p>For <code class="docutils literal notranslate"><span class="pre">myinstrument</span></code> with its single 1024x1024 CCD and no scan regions:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">get_ccd_pars</span><span class="p">(</span><span class="n">resource</span><span class="p">,</span> <span class="n">server</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return CCD geometry for myinstrument.</span>
+
+<span class="sd">    Arguments::</span>
+
+<span class="sd">       resource : str</span>
+<span class="sd">          Run name.  Not used; myinstrument has fixed geometry.</span>
+
+<span class="sd">       server : bool</span>
+<span class="sd">          Unused; present for API compatibility.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;1&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">1024</span><span class="p">,</span> <span class="mi">1024</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)}</span>
+</pre></div>
+</div>
+</section>
+<section id="using-the-plugin">
+<h2>Using the plugin<a class="headerlink" href="#using-the-plugin" title="Link to this heading">¶</a></h2>
+<p>Once the package is installed the plugin is available from any of the command-line
+scripts. For API use, the plugin is accessed with the
+<code class="docutils literal notranslate"><span class="pre">'&lt;instrument&gt;:local'</span></code> source string:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">hipercam.spooler</span><span class="w"> </span><span class="kn">import</span> <span class="n">data_source</span><span class="p">,</span> <span class="n">get_ccd_pars</span>
+
+<span class="c1"># Iterate through all frames in a file</span>
+<span class="k">with</span> <span class="n">data_source</span><span class="p">(</span><span class="s1">&#39;myinstrument:local&#39;</span><span class="p">,</span> <span class="s1">&#39;run001&#39;</span><span class="p">,</span> <span class="n">first</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="k">as</span> <span class="n">spool</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">mccd</span> <span class="ow">in</span> <span class="n">spool</span><span class="p">:</span>
+        <span class="c1"># mccd is a hipercam.MCCD object</span>
+        <span class="n">ccd1</span> <span class="o">=</span> <span class="n">mccd</span><span class="p">[</span><span class="s1">&#39;1&#39;</span><span class="p">]</span>   <span class="c1"># the single CCD, labelled &#39;1&#39;</span>
+        <span class="o">...</span>
+
+<span class="c1"># Query CCD geometry</span>
+<span class="n">pars</span> <span class="o">=</span> <span class="n">get_ccd_pars</span><span class="p">(</span><span class="s1">&#39;myinstrument:local&#39;</span><span class="p">,</span> <span class="s1">&#39;run001&#39;</span><span class="p">)</span>
+<span class="c1"># returns {&#39;1&#39;: (1024, 1024, 0, 0)}</span>
+</pre></div>
+</div>
+</section>
+<section id="complete-example">
+<h2>Complete example<a class="headerlink" href="#complete-example" title="Link to this heading">¶</a></h2>
+<p>Below is a complete <code class="docutils literal notranslate"><span class="pre">instrument.py</span></code> for a single-CCD instrument storing
+full-frame 1024×1024 data in multi-extension FITS format.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">myinst_plugin.instrument</span>
+<span class="sd">~~~~~~~~~~~~~~~~~~</span>
+
+<span class="sd">HiPERCAM instrument plugin for myinstrument.</span>
+
+<span class="sd">File format assumed::</span>
+
+<span class="sd">    HDU 0  -- primary, header-only (run-level metadata)</span>
+<span class="sd">    HDU 1  -- first frame  (image data + per-frame FITS header)</span>
+<span class="sd">    HDU 2  -- second frame</span>
+<span class="sd">    ...</span>
+
+<span class="sd">Access via hipercam::</span>
+
+<span class="sd">    from hipercam.spooler import data_source</span>
+<span class="sd">    with data_source(&#39;myinstrument:local&#39;, &#39;run001&#39;) as spool:</span>
+<span class="sd">        for mccd in spool:</span>
+<span class="sd">            ...</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">astropy.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">fits</span> <span class="k">as</span> <span class="n">fits</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">hipercam.header</span><span class="w"> </span><span class="kn">import</span> <span class="n">Header</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hipercam.group</span><span class="w"> </span><span class="kn">import</span> <span class="n">Group</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hipercam.window</span><span class="w"> </span><span class="kn">import</span> <span class="n">Winhead</span><span class="p">,</span> <span class="n">Window</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hipercam.ccd</span><span class="w"> </span><span class="kn">import</span> <span class="n">CCD</span><span class="p">,</span> <span class="n">MCCD</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hipercam.instruments</span><span class="w"> </span><span class="kn">import</span> <span class="n">IendError</span><span class="p">,</span> <span class="n">RdataBase</span>
+
+<span class="c1"># tell the hipercam pipeline that this instrument does not support server access</span>
+<span class="n">supports_server_access</span> <span class="o">=</span> <span class="kc">False</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">Rdata</span><span class="p">(</span><span class="n">RdataBase</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Reads frames from a myinstrument data file.</span>
+
+<span class="sd">    Usage::</span>
+
+<span class="sd">        with Rdata(&#39;run001&#39;, nframe=1) as rdat:</span>
+<span class="sd">            for mccd in rdat:</span>
+<span class="sd">                ...</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fname</span><span class="p">,</span> <span class="n">nframe</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">server</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">server</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                <span class="s2">&quot;myinstrument plugin does not support server access&quot;</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fname</span>  <span class="o">=</span> <span class="n">fname</span> <span class="o">+</span> <span class="s2">&quot;.fits&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_hdul</span>   <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_fname</span><span class="p">,</span> <span class="n">memmap</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ntotal</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_hdul</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nframe</span>  <span class="o">=</span> <span class="n">nframe</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nframe</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Read one frame and return it as an MCCD.</span>
+
+<span class="sd">        Arguments::</span>
+
+<span class="sd">           nframe : int or None</span>
+<span class="sd">              Frame number to read (1-based).  If None, reads the next</span>
+<span class="sd">              frame in sequence.</span>
+
+<span class="sd">        Raises :exc:`~hipercam.instruments.IendError` when the end of</span>
+<span class="sd">        the file is reached.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># seek the requested frame if nframe is supplied;</span>
+        <span class="c1"># otherwise read the next frame in sequence</span>
+        <span class="k">if</span> <span class="n">nframe</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nframe</span> <span class="o">=</span> <span class="n">nframe</span>
+
+        <span class="c1"># for data that is already written, indicate we&#39;ve reached</span>
+        <span class="c1"># the end of the file with an exception</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nframe</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ntotal</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">IendError</span><span class="p">(</span><span class="s2">&quot;end of file reached&quot;</span><span class="p">)</span>
+
+        <span class="c1"># get the header and data for the current frame.</span>
+        <span class="n">hdu</span>   <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hdul</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">nframe</span><span class="p">]</span>  <span class="c1"># 1-based: HDU 0 is the primary</span>
+        <span class="n">data</span>  <span class="o">=</span> <span class="n">hdu</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">fhead</span> <span class="o">=</span> <span class="n">hdu</span><span class="o">.</span><span class="n">header</span>               <span class="c1"># raw FITS header for this extension</span>
+
+        <span class="c1"># delegate construction of the MCCD object to a helper method.</span>
+        <span class="n">mccd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_mccd</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">fhead</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nframe</span><span class="p">)</span>
+
+        <span class="c1"># increment the frame counter so a subsequent call</span>
+        <span class="c1"># (with nframe=None) will read the next frame in sequence.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nframe</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="c1"># return the MCCD object to the caller</span>
+        <span class="k">return</span> <span class="n">mccd</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_hdul</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">pass</span>
+
+    <span class="c1"># -------------------------------------------------------------------</span>
+    <span class="c1"># Internal helper</span>
+    <span class="c1"># -------------------------------------------------------------------</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_build_mccd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">fhead</span><span class="p">,</span> <span class="n">nframe</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Build an MCCD from a 2-D pixel array and a raw FITS header.&quot;&quot;&quot;</span>
+
+        <span class="c1"># --- timing values extracted from the raw per-frame header ---</span>
+        <span class="n">mjd</span>     <span class="o">=</span> <span class="n">fhead</span><span class="p">[</span><span class="s1">&#39;MJD-OBS&#39;</span><span class="p">]</span>
+        <span class="n">mjdint</span>  <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">mjd</span><span class="p">)</span>
+        <span class="n">mjdfrac</span> <span class="o">=</span> <span class="n">mjd</span> <span class="o">-</span> <span class="n">mjdint</span>
+        <span class="n">tstamp</span>  <span class="o">=</span> <span class="n">fhead</span><span class="p">[</span><span class="s1">&#39;DATE-OBS&#39;</span><span class="p">]</span>
+        <span class="n">exptime</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">fhead</span><span class="p">[</span><span class="s1">&#39;EXPTIME&#39;</span><span class="p">])</span>
+
+        <span class="c1"># --- top-level MCCD header (astropy fits.Header) ---</span>
+        <span class="n">thead</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">Header</span><span class="p">()</span>
+        <span class="n">thead</span><span class="p">[</span><span class="s1">&#39;INSTRUME&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;myinstrument&#39;</span><span class="p">,</span> <span class="s1">&#39;Instrument name&#39;</span><span class="p">)</span>
+        <span class="n">thead</span><span class="p">[</span><span class="s1">&#39;TIMSTAMP&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">tstamp</span><span class="p">,</span>   <span class="s1">&#39;UTC timestamp&#39;</span><span class="p">)</span>
+        <span class="n">thead</span><span class="p">[</span><span class="s1">&#39;MJDINT&#39;</span><span class="p">]</span>   <span class="o">=</span> <span class="p">(</span><span class="n">mjdint</span><span class="p">,</span>   <span class="s1">&#39;Integer part of MJD(UTC)&#39;</span><span class="p">)</span>
+        <span class="n">thead</span><span class="p">[</span><span class="s1">&#39;MJDFRAC&#39;</span><span class="p">]</span>  <span class="o">=</span> <span class="p">(</span><span class="n">mjdfrac</span><span class="p">,</span>  <span class="s1">&#39;Fractional part of MJD(UTC)&#39;</span><span class="p">)</span>
+        <span class="n">thead</span><span class="p">[</span><span class="s1">&#39;MJDUTC&#39;</span><span class="p">]</span>   <span class="o">=</span> <span class="p">(</span><span class="n">mjd</span><span class="p">,</span>      <span class="s1">&#39;MJD(UTC)&#39;</span><span class="p">)</span>
+        <span class="n">thead</span><span class="p">[</span><span class="s1">&#39;GOODTIME&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kc">True</span><span class="p">,</span>     <span class="s1">&#39;Timestamp reliable&#39;</span><span class="p">)</span>
+        <span class="n">thead</span><span class="p">[</span><span class="s1">&#39;EXPTIME&#39;</span><span class="p">]</span>  <span class="o">=</span> <span class="p">(</span><span class="n">exptime</span><span class="p">,</span>  <span class="s1">&#39;Exposure time (s)&#39;</span><span class="p">)</span>
+        <span class="n">thead</span><span class="p">[</span><span class="s1">&#39;NFRAME&#39;</span><span class="p">]</span>   <span class="o">=</span> <span class="p">(</span><span class="n">nframe</span><span class="p">,</span>   <span class="s1">&#39;Frame number&#39;</span><span class="p">)</span>
+
+        <span class="c1"># --- per-CCD header, stored in the first window (hipercam.Header) ---</span>
+        <span class="n">ccd_head</span> <span class="o">=</span> <span class="n">Header</span><span class="p">()</span>
+        <span class="n">ccd_head</span><span class="p">[</span><span class="s1">&#39;TIMSTAMP&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">tstamp</span><span class="p">,</span>  <span class="s1">&#39;UTC timestamp&#39;</span><span class="p">)</span>
+        <span class="n">ccd_head</span><span class="p">[</span><span class="s1">&#39;MJDINT&#39;</span><span class="p">]</span>   <span class="o">=</span> <span class="p">(</span><span class="n">mjdint</span><span class="p">,</span>  <span class="s1">&#39;Integer part of MJD(UTC)&#39;</span><span class="p">)</span>
+        <span class="n">ccd_head</span><span class="p">[</span><span class="s1">&#39;MJDFRAC&#39;</span><span class="p">]</span>  <span class="o">=</span> <span class="p">(</span><span class="n">mjdfrac</span><span class="p">,</span> <span class="s1">&#39;Fractional part of MJD(UTC)&#39;</span><span class="p">)</span>
+        <span class="n">ccd_head</span><span class="p">[</span><span class="s1">&#39;MJDUTC&#39;</span><span class="p">]</span>   <span class="o">=</span> <span class="p">(</span><span class="n">mjd</span><span class="p">,</span>     <span class="s1">&#39;MJD(UTC)&#39;</span><span class="p">)</span>
+        <span class="n">ccd_head</span><span class="p">[</span><span class="s1">&#39;GOODTIME&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kc">True</span><span class="p">,</span>    <span class="s1">&#39;Timestamp reliable&#39;</span><span class="p">)</span>
+        <span class="n">ccd_head</span><span class="p">[</span><span class="s1">&#39;EXPTIME&#39;</span><span class="p">]</span>  <span class="o">=</span> <span class="p">(</span><span class="n">exptime</span><span class="p">,</span> <span class="s1">&#39;Exposure time (s)&#39;</span><span class="p">)</span>
+        <span class="n">ccd_head</span><span class="p">[</span><span class="s1">&#39;NFRAME&#39;</span><span class="p">]</span>   <span class="o">=</span> <span class="p">(</span><span class="n">nframe</span><span class="p">,</span>  <span class="s1">&#39;Frame number&#39;</span><span class="p">)</span>
+
+        <span class="c1"># --- Create single Window object (only one readout amplifier) ---</span>
+        <span class="c1"># Winhead describes window position and binning.</span>
+        <span class="c1"># For a full-frame 1024x1024 readout with 1x1 binning:</span>
+        <span class="c1">#   llx=1, lly=1      lower-left unbinned pixel (1-based)</span>
+        <span class="c1">#   nx=1024, ny=1024  window size in binned pixels</span>
+        <span class="c1">#   xbin=1, ybin=1    binning factors</span>
+        <span class="c1">#   outamp=&#39;&#39;         output amplifier location unknown</span>
+        <span class="n">winhd</span>   <span class="o">=</span> <span class="n">Winhead</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1024</span><span class="p">,</span> <span class="mi">1024</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">head</span><span class="o">=</span><span class="n">ccd_head</span><span class="p">)</span>
+        <span class="n">win</span>     <span class="o">=</span> <span class="n">Window</span><span class="p">(</span><span class="n">winhd</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="c1"># CCD with total size 1024x1024, no pre/over-scan</span>
+        <span class="n">ccd_obj</span> <span class="o">=</span> <span class="n">CCD</span><span class="p">(</span><span class="n">Group</span><span class="p">(</span><span class="n">Window</span><span class="p">),</span> <span class="n">nxtot</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">nytot</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">nxpad</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">nypad</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="c1"># add the single window to the CCD with label &#39;1&#39;</span>
+        <span class="n">ccd</span><span class="p">[</span><span class="s1">&#39;1&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">win</span>
+
+        <span class="n">ccds</span>    <span class="o">=</span> <span class="n">Group</span><span class="p">(</span><span class="n">CCD</span><span class="p">)</span>
+        <span class="n">ccds</span><span class="p">[</span><span class="s1">&#39;1&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ccd_obj</span>
+        <span class="k">return</span> <span class="n">MCCD</span><span class="p">(</span><span class="n">ccds</span><span class="p">,</span> <span class="n">head</span><span class="o">=</span><span class="n">thead</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">get_ccd_pars</span><span class="p">(</span><span class="n">resource</span><span class="p">,</span> <span class="n">server</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return CCD geometry for myinstrument.</span>
+
+<span class="sd">    Arguments::</span>
+
+<span class="sd">       resource : str</span>
+<span class="sd">          File name.  Not used; myinstrument has fixed geometry.</span>
+
+<span class="sd">       server : bool</span>
+<span class="sd">          Unused; present for API compatibility.</span>
+
+<span class="sd">    Returns a dictionary mapping CCD label</span>
+<span class="sd">    ``&#39;1&#39;`` to ``(nxmax, nymax, nxpad, nypad)`` = ``(1024, 1024, 0, 0)``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;1&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">1024</span><span class="p">,</span> <span class="mi">1024</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)}</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><h3>Table of Contents</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="news.html">HiPERCAM pipeline news</a></li>
+<li class="toctree-l1"><a class="reference internal" href="observers.html">Observer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="commands.html">HiPERCAM commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/api.html">The API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Getting the software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="files.html">Useful files</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Writing an instrument plugin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/bugs.html">Reporting problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="makingmovies.html">Making HiPERCAM movies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="phaseII.html">HiPERCAM Phase II</a></li>
+<li class="toctree-l1"><a class="reference internal" href="autoapi/index.html">API Reference</a></li>
+</ul>
+
+
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="files.html"
+                          title="previous chapter">Useful files</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="makingmovies.html"
+                          title="next chapter">Making HiPERCAM movies</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/plugins.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<form action="search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="_sources/plugins.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2017, T.R. Marsh.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 7.4.7. &nbsp;
+  </p>
+</footer>
+  </body>
+</html>

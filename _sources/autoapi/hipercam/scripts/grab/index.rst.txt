@@ -1,0 +1,185 @@
+hipercam.scripts.grab
+=====================
+
+.. py:module:: hipercam.scripts.grab
+
+.. autoapi-nested-parse::
+
+   Command line script to grab images
+
+   ..
+       !! processed by numpydoc !!
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   hipercam.scripts.grab.grab
+
+
+Module Contents
+---------------
+
+.. py:function:: grab(args=None)
+
+   
+   ``grab [source temp] (run first last (ndigit) [twait tmax] | flist
+   (prefix)) trim ([ncol nrow]) bias dark flat fmap (fpair [nhalf rmin
+   rmax verbose]) [dtype]``
+
+   This downloads a sequence of images from a raw data file and writes them
+   out to a series CCD / MCCD files.
+
+   Parameters:
+
+      source : str [hidden]
+          Data source, five options for built-in sources:
+
+             | 'hs' : HiPERCAM server
+             | 'hl' : local HiPERCAM FITS file
+             | 'us' : ULTRACAM server
+             | 'ul' : local ULTRACAM .xml/.dat files
+             | 'hf' : list of HiPERCAM hcm FITS-format files
+
+          The standard start-off default for ``source`` can be set
+          using the environment variable
+          HIPERCAM_DEFAULT_SOURCE. e.g. in bash :code:`export
+          HIPERCAM_DEFAULT_SOURCE="us"` would ensure it always
+          started with the ULTRACAM server by default. If
+          unspecified, it defaults to 'hl'. 'hf' is useful if you
+          want to apply pipeline calibrations (bias, flat, etc) to
+          files imported from a 'foreign' format. In this case the
+          output files will have the same name as the inputs but
+          with a prefix added.
+
+          Any instruments installed via plugins can be used as a source by
+          specifying either ``<instrument>:local`` or ``<instrument>:server``.
+
+      temp : bool [hidden, defaults to False]
+          True to indicate that the frames should be written to
+          temporary files with automatically-generated names in the
+          expectation of deleting them later. This also writes out a
+          file listing the names.  The aim of this is to allow grab
+          to be used as a feeder for other routines in larger
+          scripts.  If temp == True, grab will return with the name
+          of the list of hcm files. Look at 'makebias' for an example
+          that uses this feature.
+
+      run : str [if source ends 's' or 'l']
+          run number to access, e.g. 'run034'
+
+      first : int [if source ends 's' or 'l']
+          First frame to access
+
+      last : int [if source ends 's' or 'l']
+          Last frame to access, 0 for the lot
+
+      ndigit : int [if source ends 's' or 'l' and not temp]
+          Files created will be written as 'run005_0013.fits'
+          etc. `ndigit` is the number of digits used for the frame
+          number (4 in this case). Any pre-existing files of the same
+          name will be over-written.
+
+      twait : float [hidden]
+          time to wait between attempts to find a new exposure, seconds.
+
+      tmax : float [hidden]
+          maximum time to wait between attempts to find a new exposure,
+          seconds.
+
+      flist : str [if source ends 'f']
+          name of file list. Output files will have the same names
+          as the input files with a prefix added
+
+      prefix : str [if source ends 'f' and not temp]
+          prefix to add to create output file names
+
+      trim : bool
+          True to trim columns and/or rows off the edges of windows
+          nearest the readout. Particularly useful for ULTRACAM
+          windowed data where the first few rows and columns can
+          contain bad data.
+
+      ncol : int [if trim, hidden]
+          Number of columns to remove (on left of left-hand window,
+          and right of right-hand windows)
+
+      nrow : int [if trim, hidden]
+          Number of rows to remove (bottom of windows)
+
+      bias : str
+          Name of bias frame to subtract, 'none' to ignore.
+
+      dark : str
+          Name of dark frame, 'none' to ignore.
+
+      flat : str
+          Name of flat field to divide by, 'none' to ignore. Should normally
+          only be used in conjunction with a bias, although it does allow you
+          to specify a flat even if you haven't specified a bias.
+
+      fmap : str
+          Name of fringe map (see e.g. `makefringe`), 'none' to ignore.
+
+      fpair : str [if fmap is not 'none']
+          Name of fringe pair file (see e.g. `setfringe`). Required if
+          a fringe map has been specified.
+
+      nhalf : int [if fmap is not 'none', hidden]
+          When calculating the differences for fringe measurement,
+          a region extending +/-nhalf binned pixels will be used when
+          measuring the amplitudes. Basically helps the stats.
+
+      rmin : float [if fmap is not 'none', hidden]
+          Minimum individual ratio to accept prior to calculating the overall
+          median in order to reduce the effect of outliers. Although all ratios
+          should be positive, you might want to set this a little below zero
+          to allow for some statistical fluctuation.
+
+      rmax : float [if fmap is not 'none', hidden]
+          Maximum individual ratio to accept prior to calculating the overall
+          median in order to reduce the effect of outliers. Probably typically
+          < 1 if fringe map was created from longer exposure data.
+
+      verbose : bool
+          True to print lots of details of fringe ratios
+
+      dtype : string [hidden, defaults to 'f32']
+          Data type on output. Options:
+
+           | 'f32' : output as 32-bit floats (default)
+
+           | 'f64' : output as 64-bit floats.
+
+           | 'u16' : output as 16-bit unsigned integers. A warning will be
+                     issued if loss of precision occurs; an exception will
+                     be raised if the data are outside the range 0 to 65535.
+
+   .. Note::
+
+      |grab| is used by several other scripts such as |averun| so take great
+      care when changing anything to do with its input parameters.
+
+      If you use the "temp" option to write to temporary files, then those
+      files will be deleted if you interrup with CTRL-C. This is to prevent
+      the accumulation of such frames.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+

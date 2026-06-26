@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>hipercam.ucam &#8212; HiPERCAM pipeline 1.6.8.dev12+g30055e846 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/bootstrap-astropy.css?v=177ce38d" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=fd3f3429" />
+    
+    <script src="../../../_static/documentation_options.js?v=adfd3a0b"></script>
+    <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script type="text/javascript" src="../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="hipercam.utils" href="../utils/index.html" />
+    <link rel="prev" title="hipercam.tests.window_test" href="../tests/window_test/index.html" />
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../index.html"><span id="logotext1">astro</span><span id="logotext2"></span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="../utils/index.html" title="hipercam.utils">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="../tests/window_test/index.html" title="hipercam.tests.window_test">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../../../index.html">HiPERCAM pipeline 1.6.8.dev12+g30055e846 documentation</a>
+	 &#187;
+      </li>
+      <li><a href="../../index.html" >API Reference</a> &#187;</li>
+      <li><a href="../index.html" accesskey="U">hipercam</a> &#187;</li>
+      
+      <li>hipercam.ucam</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-hipercam.ucam">
+<span id="hipercam-ucam"></span><h1>hipercam.ucam<a class="headerlink" href="#module-hipercam.ucam" title="Link to this heading">¶</a></h1>
+<p>Module for handling raw ULTRA(CAM|SPEC) data.</p>
+<p>The main class is <a class="reference internal" href="#hipercam.ucam.Rdata" title="hipercam.ucam.Rdata"><code class="xref py py-class docutils literal notranslate"><span class="pre">Rdata</span></code></a></p>
+<section id="attributes">
+<h2>Attributes<a class="headerlink" href="#attributes" title="Link to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.ucam.IendError" title="hipercam.ucam.IendError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">IendError</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.ucam.Rhead" title="hipercam.ucam.Rhead"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Rhead</span></code></a></p></td>
+<td><p>Stores the essential header info of an ULTRACAM/SPEC run as read</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.ucam.Rdata" title="hipercam.ucam.Rdata"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Rdata</span></code></a></p></td>
+<td><p>Callable, iterable object to represent ULTRACAM/SPEC raw data files.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.ucam.Rtbytes" title="hipercam.ucam.Rtbytes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Rtbytes</span></code></a></p></td>
+<td><p>Iterator class to enable swift reading of Ultracam timing bytes. See</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.ucam.Rtime" title="hipercam.ucam.Rtime"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Rtime</span></code></a></p></td>
+<td><p>Iterator class to enable swift reading of Ultracam times.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.ucam.get_ccd_pars" title="hipercam.ucam.get_ccd_pars"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_ccd_pars</span></code></a>(resource[, server])</p></td>
+<td><p>Return CCD geometry parameters for ULTRACAM or ULTRASPEC.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.ucam.Rhead">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.ucam.</span></span><span class="sig-name descname"><span class="pre">Rhead</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">run</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">server</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ucam.Rhead" title="Link to this definition">¶</a></dt>
+<dd><p>Stores the essential header info of an ULTRACAM/SPEC run as read
+from a run###.xml file. Most of the items are stored in the header
+attribute, but a number of them and some extras are put into
+attributes for simple reference in methods of the class. Some
+items are specific to either ULTRACAM or ULTRASPEC, as indicated
+by [] below. These are the attributes set (alphabetical order):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">framesize</span> <span class="p">:</span> <span class="nb">int</span>
+   <span class="n">total</span> <span class="n">number</span> <span class="n">of</span> <span class="nb">bytes</span> <span class="n">per</span> <span class="n">frame</span><span class="o">.</span>
+
+<span class="n">header</span> <span class="p">:</span> <span class="n">Header</span>
+   <span class="n">contains</span> <span class="n">many</span> <span class="n">header</span> <span class="n">items</span><span class="o">.</span> <span class="n">Simulates</span> <span class="n">FITS</span><span class="o">-</span><span class="n">like</span> <span class="n">behaviour</span> <span class="n">to</span> <span class="n">allow</span>
+   <span class="n">straightforward</span> <span class="n">disk</span> <span class="n">I</span><span class="o">/</span><span class="n">O</span><span class="o">.</span>
+
+<span class="n">headerwords</span> <span class="p">:</span> <span class="nb">int</span>
+   <span class="n">number</span> <span class="n">of</span> <span class="n">words</span> <span class="p">(</span><span class="mi">2</span><span class="o">-</span><span class="nb">bytes</span><span class="o">/</span><span class="n">word</span><span class="p">)</span> <span class="ow">in</span> <span class="n">timing</span> <span class="n">info</span> <span class="n">at</span> <span class="n">start</span> <span class="n">of</span> <span class="n">a</span> <span class="n">frame</span><span class="o">.</span>
+
+<span class="n">instrument</span> <span class="p">:</span> <span class="nb">str</span>
+   <span class="s1">&#39;ULTRACAM&#39;</span> <span class="ow">or</span> <span class="s1">&#39;ULTRASPEC&#39;</span>
+
+<span class="n">nccd</span> <span class="p">:</span> <span class="nb">int</span>
+   <span class="n">number</span> <span class="n">of</span> <span class="n">CCDs</span>
+
+<span class="n">nxmax</span> <span class="p">:</span> <span class="nb">int</span>
+   <span class="n">maximum</span> <span class="n">X</span> <span class="n">dimension</span><span class="p">,</span> <span class="n">unbinned</span> <span class="n">pixels</span>
+
+<span class="n">nymax</span> <span class="p">:</span> <span class="nb">int</span>
+   <span class="n">maximum</span> <span class="n">Y</span> <span class="n">dimension</span><span class="p">,</span> <span class="n">unbinned</span> <span class="n">pixels</span><span class="o">.</span>
+
+<span class="n">run</span> <span class="p">:</span> <span class="n">string</span>
+   <span class="n">The</span> <span class="n">run</span> <span class="n">number</span> <span class="n">e</span><span class="o">.</span><span class="n">g</span><span class="o">.</span> <span class="s1">&#39;run005&#39;</span>
+
+<span class="n">server</span> <span class="p">:</span> <span class="nb">bool</span>
+   <span class="kc">True</span><span class="o">/</span><span class="kc">False</span> <span class="n">to</span> <span class="n">indicate</span> <span class="n">server</span> <span class="n">access</span>
+
+<span class="n">timeUnits</span> <span class="p">:</span> <span class="nb">float</span>
+   <span class="n">units</span> <span class="n">of</span> <span class="n">time</span> <span class="n">steps</span> <span class="ow">in</span> <span class="n">seconds</span>
+
+<span class="n">version</span> <span class="p">:</span> <span class="nb">int</span>
+   <span class="n">version</span> <span class="n">number</span>
+
+<span class="n">whichRun</span> <span class="p">:</span> <span class="nb">str</span> <span class="p">[</span><span class="n">ULTRACAM</span><span class="p">]</span>
+   <span class="n">to</span> <span class="n">do</span> <span class="k">with</span> <span class="n">timing</span><span class="o">.</span>
+
+<span class="n">win</span> <span class="p">:</span> <span class="nb">list</span>
+   <span class="n">A</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">Winhead</span> <span class="n">objects</span><span class="p">,</span> <span class="n">one</span> <span class="n">per</span> <span class="n">window</span><span class="o">.</span> <span class="n">ULTRACAM</span> <span class="n">data</span> <span class="ow">is</span> <span class="n">multi</span><span class="o">-</span><span class="n">CCD</span>
+   <span class="n">but</span> <span class="n">the</span> <span class="n">windows</span> <span class="n">of</span> <span class="n">each</span> <span class="n">CCD</span> <span class="n">are</span> <span class="n">identical</span> <span class="n">so</span> <span class="n">the</span> <span class="n">information</span> <span class="ow">is</span> <span class="n">only</span>
+   <span class="n">stored</span> <span class="n">once</span> <span class="k">for</span> <span class="nb">all</span> <span class="n">CCDs</span><span class="o">.</span>
+
+<span class="n">wforms</span> <span class="p">:</span> <span class="nb">tuple</span> <span class="n">of</span> <span class="nb">str</span>
+   <span class="n">formats</span> <span class="n">of</span> <span class="n">each</span> <span class="nb">set</span> <span class="n">of</span> <span class="n">windows</span> <span class="k">as</span> <span class="n">strings</span> <span class="n">on</span> <span class="n">integers</span> <span class="n">separted</span> <span class="n">by</span> <span class="n">commas</span>
+   <span class="n">designed</span> <span class="n">to</span> <span class="n">match</span> <span class="n">the</span> <span class="nb">input</span> <span class="n">expected</span> <span class="k">for</span> <span class="n">udriver</span><span class="o">/</span><span class="n">usdriver</span><span class="p">,</span> <span class="k">for</span> <span class="n">logging</span> <span class="n">purposes</span><span class="o">.</span>
+</pre></div>
+</div>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.ucam.Rhead.run">
+<span class="sig-name descname"><span class="pre">run</span></span><a class="headerlink" href="#hipercam.ucam.Rhead.run" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.ucam.Rhead.fname">
+<span class="sig-name descname"><span class="pre">fname</span></span><a class="headerlink" href="#hipercam.ucam.Rhead.fname" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.ucam.Rhead.server">
+<span class="sig-name descname"><span class="pre">server</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#hipercam.ucam.Rhead.server" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.ucam.Rhead.framesize">
+<span class="sig-name descname"><span class="pre">framesize</span></span><a class="headerlink" href="#hipercam.ucam.Rhead.framesize" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.ucam.Rhead.headerwords">
+<span class="sig-name descname"><span class="pre">headerwords</span></span><a class="headerlink" href="#hipercam.ucam.Rhead.headerwords" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.ucam.Rhead.ntbytes">
+<span class="sig-name descname"><span class="pre">ntbytes</span></span><a class="headerlink" href="#hipercam.ucam.Rhead.ntbytes" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.ucam.Rhead.instrument">
+<span class="sig-name descname"><span class="pre">instrument</span></span><a class="headerlink" href="#hipercam.ucam.Rhead.instrument" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.ucam.Rhead.mode">
+<span class="sig-name descname"><span class="pre">mode</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'DRIFT'</span></em><a class="headerlink" href="#hipercam.ucam.Rhead.mode" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.ucam.Rhead.xbin">
+<span class="sig-name descname"><span class="pre">xbin</span></span><a class="headerlink" href="#hipercam.ucam.Rhead.xbin" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.ucam.Rhead.ybin">
+<span class="sig-name descname"><span class="pre">ybin</span></span><a class="headerlink" href="#hipercam.ucam.Rhead.ybin" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.ucam.Rhead.win">
+<span class="sig-name descname"><span class="pre">win</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></em><a class="headerlink" href="#hipercam.ucam.Rhead.win" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.ucam.Rhead.version">
+<span class="sig-name descname"><span class="pre">version</span></span><a class="headerlink" href="#hipercam.ucam.Rhead.version" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.ucam.Rhead.whichRun">
+<span class="sig-name descname"><span class="pre">whichRun</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">''</span></em><a class="headerlink" href="#hipercam.ucam.Rhead.whichRun" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.ucam.Rhead.exposeTime">
+<span class="sig-name descname"><span class="pre">exposeTime</span></span><a class="headerlink" href="#hipercam.ucam.Rhead.exposeTime" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.ucam.Rhead.wforms">
+<span class="sig-name descname"><span class="pre">wforms</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></em><a class="headerlink" href="#hipercam.ucam.Rhead.wforms" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ucam.Rhead.npix">
+<span class="sig-name descname"><span class="pre">npix</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ucam.Rhead.npix" title="Link to this definition">¶</a></dt>
+<dd><p>Returns number of (binned) pixels per CCD</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ucam.Rhead.isPonoff">
+<span class="sig-name descname"><span class="pre">isPonoff</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ucam.Rhead.isPonoff" title="Link to this definition">¶</a></dt>
+<dd><p>Is the run a power on / off? (no data)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ucam.Rhead.__enter__">
+<span class="sig-name descname"><span class="pre">__enter__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ucam.Rhead.__enter__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ucam.Rhead.__exit__">
+<span class="sig-name descname"><span class="pre">__exit__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ucam.Rhead.__exit__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.ucam.Rdata">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.ucam.</span></span><span class="sig-name descname"><span class="pre">Rdata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">run</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nframe</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">server</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ccd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ucam.Rdata" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#hipercam.ucam.Rhead" title="hipercam.ucam.Rhead"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Rhead</span></code></a></p>
+<p>Callable, iterable object to represent ULTRACAM/SPEC raw data files.</p>
+<p>The idea is to instantiate an Rdata by opening run .xml and .dat files,
+and then the object generated can be used to deliver frames by specifying
+a frame number e.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">rdat</span> <span class="o">=</span> <span class="n">Rdata</span><span class="p">(</span><span class="s1">&#39;run045&#39;</span><span class="p">)</span>
+<span class="n">fr10</span> <span class="o">=</span> <span class="n">rdat</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">fr11</span> <span class="o">=</span> <span class="n">rdat</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>reads frame number 10 and then 11 in from ‘run045’, or sequentially:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">frm</span> <span class="ow">in</span> <span class="n">Rdata</span><span class="p">(</span><span class="s1">&#39;run045&#39;</span><span class="p">):</span>
+   <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;nccd = &#39;</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">frm</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>Rdata maintains an internal file object pointer that is always at the
+start of a frame. This enables sequential reads to be swift. Once one
+frame is read, it is ready for the next. If an attempt is made to access a
+frame that does not exist, it defaults to the start of the file. The above
+code returns <a class="reference internal" href="../index.html#hipercam.MCCD" title="hipercam.MCCD"><code class="xref py py-class docutils literal notranslate"><span class="pre">hipercam.MCCD</span></code></a> objects for ULTRACAM data.</p>
+<p><code class="xref py py-class docutils literal notranslate"><span class="pre">ucam.Rdata</span></code> can talk to the ATC FileServer if it is running,
+e.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">rdat</span> <span class="o">=</span> <span class="n">Rdata</span><span class="p">(</span><span class="s1">&#39;run045&#39;</span><span class="p">,</span><span class="n">server</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Rdata converts all incoming data into float32 rather than 2-byte ints.
+This is much safer for code that accesses the data.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.ucam.Rdata.last">
+<span class="sig-name descname"><span class="pre">last</span></span><a class="headerlink" href="#hipercam.ucam.Rdata.last" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.ucam.Rdata.nframe">
+<span class="sig-name descname"><span class="pre">nframe</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#hipercam.ucam.Rdata.nframe" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.ucam.Rdata._ccd">
+<span class="sig-name descname"><span class="pre">_ccd</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#hipercam.ucam.Rdata._ccd" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.ucam.Rdata._tstamp">
+<span class="sig-name descname"><span class="pre">_tstamp</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></em><a class="headerlink" href="#hipercam.ucam.Rdata._tstamp" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ucam.Rdata.__iter__">
+<span class="sig-name descname"><span class="pre">__iter__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ucam.Rdata.__iter__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ucam.Rdata.__next__">
+<span class="sig-name descname"><span class="pre">__next__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ucam.Rdata.__next__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ucam.Rdata.set">
+<span class="sig-name descname"><span class="pre">set</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nframe</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ucam.Rdata.set" title="Link to this definition">¶</a></dt>
+<dd><p>Sets the internal file pointer to point at frame number nframe.
+Updates self.nframe equivalently. Returns the value of self.nframe
+on entry.</p>
+<p>Args:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">nframe</span> <span class="p">:</span> <span class="p">(</span><span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span>
+   <span class="n">frame</span> <span class="n">number</span> <span class="n">to</span> <span class="n">get</span><span class="p">,</span> <span class="n">starting</span> <span class="n">at</span> <span class="mf">1.</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">the</span> <span class="n">last</span> <span class="p">(</span><span class="n">complete</span><span class="p">)</span>
+   <span class="n">frame</span><span class="o">.</span> <span class="n">A</span> <span class="n">value</span> <span class="n">of</span> <span class="s1">&#39;None&#39;</span> <span class="n">will</span> <span class="n">be</span> <span class="n">ignored</span><span class="o">.</span> <span class="n">A</span> <span class="n">value</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="n">will</span> <span class="n">cause</span>
+   <span class="n">an</span> <span class="n">exception</span><span class="o">.</span> <span class="n">A</span> <span class="n">value</span> <span class="n">greater</span> <span class="n">than</span> <span class="n">the</span> <span class="n">number</span> <span class="n">of</span> <span class="n">frames</span> <span class="ow">in</span> <span class="n">the</span>
+   <span class="n">file</span> <span class="n">will</span> <span class="n">work</span><span class="p">,</span> <span class="n">but</span> <span class="n">will</span> <span class="n">cause</span> <span class="n">an</span> <span class="n">exception</span> <span class="n">to</span> <span class="n">be</span> <span class="n">raised</span> <span class="n">on</span> <span class="n">the</span>
+   <span class="nb">next</span> <span class="n">attempted</span> <span class="n">read</span><span class="o">.</span>
+</pre></div>
+</div>
+<p>It returns</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ucam.Rdata.ntotal">
+<span class="sig-name descname"><span class="pre">ntotal</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ucam.Rdata.ntotal" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the total number of frames in data file</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ucam.Rdata.time">
+<span class="sig-name descname"><span class="pre">time</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nframe</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ucam.Rdata.time" title="Link to this definition">¶</a></dt>
+<dd><p>Returns timing information of frame nframe (starts from 1). This
+saves effort reading the data in some cases. Once done, it
+moves to the next frame.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">nframe</span> <span class="p">:</span> <span class="p">(</span><span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span>
+   <span class="n">frame</span> <span class="n">number</span> <span class="n">to</span> <span class="n">get</span><span class="p">,</span> <span class="n">starting</span> <span class="n">at</span> <span class="mf">1.</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">the</span> <span class="n">last</span> <span class="p">(</span><span class="n">complete</span><span class="p">)</span>
+   <span class="n">frame</span><span class="o">.</span> <span class="n">If</span> <span class="n">nframe</span> <span class="o">==</span> <span class="kc">None</span><span class="p">,</span> <span class="n">the</span> <span class="n">current</span> <span class="n">frame</span> <span class="n">will</span> <span class="n">be</span> <span class="n">used</span><span class="o">.</span>
+</pre></div>
+</div>
+<p>See utimer for what gets returned by this. See also Rtime for a class
+dedicated to reading times only.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ucam.Rdata.__call__">
+<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nframe</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ucam.Rdata.__call__" title="Link to this definition">¶</a></dt>
+<dd><p>Reads one exposure from the run the <a class="reference internal" href="#hipercam.ucam.Rdata" title="hipercam.ucam.Rdata"><code class="xref py py-class docutils literal notranslate"><span class="pre">Rdata</span></code></a> is attached
+to. It works on the assumption that the internal file pointer
+in the <a class="reference internal" href="#hipercam.ucam.Rdata" title="hipercam.ucam.Rdata"><code class="xref py py-class docutils literal notranslate"><span class="pre">Rdata</span></code></a> is positioned at the start of a
+frame. If <cite>nframe</cite> is None, then it will read the frame it is
+positioned at. If nframe is an integer &gt; 0, it will try to
+read that particular frame; if self.nframe == 0, it reads the
+last complete frame.  nframe == 1 gives the first frame. This
+returns either a CCD or MCCD object for ULTRASPEC and ULTRACAM
+respectively. It raises an exception if it fails to read data
+and resets to the start of the file in this case. The data are
+stored internally as either 4-byte floats or 2-byte unsigned
+ints.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">nframe</span> <span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span>
+   <span class="n">frame</span> <span class="n">number</span> <span class="n">to</span> <span class="n">get</span><span class="p">,</span> <span class="n">starting</span> <span class="n">at</span> <span class="mf">1.</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">the</span> <span class="n">last</span> <span class="p">(</span><span class="n">complete</span><span class="p">)</span>
+   <span class="n">frame</span><span class="o">.</span> <span class="s1">&#39;None&#39;</span> <span class="n">indicates</span> <span class="n">that</span> <span class="n">the</span> <span class="nb">next</span> <span class="n">frame</span> <span class="ow">is</span> <span class="n">wanted</span><span class="o">.</span>
+</pre></div>
+</div>
+<p>Returns an MCCD for ULTRACAM, a CCD for ULTRASPEC. When
+reading from the server, if a read fails, it is assumed to be
+because we are at the end of a file that might grow and None
+is returned. It is left up to the calling program to handle
+this.</p>
+<p>Apart from reading the raw bytes, the main job of this routine
+is to divide up and re-package the bytes read into Windows
+suitable for constructing CCD objects. It converts all
+incoming data into 32-bit floats which avoids problems
+associated with unsigned ints.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.ucam.Rtbytes">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.ucam.</span></span><span class="sig-name descname"><span class="pre">Rtbytes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">run</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nframe</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">server</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">old</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ucam.Rtbytes" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#hipercam.ucam.Rhead" title="hipercam.ucam.Rhead"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Rhead</span></code></a></p>
+<p>Iterator class to enable swift reading of Ultracam timing bytes. See
+also Rtime which translates these into times.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ucam.Rtbytes.set">
+<span class="sig-name descname"><span class="pre">set</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nframe</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ucam.Rtbytes.set" title="Link to this definition">¶</a></dt>
+<dd><p>Sets the internal file pointer to point at frame number nframe.
+Updates self.nframe equivalently. Returns the value of self.nframe
+on entry.</p>
+<p>Args:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">nframe</span> <span class="p">:</span> <span class="p">(</span><span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span>
+   <span class="n">frame</span> <span class="n">number</span> <span class="n">to</span> <span class="n">get</span><span class="p">,</span> <span class="n">starting</span> <span class="n">at</span> <span class="mf">1.</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">the</span> <span class="n">last</span> <span class="p">(</span><span class="n">complete</span><span class="p">)</span>
+   <span class="n">frame</span><span class="o">.</span> <span class="n">A</span> <span class="n">value</span> <span class="n">of</span> <span class="s1">&#39;None&#39;</span> <span class="n">will</span> <span class="n">be</span> <span class="n">ignored</span><span class="o">.</span> <span class="n">A</span> <span class="n">value</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="n">will</span> <span class="n">cause</span>
+   <span class="n">an</span> <span class="n">exception</span><span class="o">.</span> <span class="n">A</span> <span class="n">value</span> <span class="n">greater</span> <span class="n">than</span> <span class="n">the</span> <span class="n">number</span> <span class="n">of</span> <span class="n">frames</span> <span class="ow">in</span> <span class="n">the</span>
+   <span class="n">file</span> <span class="n">will</span> <span class="n">work</span><span class="p">,</span> <span class="n">but</span> <span class="n">will</span> <span class="n">cause</span> <span class="n">an</span> <span class="n">exception</span> <span class="n">to</span> <span class="n">be</span> <span class="n">raised</span> <span class="n">on</span> <span class="n">the</span>
+   <span class="nb">next</span> <span class="n">attempted</span> <span class="n">read</span><span class="o">.</span>
+</pre></div>
+</div>
+<p>It returns the value of self.nframe on entry</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ucam.Rtbytes.close_file">
+<span class="sig-name descname"><span class="pre">close_file</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ucam.Rtbytes.close_file" title="Link to this definition">¶</a></dt>
+<dd><p>Closes the file connected to the Rtime object to allow
+other reads to go ahead</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ucam.Rtbytes.__iter__">
+<span class="sig-name descname"><span class="pre">__iter__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ucam.Rtbytes.__iter__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ucam.Rtbytes.__next__">
+<span class="sig-name descname"><span class="pre">__next__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ucam.Rtbytes.__next__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ucam.Rtbytes.__call__">
+<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nframe</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ucam.Rtbytes.__call__" title="Link to this definition">¶</a></dt>
+<dd><p>Returns timing information of frame nframe (starts from 1).</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">nframe</span> <span class="o">--</span> <span class="n">frame</span> <span class="n">number</span> <span class="n">to</span> <span class="n">get</span><span class="p">,</span> <span class="n">starting</span> <span class="n">at</span> <span class="mf">1.</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">the</span> <span class="n">last</span>
+        <span class="p">(</span><span class="n">complete</span><span class="p">)</span> <span class="n">frame</span><span class="o">.</span>
+</pre></div>
+</div>
+<p>See utimer for what gets returned by this.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.ucam.Rtime">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.ucam.</span></span><span class="sig-name descname"><span class="pre">Rtime</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">run</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nframe</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">server</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">old</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ucam.Rtime" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#hipercam.ucam.Rtbytes" title="hipercam.ucam.Rtbytes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Rtbytes</span></code></a></p>
+<p>Iterator class to enable swift reading of Ultracam times.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.ucam.Rtime.__call__">
+<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nframe</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ucam.Rtime.__call__" title="Link to this definition">¶</a></dt>
+<dd><p>Returns timing information of frame nframe (starts from 1).</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">nframe</span> <span class="o">--</span> <span class="n">frame</span> <span class="n">number</span> <span class="n">to</span> <span class="n">get</span><span class="p">,</span> <span class="n">starting</span> <span class="n">at</span> <span class="mf">1.</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">the</span> <span class="n">last</span>
+        <span class="p">(</span><span class="n">complete</span><span class="p">)</span> <span class="n">frame</span><span class="o">.</span>
+</pre></div>
+</div>
+<p>See utimer for what gets returned by this.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="hipercam.ucam.IendError">
+<span class="sig-prename descclassname"><span class="pre">hipercam.ucam.</span></span><span class="sig-name descname"><span class="pre">IendError</span></span><a class="headerlink" href="#hipercam.ucam.IendError" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.ucam.get_ccd_pars">
+<span class="sig-prename descclassname"><span class="pre">hipercam.ucam.</span></span><span class="sig-name descname"><span class="pre">get_ccd_pars</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">resource</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">server</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.ucam.get_ccd_pars" title="Link to this definition">¶</a></dt>
+<dd><p>Return CCD geometry parameters for ULTRACAM or ULTRASPEC.</p>
+<p>Opens the run header to determine whether the instrument is ULTRACAM
+(3 CCDs) or ULTRASPEC (1 CCD) and returns a corresponding
+<code class="xref py py-class docutils literal notranslate"><span class="pre">OrderedDict</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>resource</strong><span class="classifier">str</span></dt><dd><p>Run name, e.g. <code class="docutils literal notranslate"><span class="pre">'run003'</span></code>.</p>
+</dd>
+<dt><strong>server</strong><span class="classifier">bool</span></dt><dd><p><code class="docutils literal notranslate"><span class="pre">True</span></code> to fetch the header from the ATC fileserver;
+<code class="docutils literal notranslate"><span class="pre">False</span></code> (default) to read from a local <code class="docutils literal notranslate"><span class="pre">.xml</span></code> file.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt>collections.OrderedDict</dt><dd><p>Mapping CCD label to <code class="docutils literal notranslate"><span class="pre">(nxmax,</span> <span class="pre">nymax,</span> <span class="pre">nxpad,</span> <span class="pre">nypad)</span></code>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt>ValueError</dt><dd><p>If the instrument recorded in the header is not recognised.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><h3>Table of Contents</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../news.html">HiPERCAM pipeline news</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../observers.html">Observer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../commands.html">HiPERCAM commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/api.html">The API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Getting the software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../files.html">Useful files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plugins.html">Writing an instrument plugin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/bugs.html">Reporting problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../makingmovies.html">Making HiPERCAM movies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../phaseII.html">HiPERCAM Phase II</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">hipercam</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../aperture/index.html">hipercam.aperture</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ccd/index.html">hipercam.ccd</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../core/index.html">hipercam.core</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../defect/index.html">hipercam.defect</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extraction/index.html">hipercam.extraction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../fitting/index.html">hipercam.fitting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../fringe/index.html">hipercam.fringe</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../group/index.html">hipercam.group</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../hcam/index.html">hipercam.hcam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../header/index.html">hipercam.header</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../hlog/index.html">hipercam.hlog</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../instruments/index.html">hipercam.instruments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../mpl/index.html">hipercam.mpl</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../pgp/index.html">hipercam.pgp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../psf_reduction/index.html">hipercam.psf_reduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reduction/index.html">hipercam.reduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../scripts/index.html">hipercam.scripts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../spooler/index.html">hipercam.spooler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../target/index.html">hipercam.target</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../tests/index.html">hipercam.tests</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">hipercam.ucam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../utils/index.html">hipercam.utils</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../window/index.html">hipercam.window</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="../tests/window_test/index.html"
+                          title="previous chapter">hipercam.tests.window_test</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="../utils/index.html"
+                          title="next chapter">hipercam.utils</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../../_sources/autoapi/hipercam/ucam/index.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../../../_sources/autoapi/hipercam/ucam/index.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2017, T.R. Marsh.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 7.4.7. &nbsp;
+  </p>
+</footer>
+  </body>
+</html>

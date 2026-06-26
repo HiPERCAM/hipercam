@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>hipercam.utils &#8212; HiPERCAM pipeline 1.6.8.dev12+g30055e846 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/bootstrap-astropy.css?v=177ce38d" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=fd3f3429" />
+    
+    <script src="../../../_static/documentation_options.js?v=adfd3a0b"></script>
+    <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script type="text/javascript" src="../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="hipercam.window" href="../window/index.html" />
+    <link rel="prev" title="hipercam.ucam" href="../ucam/index.html" />
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../index.html"><span id="logotext1">astro</span><span id="logotext2"></span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="../window/index.html" title="hipercam.window">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="../ucam/index.html" title="hipercam.ucam">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../../../index.html">HiPERCAM pipeline 1.6.8.dev12+g30055e846 documentation</a>
+	 &#187;
+      </li>
+      <li><a href="../../index.html" >API Reference</a> &#187;</li>
+      <li><a href="../index.html" accesskey="U">hipercam</a> &#187;</li>
+      
+      <li>hipercam.utils</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-hipercam.utils">
+<span id="hipercam-utils"></span><h1>hipercam.utils<a class="headerlink" href="#module-hipercam.utils" title="Link to this heading">¶</a></h1>
+<p>Classes and functions of general use</p>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.utils.Vec2D" title="hipercam.utils.Vec2D"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Vec2D</span></code></a></p></td>
+<td><p>Simple 2D vector class.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.utils.add_extension" title="hipercam.utils.add_extension"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_extension</span></code></a>(fname, ext)</p></td>
+<td><p>Add extension ext to a file name if it is not already there, and returns</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.utils.sub_extension" title="hipercam.utils.sub_extension"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sub_extension</span></code></a>(fname, ext)</p></td>
+<td><p>Subtracts extension ext from a file name if it is present, and returns</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.utils.rgb" title="hipercam.utils.rgb"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rgb</span></code></a>(cname)</p></td>
+<td><p>Returns the RGB tuple associated with colour name 'cname', following</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.utils.script_args" title="hipercam.utils.script_args"><code class="xref py py-obj docutils literal notranslate"><span class="pre">script_args</span></code></a>(args)</p></td>
+<td><p>This is a small helper method that is used at the start of most</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.utils.format_hlogger_table" title="hipercam.utils.format_hlogger_table"><code class="xref py py-obj docutils literal notranslate"><span class="pre">format_hlogger_table</span></code></a>(fname, table, instrument)</p></td>
+<td><p>Formats the column widths etc of the excel files produced by</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.utils.what_flags" title="hipercam.utils.what_flags"><code class="xref py py-obj docutils literal notranslate"><span class="pre">what_flags</span></code></a>(bitmask)</p></td>
+<td><p>Given a bitmask value, this routine prints which flags have been set, ignoring</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.utils.temp_dir" title="hipercam.utils.temp_dir"><code class="xref py py-obj docutils literal notranslate"><span class="pre">temp_dir</span></code></a>()</p></td>
+<td><p>Generates the name of the hipercam temp directory which will be</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.utils.Vec2D">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.utils.</span></span><span class="sig-name descname"><span class="pre">Vec2D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.utils.Vec2D" title="Link to this definition">¶</a></dt>
+<dd><p>Simple 2D vector class.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.utils.Vec2D.x">
+<span class="sig-name descname"><span class="pre">x</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></em><a class="headerlink" href="#hipercam.utils.Vec2D.x" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.utils.Vec2D.y">
+<span class="sig-name descname"><span class="pre">y</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></em><a class="headerlink" href="#hipercam.utils.Vec2D.y" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.utils.Vec2D.length">
+<span class="sig-name descname"><span class="pre">length</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.utils.Vec2D.length" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the Euclidean length</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.utils.Vec2D.unit">
+<span class="sig-name descname"><span class="pre">unit</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.utils.Vec2D.unit" title="Link to this definition">¶</a></dt>
+<dd><p>Returns a unit vector version of the vector</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.utils.Vec2D.__iadd__">
+<span class="sig-name descname"><span class="pre">__iadd__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vec</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.utils.Vec2D.__iadd__" title="Link to this definition">¶</a></dt>
+<dd><p>+=: in place addition</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.utils.Vec2D.__add__">
+<span class="sig-name descname"><span class="pre">__add__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vec</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.utils.Vec2D.__add__" title="Link to this definition">¶</a></dt>
+<dd><p>+: addition</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.utils.Vec2D.__isub__">
+<span class="sig-name descname"><span class="pre">__isub__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vec</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.utils.Vec2D.__isub__" title="Link to this definition">¶</a></dt>
+<dd><p>-=: in place subtraction</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.utils.Vec2D.__sub__">
+<span class="sig-name descname"><span class="pre">__sub__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vec</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.utils.Vec2D.__sub__" title="Link to this definition">¶</a></dt>
+<dd><p>-: subtraction</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.utils.Vec2D.__imul__">
+<span class="sig-name descname"><span class="pre">__imul__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.utils.Vec2D.__imul__" title="Link to this definition">¶</a></dt>
+<dd><p><a href="#id1"><span class="problematic" id="id2">*</span></a>=: in place multiplication by a constant</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.utils.Vec2D.__mul__">
+<span class="sig-name descname"><span class="pre">__mul__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.utils.Vec2D.__mul__" title="Link to this definition">¶</a></dt>
+<dd><p><a href="#id3"><span class="problematic" id="id4">*</span></a>: post multiplication by a constant</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.utils.Vec2D.__rmul__">
+<span class="sig-name descname"><span class="pre">__rmul__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.utils.Vec2D.__rmul__" title="Link to this definition">¶</a></dt>
+<dd><p><a href="#id5"><span class="problematic" id="id6">*</span></a>: pre multiplication by a constant</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.utils.Vec2D.__itruediv__">
+<span class="sig-name descname"><span class="pre">__itruediv__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">const</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.utils.Vec2D.__itruediv__" title="Link to this definition">¶</a></dt>
+<dd><p>Divides by a constant</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.utils.Vec2D.__repr__">
+<span class="sig-name descname"><span class="pre">__repr__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.utils.Vec2D.__repr__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.utils.add_extension">
+<span class="sig-prename descclassname"><span class="pre">hipercam.utils.</span></span><span class="sig-name descname"><span class="pre">add_extension</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ext</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.utils.add_extension" title="Link to this definition">¶</a></dt>
+<dd><p>Add extension ext to a file name if it is not already there, and returns
+the revised name</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.utils.sub_extension">
+<span class="sig-prename descclassname"><span class="pre">hipercam.utils.</span></span><span class="sig-name descname"><span class="pre">sub_extension</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ext</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.utils.sub_extension" title="Link to this definition">¶</a></dt>
+<dd><p>Subtracts extension ext from a file name if it is present, and returns
+the revised name</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.utils.rgb">
+<span class="sig-prename descclassname"><span class="pre">hipercam.utils.</span></span><span class="sig-name descname"><span class="pre">rgb</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cname</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.utils.rgb" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the RGB tuple associated with colour name ‘cname’, following
+the colour definitions used by ‘reduce’.</p>
+<p>Returns a ValueError if cname is not recognised.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.utils.script_args">
+<span class="sig-prename descclassname"><span class="pre">hipercam.utils.</span></span><span class="sig-name descname"><span class="pre">script_args</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.utils.script_args" title="Link to this definition">¶</a></dt>
+<dd><p>This is a small helper method that is used at the start of most
+of the HiPERCAM entry point scripts such as ‘reduce’ and ‘grab’.</p>
+<p>If ‘args’ is None on entry, it is replaced by ‘sys.argv’. It is then
+assumed that the first argument is the command name or else None. The
+command name argument is removed from args, and if not None, converted to just the
+file part of the path. It is then returned along with the remaining list
+of arguments in a two element tuple, i.e. (commands, args).</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.utils.format_hlogger_table">
+<span class="sig-prename descclassname"><span class="pre">hipercam.utils.</span></span><span class="sig-name descname"><span class="pre">format_hlogger_table</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">table</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">instrument</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.utils.format_hlogger_table" title="Link to this definition">¶</a></dt>
+<dd><p>Formats the column widths etc of the excel files produced by
+<a href="#id7"><span class="problematic" id="id8">|hlogger|</span></a> (‘ultracam.xlsx’, ‘ultraspec.xlsx’ or ‘hipercam.xlsx’) and writes
+it to disk. It is made available as a utility function to allow
+the same styling to be applied to derived versions of this file.</p>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">fname</span> <span class="p">:</span> <span class="nb">str</span>
+   <span class="n">The</span> <span class="n">file</span> <span class="n">name</span> <span class="n">to</span> <span class="n">write</span> <span class="n">to</span>
+
+<span class="n">table</span> <span class="p">:</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span>
+   <span class="n">DataFrame</span> <span class="n">containing</span> <span class="n">the</span> <span class="n">data</span> <span class="n">to</span> <span class="n">be</span> <span class="n">written</span> <span class="n">that</span> <span class="ow">is</span> <span class="n">assumed</span> <span class="n">to</span> <span class="n">be</span>
+   <span class="n">derived</span> <span class="kn">from</span><span class="w"> </span><span class="nn">the</span> <span class="o">|</span><span class="n">hlogger</span><span class="o">|</span> <span class="n">file</span><span class="o">.</span> <span class="n">In</span> <span class="n">particular</span> <span class="n">it</span> <span class="ow">is</span> <span class="n">expected</span> <span class="n">to</span>
+   <span class="n">have</span> <span class="n">columns</span> <span class="n">called</span> <span class="s1">&#39;nlink&#39;</span><span class="p">,</span> <span class="s1">&#39;run_no&#39;</span> <span class="ow">and</span> <span class="s1">&#39;night&#39;</span><span class="o">.</span> <span class="n">The</span> <span class="n">latter</span> <span class="n">two</span>
+   <span class="n">must</span> <span class="n">lie</span> <span class="n">somewhere</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">column</span> <span class="nb">range</span> <span class="mi">1</span><span class="o">-</span><span class="mi">26</span> <span class="p">[</span><span class="n">A</span><span class="o">-</span><span class="n">Z</span><span class="p">]</span><span class="o">.</span>
+
+<span class="n">instrument</span> <span class="p">:</span> <span class="nb">str</span>
+   <span class="n">Either</span> <span class="n">ultracam</span> <span class="ow">or</span> <span class="n">ultraspec</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.utils.what_flags">
+<span class="sig-prename descclassname"><span class="pre">hipercam.utils.</span></span><span class="sig-name descname"><span class="pre">what_flags</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bitmask</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.utils.what_flags" title="Link to this definition">¶</a></dt>
+<dd><p>Given a bitmask value, this routine prints which flags have been set, ignoring
+the two catch alls, ANY_FLAG and ALL_GOOD.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hipercam.utils.temp_dir">
+<span class="sig-prename descclassname"><span class="pre">hipercam.utils.</span></span><span class="sig-name descname"><span class="pre">temp_dir</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.utils.temp_dir" title="Link to this definition">¶</a></dt>
+<dd><p>Generates the name of the hipercam temp directory which will be
+used to store temporary files. Creates the directory if it does
+not exist. The temp directory is called “tmp” and is created as a
+subdirectory of the directory containing the command default files
+(“.hipercam” by default)</p>
+</dd></dl>
+
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><h3>Table of Contents</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../news.html">HiPERCAM pipeline news</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../observers.html">Observer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../commands.html">HiPERCAM commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/api.html">The API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Getting the software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../files.html">Useful files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plugins.html">Writing an instrument plugin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/bugs.html">Reporting problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../makingmovies.html">Making HiPERCAM movies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../phaseII.html">HiPERCAM Phase II</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">hipercam</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../aperture/index.html">hipercam.aperture</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ccd/index.html">hipercam.ccd</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../core/index.html">hipercam.core</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../defect/index.html">hipercam.defect</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extraction/index.html">hipercam.extraction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../fitting/index.html">hipercam.fitting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../fringe/index.html">hipercam.fringe</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../group/index.html">hipercam.group</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../hcam/index.html">hipercam.hcam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../header/index.html">hipercam.header</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../hlog/index.html">hipercam.hlog</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../instruments/index.html">hipercam.instruments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../mpl/index.html">hipercam.mpl</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../pgp/index.html">hipercam.pgp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../psf_reduction/index.html">hipercam.psf_reduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reduction/index.html">hipercam.reduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../scripts/index.html">hipercam.scripts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../spooler/index.html">hipercam.spooler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../target/index.html">hipercam.target</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../tests/index.html">hipercam.tests</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ucam/index.html">hipercam.ucam</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">hipercam.utils</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../window/index.html">hipercam.window</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="../ucam/index.html"
+                          title="previous chapter">hipercam.ucam</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="../window/index.html"
+                          title="next chapter">hipercam.window</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../../_sources/autoapi/hipercam/utils/index.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../../../_sources/autoapi/hipercam/utils/index.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2017, T.R. Marsh.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 7.4.7. &nbsp;
+  </p>
+</footer>
+  </body>
+</html>

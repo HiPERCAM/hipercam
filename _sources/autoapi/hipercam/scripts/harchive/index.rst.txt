@@ -1,0 +1,19 @@
+hipercam.scripts.harchive
+=========================
+
+.. py:module:: hipercam.scripts.harchive
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   hipercam.scripts.harchive.harchive
+
+
+Module Contents
+---------------
+
+.. py:function:: harchive(args=None)
+

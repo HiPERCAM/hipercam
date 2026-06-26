@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>hipercam.group &#8212; HiPERCAM pipeline 1.6.8.dev12+g30055e846 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/bootstrap-astropy.css?v=177ce38d" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=fd3f3429" />
+    
+    <script src="../../../_static/documentation_options.js?v=adfd3a0b"></script>
+    <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script type="text/javascript" src="../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="hipercam.hcam" href="../hcam/index.html" />
+    <link rel="prev" title="hipercam.fringe" href="../fringe/index.html" />
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../index.html"><span id="logotext1">astro</span><span id="logotext2"></span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="../hcam/index.html" title="hipercam.hcam">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="../fringe/index.html" title="hipercam.fringe">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../../../index.html">HiPERCAM pipeline 1.6.8.dev12+g30055e846 documentation</a>
+	 &#187;
+      </li>
+      <li><a href="../../index.html" >API Reference</a> &#187;</li>
+      <li><a href="../index.html" accesskey="U">hipercam</a> &#187;</li>
+      
+      <li>hipercam.group</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-hipercam.group">
+<span id="hipercam-group"></span><h1>hipercam.group<a class="headerlink" href="#module-hipercam.group" title="Link to this heading">¶</a></h1>
+<p>Defines classes which contain groups of objects of identical type
+keyed with strings only.</p>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.group.Group" title="hipercam.group.Group"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Group</span></code></a></p></td>
+<td><p>A specialized OrderedDict that enforces string keys only and a</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.group.Agroup" title="hipercam.group.Agroup"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Agroup</span></code></a></p></td>
+<td><p>A <a class="reference internal" href="#hipercam.group.Group" title="hipercam.group.Group"><code class="xref py py-class docutils literal notranslate"><span class="pre">Group</span></code></a> which defines arithmetic methods +=, +, etc which must be</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.group.Group">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.group.</span></span><span class="sig-name descname"><span class="pre">Group</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ftype</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.group.Group" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">collections.OrderedDict</span></code></p>
+<p>A specialized OrderedDict that enforces string keys only and a
+single class for the values. The objects stored as values should
+support a <cite>copy</cite> method to return a deepcopy for use in the
+<a class="reference internal" href="#hipercam.group.Group" title="hipercam.group.Group"><code class="xref py py-class docutils literal notranslate"><span class="pre">Group</span></code></a> copy operation.</p>
+<p><a class="reference internal" href="#hipercam.group.Group" title="hipercam.group.Group"><code class="xref py py-class docutils literal notranslate"><span class="pre">Group</span></code></a> is designed to amalgamate several of the classes used for
+objects associated with CCDs such as <code class="xref py py-class docutils literal notranslate"><span class="pre">Window</span></code> (see <code class="xref py py-class docutils literal notranslate"><span class="pre">CCD</span></code>),
+and <code class="xref py py-class docutils literal notranslate"><span class="pre">Aperture</span></code> (see <code class="xref py py-class docutils literal notranslate"><span class="pre">CcdAper</span></code>)</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.group.Group.ftype">
+<span class="sig-name descname"><span class="pre">ftype</span></span><a class="headerlink" href="#hipercam.group.Group.ftype" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.group.Group.__setitem__">
+<span class="sig-name descname"><span class="pre">__setitem__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">item</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.group.Group.__setitem__" title="Link to this definition">¶</a></dt>
+<dd><p>Adds an item <cite>item</cite> keyed by <cite>key</cite>
+checking that its type matches</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.group.Group.copy">
+<span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">memo</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.group.Group.copy" title="Link to this definition">¶</a></dt>
+<dd><p>Copy operation. The stored objects must have a <cite>copy(self, memo)</cite> method.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.group.Group.check">
+<span class="sig-name descname"><span class="pre">check</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.group.Group.check" title="Link to this definition">¶</a></dt>
+<dd><p>Checks validity of a Group if its objects have a method
+‘clash’ defined to check that they are compatible. This should
+have signature ‘clash(self, other)’, but does not have to be
+defined for all objects storable in Groups. See <code class="xref py py-class docutils literal notranslate"><span class="pre">Winhead</span></code> for
+an example of an object for which this makes sense.</p>
+<p>If the Group fails this check, a ValueError is raised.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.group.Group.get_num">
+<span class="sig-name descname"><span class="pre">get_num</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.group.Group.get_num" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the num element of the Group (starting from 0)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.group.Group.__copy__">
+<span class="sig-name descname"><span class="pre">__copy__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.group.Group.__copy__" title="Link to this definition">¶</a></dt>
+<dd><p>Copy operation for copy.copy</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.group.Group.__deepcopy__">
+<span class="sig-name descname"><span class="pre">__deepcopy__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">memo</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.group.Group.__deepcopy__" title="Link to this definition">¶</a></dt>
+<dd><p>Copy operation for copy.deepcopy</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.group.Group.__repr__">
+<span class="sig-name descname"><span class="pre">__repr__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.group.Group.__repr__" title="Link to this definition">¶</a></dt>
+<dd><p>Return repr(self).</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.group.Agroup">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.group.</span></span><span class="sig-name descname"><span class="pre">Agroup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ftype</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.group.Agroup" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#hipercam.group.Group" title="hipercam.group.Group"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Group</span></code></a></p>
+<p>A <a class="reference internal" href="#hipercam.group.Group" title="hipercam.group.Group"><code class="xref py py-class docutils literal notranslate"><span class="pre">Group</span></code></a> which defines arithmetic methods +=, +, etc which must be
+supported by whatever objects the <a class="reference internal" href="#hipercam.group.Group" title="hipercam.group.Group"><code class="xref py py-class docutils literal notranslate"><span class="pre">Group</span></code></a> contains. This allows the
+same approach to be taken when operating on <code class="xref py py-class docutils literal notranslate"><span class="pre">CCD</span></code> and <code class="xref py py-class docutils literal notranslate"><span class="pre">MCCD</span></code>
+objects which are based on this class. The objects stored in the
+<a class="reference internal" href="#hipercam.group.Agroup" title="hipercam.group.Agroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">Agroup</span></code></a> must define a method <cite>copy</cite> which returns a deep copy;
+this is required by several operators.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.group.Agroup.copy">
+<span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">memo</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.group.Agroup.copy" title="Link to this definition">¶</a></dt>
+<dd><p>Copy operation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.group.Agroup.__iadd__">
+<span class="sig-name descname"><span class="pre">__iadd__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.group.Agroup.__iadd__" title="Link to this definition">¶</a></dt>
+<dd><p>Adds <cite>other</cite> to the <a class="reference internal" href="#hipercam.group.Agroup" title="hipercam.group.Agroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">Agroup</span></code></a> as ‘self += other’. If <cite>other</cite> is
+another <a class="reference internal" href="#hipercam.group.Agroup" title="hipercam.group.Agroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">Agroup</span></code></a> with the same object type (<cite>ftype</cite>) as self,
+then the operation will be applied to each pair of objects with
+matching keys. Otherwise <cite>other</cite> will be regarded as a constant object
+to add to each object in the <a class="reference internal" href="#hipercam.group.Agroup" title="hipercam.group.Agroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">Agroup</span></code></a>.</p>
+<p>In the first case, if self has keys that are not in <cite>other</cite>, then they
+will be left untouched. Any keys in <cite>other</cite> not in self are ignored.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.group.Agroup.__isub__">
+<span class="sig-name descname"><span class="pre">__isub__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.group.Agroup.__isub__" title="Link to this definition">¶</a></dt>
+<dd><p>Subtracts <cite>other</cite> from the <a class="reference internal" href="#hipercam.group.Agroup" title="hipercam.group.Agroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">Agroup</span></code></a> as ‘self -= other’. If <cite>other</cite>
+is another <a class="reference internal" href="#hipercam.group.Agroup" title="hipercam.group.Agroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">Agroup</span></code></a> with the same object type (<cite>ftype</cite>) as
+self, then the operation will be applied to each pair of objects with
+matching keys. Otherwise <cite>other</cite> will be regarded as a constant object
+to subtract from each object in the <a class="reference internal" href="#hipercam.group.Agroup" title="hipercam.group.Agroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">Agroup</span></code></a>.</p>
+<p>In the first case, if self has keys that are not in <cite>other</cite>, then they
+will be left untouched. Any keys in <cite>other</cite> not in self are ignored.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.group.Agroup.__imul__">
+<span class="sig-name descname"><span class="pre">__imul__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.group.Agroup.__imul__" title="Link to this definition">¶</a></dt>
+<dd><p>Multiplies the <a class="reference internal" href="#hipercam.group.Agroup" title="hipercam.group.Agroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">Agroup</span></code></a> by <cite>other</cite> as ‘self <a href="#id1"><span class="problematic" id="id2">*</span></a>= other’. If <cite>other</cite> is
+another <a class="reference internal" href="#hipercam.group.Agroup" title="hipercam.group.Agroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">Agroup</span></code></a> with the same object type (<cite>ftype</cite>) as self,
+then the operation will be applied to each pair of objects with
+matching keys. Otherwise <cite>other</cite> will be regarded as a constant object
+to multiply each object in the <a class="reference internal" href="#hipercam.group.Agroup" title="hipercam.group.Agroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">Agroup</span></code></a>.</p>
+<p>In the first case, if self has keys that are not in <cite>other</cite>, then they
+will be left untouched. Any keys in <cite>other</cite> not in self are ignored.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.group.Agroup.__itruediv__">
+<span class="sig-name descname"><span class="pre">__itruediv__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.group.Agroup.__itruediv__" title="Link to this definition">¶</a></dt>
+<dd><p>Divides the <a class="reference internal" href="#hipercam.group.Agroup" title="hipercam.group.Agroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">Agroup</span></code></a> by <cite>other</cite> as ‘self /= other’. If <cite>other</cite> is
+another <a class="reference internal" href="#hipercam.group.Agroup" title="hipercam.group.Agroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">Agroup</span></code></a> with the same object type (<cite>ftype</cite>) as self,
+then the operation will be applied to each pair of objects with
+matching keys. Otherwise <cite>other</cite> will be regarded as a constant object
+to divide into each object in the <a class="reference internal" href="#hipercam.group.Agroup" title="hipercam.group.Agroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">Agroup</span></code></a>.</p>
+<p>In the first case, if self has keys that are not in <cite>other</cite>, then they
+will be left untouched. Any keys in <cite>other</cite> not in self are ignored.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.group.Agroup.__add__">
+<span class="sig-name descname"><span class="pre">__add__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.group.Agroup.__add__" title="Link to this definition">¶</a></dt>
+<dd><p>Adds <cite>other</cite> to the <a class="reference internal" href="#hipercam.group.Agroup" title="hipercam.group.Agroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">Agroup</span></code></a> as ‘= self + other’. If <cite>other</cite> is
+another <a class="reference internal" href="#hipercam.group.Agroup" title="hipercam.group.Agroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">Agroup</span></code></a> with the same object type (<cite>ftype</cite>) as self,
+then the operation will be applied to each pair of objects with
+matching keys. Otherwise <cite>other</cite> will be regarded as a constant object
+to add to each object in the <a class="reference internal" href="#hipercam.group.Agroup" title="hipercam.group.Agroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">Agroup</span></code></a>.</p>
+<p>In the first case, if self has keys that are not in <cite>other</cite>, then they
+will be left untouched. Any keys in <cite>other</cite> not in self are ignored.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.group.Agroup.__sub__">
+<span class="sig-name descname"><span class="pre">__sub__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.group.Agroup.__sub__" title="Link to this definition">¶</a></dt>
+<dd><p>Subtracts <cite>other</cite> from the <a class="reference internal" href="#hipercam.group.Agroup" title="hipercam.group.Agroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">Agroup</span></code></a> as ‘= self - other’. If <cite>other</cite> is
+another <a class="reference internal" href="#hipercam.group.Agroup" title="hipercam.group.Agroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">Agroup</span></code></a> with the same object type (<cite>ftype</cite>) as self,
+then the operation will be applied to each pair of objects with
+matching keys. Otherwise <cite>other</cite> will be regarded as a constant object
+to subtract from each object in the <a class="reference internal" href="#hipercam.group.Agroup" title="hipercam.group.Agroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">Agroup</span></code></a>.</p>
+<p>In the first case, if self has keys that are not in <cite>other</cite>, then they
+will be left untouched. Any keys in <cite>other</cite> not in self are ignored.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.group.Agroup.__mul__">
+<span class="sig-name descname"><span class="pre">__mul__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.group.Agroup.__mul__" title="Link to this definition">¶</a></dt>
+<dd><p>Multiplies the <a class="reference internal" href="#hipercam.group.Agroup" title="hipercam.group.Agroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">Agroup</span></code></a> by <cite>other</cite> as ‘= self * other’. If <cite>other</cite>
+is another <a class="reference internal" href="#hipercam.group.Agroup" title="hipercam.group.Agroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">Agroup</span></code></a> with the same object type (<cite>ftype</cite>) as
+self, then the operation will be applied to each pair of objects with
+matching keys. Otherwise <cite>other</cite> will be regarded as a constant object
+to multiply each object in the <a class="reference internal" href="#hipercam.group.Agroup" title="hipercam.group.Agroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">Agroup</span></code></a>.</p>
+<p>In the first case, if self has keys that are not in <cite>other</cite>, then they
+will be left untouched. Any keys in <cite>other</cite> not in self are ignored.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.group.Agroup.__truediv__">
+<span class="sig-name descname"><span class="pre">__truediv__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.group.Agroup.__truediv__" title="Link to this definition">¶</a></dt>
+<dd><p>Divides the <a class="reference internal" href="#hipercam.group.Agroup" title="hipercam.group.Agroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">Agroup</span></code></a> by <cite>other</cite> as ‘= self / other’. If <cite>other</cite> is
+another <a class="reference internal" href="#hipercam.group.Agroup" title="hipercam.group.Agroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">Agroup</span></code></a> with the same object type (<cite>ftype</cite>) as self,
+then the operation will be applied to each pair of objects with
+matching keys. Otherwise <cite>other</cite> will be regarded as a constant object
+to divide into each object in the <a class="reference internal" href="#hipercam.group.Agroup" title="hipercam.group.Agroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">Agroup</span></code></a>.</p>
+<p>In the first case, if self has keys that are not in <cite>other</cite>, then they
+will be left untouched. Any keys in <cite>other</cite> not in self are ignored.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.group.Agroup.__radd__">
+<span class="sig-name descname"><span class="pre">__radd__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.group.Agroup.__radd__" title="Link to this definition">¶</a></dt>
+<dd><p>Adds the <a class="reference internal" href="#hipercam.group.Agroup" title="hipercam.group.Agroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">Agroup</span></code></a> to other as ‘= other + self’.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.group.Agroup.__rsub__">
+<span class="sig-name descname"><span class="pre">__rsub__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.group.Agroup.__rsub__" title="Link to this definition">¶</a></dt>
+<dd><p>Subtracts the <a class="reference internal" href="#hipercam.group.Agroup" title="hipercam.group.Agroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">Agroup</span></code></a> from <cite>other</cite> as ‘= other - self’.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.group.Agroup.__rmul__">
+<span class="sig-name descname"><span class="pre">__rmul__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.group.Agroup.__rmul__" title="Link to this definition">¶</a></dt>
+<dd><p>Multiplies the <a class="reference internal" href="#hipercam.group.Agroup" title="hipercam.group.Agroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">Agroup</span></code></a> by <cite>other</cite> as ‘= other * self’.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.group.Agroup.__rtruediv__">
+<span class="sig-name descname"><span class="pre">__rtruediv__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.group.Agroup.__rtruediv__" title="Link to this definition">¶</a></dt>
+<dd><p>Divides a <a class="reference internal" href="#hipercam.group.Agroup" title="hipercam.group.Agroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">Agroup</span></code></a> by <cite>other</cite> as ‘= other / self’.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.group.Agroup.__repr__">
+<span class="sig-name descname"><span class="pre">__repr__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.group.Agroup.__repr__" title="Link to this definition">¶</a></dt>
+<dd><p>Return repr(self).</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><h3>Table of Contents</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../news.html">HiPERCAM pipeline news</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../observers.html">Observer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../commands.html">HiPERCAM commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/api.html">The API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Getting the software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../files.html">Useful files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plugins.html">Writing an instrument plugin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/bugs.html">Reporting problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../makingmovies.html">Making HiPERCAM movies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../phaseII.html">HiPERCAM Phase II</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">hipercam</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../aperture/index.html">hipercam.aperture</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ccd/index.html">hipercam.ccd</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../core/index.html">hipercam.core</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../defect/index.html">hipercam.defect</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extraction/index.html">hipercam.extraction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../fitting/index.html">hipercam.fitting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../fringe/index.html">hipercam.fringe</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">hipercam.group</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../hcam/index.html">hipercam.hcam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../header/index.html">hipercam.header</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../hlog/index.html">hipercam.hlog</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../instruments/index.html">hipercam.instruments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../mpl/index.html">hipercam.mpl</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../pgp/index.html">hipercam.pgp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../psf_reduction/index.html">hipercam.psf_reduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reduction/index.html">hipercam.reduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../scripts/index.html">hipercam.scripts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../spooler/index.html">hipercam.spooler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../target/index.html">hipercam.target</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../tests/index.html">hipercam.tests</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ucam/index.html">hipercam.ucam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../utils/index.html">hipercam.utils</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../window/index.html">hipercam.window</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="../fringe/index.html"
+                          title="previous chapter">hipercam.fringe</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="../hcam/index.html"
+                          title="next chapter">hipercam.hcam</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../../_sources/autoapi/hipercam/group/index.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../../../_sources/autoapi/hipercam/group/index.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2017, T.R. Marsh.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 7.4.7. &nbsp;
+  </p>
+</footer>
+  </body>
+</html>

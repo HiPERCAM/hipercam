@@ -1,0 +1,19 @@
+hipercam.scripts.logsearch
+==========================
+
+.. py:module:: hipercam.scripts.logsearch
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   hipercam.scripts.logsearch.logsearch
+
+
+Module Contents
+---------------
+
+.. py:function:: logsearch(args=None)
+

@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>hipercam.aperture &#8212; HiPERCAM pipeline 1.6.8.dev12+g30055e846 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/bootstrap-astropy.css?v=177ce38d" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=fd3f3429" />
+    
+    <script src="../../../_static/documentation_options.js?v=adfd3a0b"></script>
+    <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script type="text/javascript" src="../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="hipercam.ccd" href="../ccd/index.html" />
+    <link rel="prev" title="hipercam" href="../index.html" />
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../index.html"><span id="logotext1">astro</span><span id="logotext2"></span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="../ccd/index.html" title="hipercam.ccd">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="../index.html" title="hipercam">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../../../index.html">HiPERCAM pipeline 1.6.8.dev12+g30055e846 documentation</a>
+	 &#187;
+      </li>
+      <li><a href="../../index.html" >API Reference</a> &#187;</li>
+      <li><a href="../index.html" accesskey="U">hipercam</a> &#187;</li>
+      
+      <li>hipercam.aperture</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-hipercam.aperture">
+<span id="hipercam-aperture"></span><h1>hipercam.aperture<a class="headerlink" href="#module-hipercam.aperture" title="Link to this heading">¶</a></h1>
+<p>Defines classes to represent photometric apertures.</p>
+<p>The classes support JSON-style serialisation to allow apertures to be
+saved to disk in a fairly easily read and editable format.</p>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.aperture.Aperture" title="hipercam.aperture.Aperture"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Aperture</span></code></a></p></td>
+<td><p>Represents an aperture for astronomical photometry</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#hipercam.aperture.CcdAper" title="hipercam.aperture.CcdAper"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CcdAper</span></code></a></p></td>
+<td><p>Class representing all the :class:Apertures for a single CCD.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#hipercam.aperture.MccdAper" title="hipercam.aperture.MccdAper"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MccdAper</span></code></a></p></td>
+<td><p>Class representing all the :class:Apertures for multiple CCDs.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.aperture.Aperture">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.aperture.</span></span><span class="sig-name descname"><span class="pre">Aperture</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rtarg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rsky1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rsky2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ref</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compo</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">link</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.aperture.Aperture" title="Link to this definition">¶</a></dt>
+<dd><p>Represents an aperture for astronomical photometry</p>
+<p>Essentially this consists of 3 circles representing the object,
+radius <cite>rtarg</cite>, and the sky annulus between radii <cite>r2</cite> and <cite>r3</cite>,
+centered at a specific position, but there are several extra
+characteristics in addition. These are:</p>
+<p>Reference apertures: these indicate (typically) bright stars that should
+be easy to locate. The idea is that when re-positioning apertures, you
+might want to initially do the brightest stars, and then see what the
+overall x,y shift is before attempting fainter ones. This status is
+indicated with a logical flag.</p>
+<p>Linked apertures: some targets are nearly impossible to register, or may
+fade so much that they cannot be detected. Such targets can be “linked” to
+others in the sense that they are offset from them.</p>
+<p>COMPO apertures: comparison stars injected onto the science image by
+COMPO have a difference world coordinate system to the main science image.
+Their motion on the CCD is flipped, so that an (x, y) shift in the stars
+on the science CCD produces a (-x, -y) shift in the COMPO stars. This
+status is indicated with a logical flag.</p>
+<p>Sky masks: (‘mask) these are fixed circles offset from the aperture in
+question indicating pixels to ignore when estimating the sky background.</p>
+<p>Star masks: (‘extra’) these are circles offset from aperture indicating
+pixels to include when summing the object flux. This is to combat problems
+caused by blended objects. These <em>also</em> act as sky masks so there should
+be no need to also mask such object.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>x</strong><span class="classifier">float</span></dt><dd><p>X position of centre of aperture, or the X offset to apply
+if the aperture is linked from another.</p>
+</dd>
+<dt><strong>y</strong><span class="classifier">float</span></dt><dd><p>Y position of centre of aperture, or the Y offset to apply
+if the aperture is linked from another.</p>
+</dd>
+<dt><strong>rtarg</strong><span class="classifier">float</span></dt><dd><p>Radius (unbinned pixels) of target aperture</p>
+</dd>
+<dt><strong>rsky1</strong><span class="classifier">float</span></dt><dd><p>Inner radius (unbinned pixels) of sky annulus</p>
+</dd>
+<dt><strong>rsky2</strong><span class="classifier">float</span></dt><dd><p>Outer radius (unbinned pixels) of sky annulus</p>
+</dd>
+<dt><strong>ref</strong><span class="classifier">bool</span></dt><dd><p>True/False to indicate whether this is a reference
+aperture meaning that its position will be re-determined
+before non-reference apertures to provide a shift.</p>
+</dd>
+<dt><strong>compo</strong><span class="classifier">bool</span></dt><dd><p>True/False to indicate whether this is a compo
+aperture meaning that its shifts are inverted w.r.t non-compo
+apertures.</p>
+</dd>
+<dt><strong>mask</strong><span class="classifier">list of 3 element tuples</span></dt><dd><p>Each tuple in the list consists of an x,y offset and a radius in
+unbinned pixels. These are used to mask nearby areas when
+determining the sky value (e.g. to exclude stars)</p>
+</dd>
+<dt><strong>extra</strong><span class="classifier">list of 2 element tuples</span></dt><dd><p>Similar to <cite>mask</cite>, but each tuple in the list consists only of an
+x,y offset. These however are used as centres of additional target
+apertures to allow blended stars to be include in the total flux.
+They are given the same radius as the target aperture. They are also
+used to exclude sky pixels.</p>
+</dd>
+<dt><strong>link</strong><span class="classifier">str</span></dt><dd><blockquote>
+<div><p>If != ‘’, this is a string label for another <a class="reference internal" href="#hipercam.aperture.Aperture" title="hipercam.aperture.Aperture"><code class="xref py py-class docutils literal notranslate"><span class="pre">Aperture</span></code></a> that
+<em>this</em> <a class="reference internal" href="#hipercam.aperture.Aperture" title="hipercam.aperture.Aperture"><code class="xref py py-class docutils literal notranslate"><span class="pre">Aperture</span></code></a> is linked from. The idea is that this label
+can be used to lookup the <a class="reference internal" href="#hipercam.aperture.Aperture" title="hipercam.aperture.Aperture"><code class="xref py py-class docutils literal notranslate"><span class="pre">Aperture</span></code></a>.</p>
+</div></blockquote>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Normal practice would be to set link, mask, extra later,
+having created the Aperture. Attributes of the same name as
+all the arguments are defined.  We copy the mask and extra
+apertures to avoid propagating references.</p>
+</div>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.aperture.Aperture.x">
+<span class="sig-name descname"><span class="pre">x</span></span><a class="headerlink" href="#hipercam.aperture.Aperture.x" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.aperture.Aperture.y">
+<span class="sig-name descname"><span class="pre">y</span></span><a class="headerlink" href="#hipercam.aperture.Aperture.y" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.aperture.Aperture.rtarg">
+<span class="sig-name descname"><span class="pre">rtarg</span></span><a class="headerlink" href="#hipercam.aperture.Aperture.rtarg" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.aperture.Aperture.rsky1">
+<span class="sig-name descname"><span class="pre">rsky1</span></span><a class="headerlink" href="#hipercam.aperture.Aperture.rsky1" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.aperture.Aperture.rsky2">
+<span class="sig-name descname"><span class="pre">rsky2</span></span><a class="headerlink" href="#hipercam.aperture.Aperture.rsky2" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.aperture.Aperture.ref">
+<span class="sig-name descname"><span class="pre">ref</span></span><a class="headerlink" href="#hipercam.aperture.Aperture.ref" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.aperture.Aperture.compo">
+<span class="sig-name descname"><span class="pre">compo</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#hipercam.aperture.Aperture.compo" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.aperture.Aperture.mask">
+<span class="sig-name descname"><span class="pre">mask</span></span><a class="headerlink" href="#hipercam.aperture.Aperture.mask" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.aperture.Aperture.extra">
+<span class="sig-name descname"><span class="pre">extra</span></span><a class="headerlink" href="#hipercam.aperture.Aperture.extra" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hipercam.aperture.Aperture.link">
+<span class="sig-name descname"><span class="pre">link</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">''</span></em><a class="headerlink" href="#hipercam.aperture.Aperture.link" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.aperture.Aperture.__repr__">
+<span class="sig-name descname"><span class="pre">__repr__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.aperture.Aperture.__repr__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.aperture.Aperture.copy">
+<span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">memo</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.aperture.Aperture.copy" title="Link to this definition">¶</a></dt>
+<dd><p>Returns with a copy of the Aperture</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.aperture.Aperture.add_mask">
+<span class="sig-name descname"><span class="pre">add_mask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xoff</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">yoff</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">radius</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.aperture.Aperture.add_mask" title="Link to this definition">¶</a></dt>
+<dd><p>Adds a mask to the :class:Aperture</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.aperture.Aperture.add_extra">
+<span class="sig-name descname"><span class="pre">add_extra</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xoff</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">yoff</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.aperture.Aperture.add_extra" title="Link to this definition">¶</a></dt>
+<dd><p>Adds a mask to the :class:Aperture</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.aperture.Aperture.set_link">
+<span class="sig-name descname"><span class="pre">set_link</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">aplabel</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.aperture.Aperture.set_link" title="Link to this definition">¶</a></dt>
+<dd><p>Links this :class:Aperture to a lookup label for another</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.aperture.Aperture.break_link">
+<span class="sig-name descname"><span class="pre">break_link</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.aperture.Aperture.break_link" title="Link to this definition">¶</a></dt>
+<dd><p>Cancels any link to another :class:Aperture</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="hipercam.aperture.Aperture.linked">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">linked</span></span><a class="headerlink" href="#hipercam.aperture.Aperture.linked" title="Link to this definition">¶</a></dt>
+<dd><p>Returns True if the :class:Aperture is linked to another</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.aperture.Aperture.check">
+<span class="sig-name descname"><span class="pre">check</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.aperture.Aperture.check" title="Link to this definition">¶</a></dt>
+<dd><p>Run a few checks on an :class:Aperture. Raises a ValueError if there are
+problems.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.aperture.Aperture.write">
+<span class="sig-name descname"><span class="pre">write</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.aperture.Aperture.write" title="Link to this definition">¶</a></dt>
+<dd><p>Dumps Aperture in JSON format to a file called fname</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.aperture.Aperture.toString">
+<span class="sig-name descname"><span class="pre">toString</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.aperture.Aperture.toString" title="Link to this definition">¶</a></dt>
+<dd><p>Returns Aperture as a JSON-type string</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.aperture.Aperture.read">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">read</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.aperture.Aperture.read" title="Link to this definition">¶</a></dt>
+<dd><p>Read from JSON-format file fname</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.aperture.CcdAper">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.aperture.</span></span><span class="sig-name descname"><span class="pre">CcdAper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">aps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">Group(Aperture)</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.aperture.CcdAper" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">Group</span></code></p>
+<p>Class representing all the :class:Apertures for a single CCD.
+Normal usage is to create an empty one and then add apertures via
+the usual mechanism for updating dictionaries, i.e. ccdap[label] =
+aperture.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.aperture.CcdAper.__repr__">
+<span class="sig-name descname"><span class="pre">__repr__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.aperture.CcdAper.__repr__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.aperture.CcdAper.check">
+<span class="sig-name descname"><span class="pre">check</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.aperture.CcdAper.check" title="Link to this definition">¶</a></dt>
+<dd><p>Checks for problems with links</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.aperture.CcdAper.write">
+<span class="sig-name descname"><span class="pre">write</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.aperture.CcdAper.write" title="Link to this definition">¶</a></dt>
+<dd><p>Dumps ccdAper in JSON format to a file called fname</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.aperture.CcdAper.copy">
+<span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">memo</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.aperture.CcdAper.copy" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hipercam.aperture.MccdAper">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hipercam.aperture.</span></span><span class="sig-name descname"><span class="pre">MccdAper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">aps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">Group(CcdAper)</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.aperture.MccdAper" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">Group</span></code></p>
+<p>Class representing all the :class:Apertures for multiple CCDs.
+Normal usage is to create an empty one and then add apertures via
+the usual mechanism for updating dictionaries, e.g.</p>
+<blockquote>
+<div><p>&gt;&gt; mccdap = MccdAper()
+&gt;&gt; mccdap[‘ccd1’] = CcdAper()
+&gt;&gt; mccdap[‘ccd2’] = CcdAper()
+&gt;&gt; mccdap[‘ccd1’][‘ap1’] = Aperture(100,200,10,15,125,False)</p>
+</div></blockquote>
+<p>etc.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.aperture.MccdAper.__repr__">
+<span class="sig-name descname"><span class="pre">__repr__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.aperture.MccdAper.__repr__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.aperture.MccdAper.write">
+<span class="sig-name descname"><span class="pre">write</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.aperture.MccdAper.write" title="Link to this definition">¶</a></dt>
+<dd><p>Dumps MccdAper in JSON format to a file called fname</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.aperture.MccdAper.toString">
+<span class="sig-name descname"><span class="pre">toString</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.aperture.MccdAper.toString" title="Link to this definition">¶</a></dt>
+<dd><p>Returns MccdAper in JSON format as a string</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hipercam.aperture.MccdAper.read">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">read</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hipercam.aperture.MccdAper.read" title="Link to this definition">¶</a></dt>
+<dd><p>Read from JSON-format file fname. Since such files can fairly easily be
+corrupted by injudicious editing, some consistency checks are
+run. File loading does not happen often, so this should not be a
+serious overhead</p>
+<blockquote>
+<div><p>fp : a file-like object opened for reading of text</p>
+</div></blockquote>
+<p>Returns an MccdAper object.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><h3>Table of Contents</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../news.html">HiPERCAM pipeline news</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../observers.html">Observer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../commands.html">HiPERCAM commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/api.html">The API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Getting the software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../files.html">Useful files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plugins.html">Writing an instrument plugin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/bugs.html">Reporting problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../makingmovies.html">Making HiPERCAM movies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../phaseII.html">HiPERCAM Phase II</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">hipercam</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">hipercam.aperture</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ccd/index.html">hipercam.ccd</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../core/index.html">hipercam.core</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../defect/index.html">hipercam.defect</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extraction/index.html">hipercam.extraction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../fitting/index.html">hipercam.fitting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../fringe/index.html">hipercam.fringe</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../group/index.html">hipercam.group</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../hcam/index.html">hipercam.hcam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../header/index.html">hipercam.header</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../hlog/index.html">hipercam.hlog</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../instruments/index.html">hipercam.instruments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../mpl/index.html">hipercam.mpl</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../pgp/index.html">hipercam.pgp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../psf_reduction/index.html">hipercam.psf_reduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reduction/index.html">hipercam.reduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../scripts/index.html">hipercam.scripts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../spooler/index.html">hipercam.spooler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../target/index.html">hipercam.target</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../tests/index.html">hipercam.tests</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ucam/index.html">hipercam.ucam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../utils/index.html">hipercam.utils</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../window/index.html">hipercam.window</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="../index.html"
+                          title="previous chapter">hipercam</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="../ccd/index.html"
+                          title="next chapter">hipercam.ccd</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../../_sources/autoapi/hipercam/aperture/index.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../../../_sources/autoapi/hipercam/aperture/index.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2017, T.R. Marsh.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 7.4.7. &nbsp;
+  </p>
+</footer>
+  </body>
+</html>
