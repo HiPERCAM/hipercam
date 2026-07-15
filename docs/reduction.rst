@@ -357,6 +357,55 @@ it shows you how to load in the rather human-unreadable |hiper| log
 files (huge numbers of columns and rows). While observing |plog| is
 helpful for plotting the sky level as twilight approaches.
 
+PSF Photometry
+==============
+In crowded fields, aperture photometry can be difficult. The effect
+of nearby stars on the sky background estimates can be minimised by 
+masking the nearby stars (as shown in |fig-setaper|), but this does 
+not solve the problem of target apertures containing flux from more 
+than one object. For crowded fields where this is an issue PSF 
+photometry is often the best solution. 
+
+|reduce| can carry out PSF photometry, using `photutils <https://photutils.readthedocs.io/en/stable/>`_ 
+as the underlying engine. This is an optional install, so unless you 
+installed the pipeline with the `psf` extra you will need to install 
+photutils separately. To use PSF photometry, all one needs to do is 
+set the `use_psf` parameter in the reduce file to `yes`. 
+
+.. Note::
+   Because PSF photometry uses photutils as the underlying engine,
+   it is not possible to carry out PSF photometry with apertures 
+   that lie in different windows of the CCD. This is because we 
+   need to send photutils a contiguous image to work with,
+   and this is not possible if the apertures lie in different windows. 
+
+In PSF photometry, :ref:`aperture positioning <aperture_positioning>`
+is carried out in exactly the same way as for aperture photometry
+to find the positions of the stars in the frame. The PSF model
+is then fit to the reference stars to find the shape of the PSF.
+The PSF model is then fit to all stars defined in the aperture file
+with the shape held fixed to find the fluxes. When running |reduce|
+you can display the residual image after the PSF model has been 
+subtracted from the data to check the quality of the fit.
+
+Optionally you can let the positions of the stars vary from the locations
+found by the aperture positioning step, by setting the `positions` parameter
+in the `psf_photom` section of the reduction file to `variable`. This 
+repositioning does not respect :ref:`linked apertures <linked_apertures>` 
+and usually gives poorer results, so it is not recommended.
+
+Creating aperture files for the crowded fields where PSF photometry is needed
+can be tricky. Overlapping sources can make using |setaper| difficult or 
+impossible. In this case, it is best to use the |psfaper| script. 
+This script allows you to zoom into the region where you want to 
+carry out PSF photometry and add a small number of well-isolated bright
+reference stars. The script then fits a PSF model to the reference stars 
+to constrain the shape of the PSF and carries out multiple iterations
+of a FIND-FIT-SUBTRACT loop to find all the stars within a region of interest.
+The aperture file created with |psfaper| can (and should) be hand-edited with
+|setaper| to add any extra features such as masking and linking.
+
+
 Customisation
 =============
 
