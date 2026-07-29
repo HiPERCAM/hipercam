@@ -1,0 +1,322 @@
+hipercam.scripts.hplot
+======================
+
+.. py:module:: hipercam.scripts.hplot
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   hipercam.scripts.hplot.OnDemandFit
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   hipercam.scripts.hplot.hplot
+   hipercam.scripts.hplot.buttonPressEvent
+
+
+Module Contents
+---------------
+
+.. py:function:: hplot(args=None)
+
+   
+   ``hplot input [device] ccd nx msub ([cmap]) hsbox iset (ilo ihi | plo
+   phi) xlo xhi ylo yhi [width height]``
+
+   Plots a multi-CCD image. Can use PGPLOT or matplotlib. The matplotlib
+   version is slightly clunky in its choice of the viewing area but has some
+   features that could be useful, in particular, the interactive plot
+   (device='/mpl') allows one to pan and zoom and to compare the same part of
+   multiple CCDs easily.
+
+   If the interactive plot is used (device='/mpl'), then pressing the space
+   bar will initiate a profile fit at the position of the cursor. The
+   parameters of a successfull fit will be printed to the screen.
+   A radial profile plot centered on the fit position can be plotted
+   by pressing the 'r' key. This will open a new matplotlib window.
+
+   Parameters:
+
+     input : string
+        name of MCCD file
+
+     device : string [hidden]
+        Plot device name. Uses characters after a final trailing '/' to
+        identify the type in PGPLOT style. Thus:
+
+         |  /xs : PGPLOT xserver interactive plot
+         |  1/xs : PGPLOT xserver interactive plot called '1'
+         |  plot.ps/cps : PGPLOT colour postscript called 'plot.ps'
+         |  plot.ps/vps : PGPLOT B&W portrait oriented plot
+         |  /mpl : matplotlib interactive plot
+         |  plot.pdf/mpl : matplotlib PDF plot
+
+     ccd : string
+        CCD(s) to plot, '0' for all. If not '0' then '1', '2' or even '3 4'
+        are possible inputs (without the quotes). '3 4' will plot CCD '3' and
+        CCD '4'. If you want to plot more than one CCD, then you will be
+        prompted for the number of panels in the X direction. This parameter
+        will not be prompted if there is only one CCD in the file.
+
+     nx : int
+        number of panels across to display, prompted if more than one CCD is
+        to be plotted.
+
+     msub : bool
+        True/False to subtract median from each window before scaling
+
+     cmap : str [if matplotlib; hidden]
+        The colour map to use. "Greys" is the usual, but there are
+        many others. Typing an incorrect one will give a list. "none"
+        for matplotlib default.
+
+     hsbox : int [if device = '/mpl'; hidden]
+        half-width in binned pixels of stats box as offset from central pixel
+        hsbox = 1 gives a 3x3 box; hsbox = 2 gives 5x5 etc.
+
+     iset : string [single character]
+        determines how the intensities are determined. There are three
+        options: 'a' for automatic simply scales from the minimum to the
+        maximum value found on a per CCD basis. 'd' for direct just takes two
+        numbers from the user. 'p' for percentile dtermines levels based upon
+        percentiles determined from the entire CCD on a per CCD bais.
+
+     ilo : float [if iset=='d']
+        lower intensity level
+
+     ihi : float [if iset=='d']
+        upper intensity level
+
+     plo : float [if iset=='p']
+        lower percentile level
+
+     phi : float [if iset=='p']
+        upper percentile level
+
+     xlo : float
+        left X-limit, for PGPLOT plots. Applies to matplotlib plots
+        to restrict region used to compute percentile limits. This is
+        useful in case where bias strips otherwise distort the plot
+        limits (e.g. ultraspec full frame images)
+
+     xhi : float
+        right X-limit. See comments for xlo as well.
+
+     ylo : float
+        bottom Y-limit. See comments for xlo as well.
+
+     yhi : float
+        top Y-limit. See comments for xlo as well.
+
+     width : float [hidden]
+        plot width (inches). Set = 0 to let the program choose.
+
+     height : float [hidden]
+        plot height (inches). Set = 0 to let the program choose. BOTH width
+        AND height must be non-zero to have any effect
+
+     method : str [hidden]
+         if the device is set to '/mpl' (matplotlib), then pressing the
+         space bar will initiate a profile fit at the position of the cursor.
+         This defines the profile fitting method, either a gaussian or a
+         moffat profile. The latter is usually best.
+
+     beta : float [method == 'm'; hidden]
+         default Moffat exponent
+
+     fwhm : float [hidden]
+         default FWHM, unbinned pixels. Do try to get this about right as
+         it affects whether the profile can be fitted at all.
+
+     fwhm_min : float [hidden]
+         minimum FWHM to allow, unbinned pixels.
+
+     shbox : float [hidden]
+         half width of box for searching for a star, unbinned
+         pixels. The above-threshold target closest to the centre of
+         the box in a region +/- shbox around an intial position
+         will be selected. It may not be the brightest, depending
+         upon your threshold settings, so use those to filter faint
+         objects. If profit=True, 'shbox' should be large enough to
+         allow for likely changes in position from frame to frame,
+         but not too large to avoid jumping to brighter targets or
+         possibly cosmic rays.
+
+     smooth : float [hidden]
+         FWHM for gaussian smoothing, binned pixels. The initial position
+         for fitting is determined by finding the maximum flux in a smoothed
+         version of the image in a box of width +/- shbox around the starter
+         position. Typically should be comparable to the stellar width. Its
+         main purpose is to combat cosmic rays which tend only to occupy a
+         single pixel.
+
+     fhbox : float [hidden]
+         half width of box for profile fit, unbinned pixels. The fit box is
+         centred on the position located by the initial search. It should
+         normally be > ~2x the expected FWHM, and usually smaller than shbox
+
+     hmin : float [hidden]
+         height threshold to accept a fit. If the height is below this
+         value, the position will not be updated. This is to help in cloudy
+         conditions. The limit is applied to the image after it has been
+         smoothed to make less vulnerable to seeing fluctuations. This
+         can mean it can be quite small.
+
+     read : float [hidden]
+         readout noise, RMS ADU, for assigning uncertainties. Set to a -ve
+         value to try to ascertain on the fly; this is advisable either if
+         you don't have a bias or you apply 'msub', and it will default to
+         this if not specified in this case. The value returned in this case
+         includes sky noise, i.e it should be roughly sqrt(R**2+S/G) where
+         R is the true read noise, S are the sky counts per pixel, and G the
+         gain. If read is set -ve, two fits are carried out per target. The
+         second of these should usually be pretty fast. The first is carried
+         out with an assumed large read noise of 20 in order to soften the
+         weights. The results reported apply to the second fit.
+
+     gain : float [hidden]
+         gain, ADU/count, for assigning uncertainties.
+
+     thresh : float [hidden]
+         sigma rejection threshold for fits
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:class:: OnDemandFit(fig, mccd, caxes, shbox=31, fwhm=6, beta=5, method='g', smooth=6, fhbox=21, hmin=50, fwhm_min=1.5, read=-1.0, gain=1.0, thresh=4.0)
+
+   Bases: :py:obj:`object`
+
+
+   
+   Callback
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:attribute:: fig
+
+
+   .. py:attribute:: mccd
+
+
+   .. py:attribute:: caxes
+
+
+   .. py:attribute:: shbox
+      :value: 31
+
+
+
+   .. py:attribute:: fwhm
+      :value: 6
+
+
+
+   .. py:attribute:: beta
+      :value: 5
+
+
+
+   .. py:attribute:: method
+      :value: 'g'
+
+
+
+   .. py:attribute:: smooth
+      :value: 6
+
+
+
+   .. py:attribute:: fhbox
+      :value: 21
+
+
+
+   .. py:attribute:: hmin
+      :value: 50
+
+
+
+   .. py:attribute:: fwhm_min
+      :value: 1.5
+
+
+
+   .. py:attribute:: read
+      :value: -1.0
+
+
+
+   .. py:attribute:: gain
+      :value: 1.0
+
+
+
+   .. py:attribute:: thresh
+      :value: 4.0
+
+
+
+   .. py:method:: _keyPressEvent(event)
+
+
+.. py:function:: buttonPressEvent(event)
+
+   
+   callback
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+

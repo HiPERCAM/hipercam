@@ -1,0 +1,73 @@
+hipercam.tests.header_test
+==========================
+
+.. py:module:: hipercam.tests.header_test
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   hipercam.tests.header_test.TestHeader
+
+
+Module Contents
+---------------
+
+.. py:class:: TestHeader(methodName='runTest')
+
+   Bases: :py:obj:`unittest.TestCase`
+
+
+   
+   Provides unit tests of the Header class
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:method:: setUp()
+
+      
+      Hook method for setting up the test fixture before exercising it.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: test_getitem()
+
+
+   .. py:method:: test_del()
+
+

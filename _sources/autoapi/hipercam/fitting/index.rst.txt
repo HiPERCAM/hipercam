@@ -1,0 +1,552 @@
+hipercam.fitting
+================
+
+.. py:module:: hipercam.fitting
+
+.. autoapi-nested-parse::
+
+   Code for profile fitting. Currently supports symmetric 2D Gaussian and
+   Moffat profiles plus constants.
+
+   ..
+       !! processed by numpydoc !!
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   hipercam.fitting.combFit
+   hipercam.fitting.fitMoffat
+   hipercam.fitting.moffat
+   hipercam.fitting.fitGaussian
+   hipercam.fitting.gaussian
+
+
+Module Contents
+---------------
+
+.. py:function:: combFit(wind, sigma, method, sky, height, x, y, fwhm, fwhm_min, fwhm_fix, beta, beta_max, beta_fix, thresh, ndiv=0, max_nfev=None)
+
+   
+   Fits a stellar profile in a :class:Window using either a 2D Gaussian
+   or Moffat profile. This is a convenience wrapper of fitMoffat and
+   fitGaussian because one often wants both options.
+
+   Arguments::
+
+       wind : :class:`Window`
+           the Window containing the stellar profile to fit.
+
+       sigma : np.array
+           array of sigma estimates matching dimensions of wind. Modified
+           on exit. Rejected points will be negative.
+
+       method : string
+           fitting method 'g' for Gaussian, 'm' for Moffat
+
+       sky : float
+           initial sky level
+
+       height : float
+           initial peak height
+
+       x : float
+           initial central X value
+
+       y : float
+           initial central Y value
+
+       fwhm : float
+           initial FWHM, unbinned pixels.
+
+       fwhm_min : float
+           minimum FWHM, unbinned pixels.
+
+       fwhm_fix : bool
+           fix the FWHM (i.e. don't fit it)
+
+       beta : float [if method == 'm']
+           exponent of Moffat function
+
+       beta_max : float [if method == 'm']
+           maximum beta
+
+       beta_fix : bool [if method == 'm']
+           fix beta (i.e. don't fit it)
+
+       thresh : float
+           threshold in terms of RMS for rejection. The RMS is obtained from
+           read and gain but scaled by the sqrt(chi**2/d.o.f). Typical value
+           = 4. The first fit is carried out with 2*thresh as the rejection
+           threshold to avoid spurious rejections.
+
+       ndiv : int
+           Parameter controlling treatment of sub-pixellation. If ndiv > 0,
+           every pixel in `wind` will be sub-divided first into unbinned
+           pixels, and then each unbinned pixel will be split into a square
+           array of ndiv by ndiv points. The profile will be evaluated and
+           averaged over each of these points. Thus if the pixels in `wind`
+           are binned xbin by ybin, there will be xbin*ybin*ndiv**2
+           evaluations per pixel. This is to cope with the case where the
+           seeing is becoming small compared to the pixels, but obviously
+           will slow things. To simply evaluate the profile once at the
+           centre of each pixel in `wind`, set ndiv = 0.
+
+   Returns:: (pars, epars, extras)
+
+   where::
+
+      pars : tuple
+         (sky, height, x, y, fwhm, beta), the fitted parameters
+         (`beta` == 0 if `method`=='g')
+
+      epars : tuple
+         (esky, eheight, ex, ey, efwhm, ebeta), fitted standard errors.
+         `ebeta` == -1 if `method`=='g'; `efwhm` == -1 if the FWHM was fixed
+         or it hit the minimum value.
+
+      extras : tuple
+         (fit,x,y,chisq,nok,nrej,npar,message) -- `fit` is an Window
+         containing the best fit; `x` and `x` are the X and Y coordinates of
+         the pixels; `chisq` is the chi**2 of the fit; `nok`
+         is the number of points fitted; `nrej` is the number rejected;
+         `npar` is the number of parameters fitted; `message` summarises the
+         fit values. `x`  and `y` are 2D numpy arrays matching
+         the dimensions of the data.
+
+   Raises a HipercamError if least_squares fails.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: fitMoffat(wind, sigma, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix, beta, beta_max, beta_fix, thresh, ndiv, max_nfev=None)
+
+   
+   Fits the profile of one target in a Window with a symmetric 2D Moffat
+   profile plus a constant "c + h/(1+alpha**2)**beta" where r is the distance
+   from the centre of the aperture. The constant alpha is determined by the
+   parameters `fwhm` and `beta`. The routine returns the fitted parameters,
+   the covariances and a few extras including the best fit itself. The FWHM
+   can be constrained to lie above a lower limit which can be useful when
+   data are heavily binned. If when `fwhm_fix` == False, the first fit with a
+   free FWHM fails, the routine will try again with the fwhm held fixed at
+   its input value `fwhm`. Similarly the Moffat exponent beta can be limited
+   to a maximum value as Moffat profiles are degenerate with Gaussians for
+   large beta.
+
+   Arguments::
+
+       wind : :class:`Window`
+           the Window with the data to be fitted. Ideally should contain
+           only one target, so chopping down to a small region around
+           the target of interest is usually a good idea.
+
+       sigma : np.array
+           array of sigma estimates matching dimensions of wind. Modified on
+           exit; rejected points are multiplied by -1
+
+       sky : float or None
+           initial value of the (assumed constant) sky background (counts
+           per pixel). Set None to ignore (i.e. regard as = 0)
+
+       height : float
+           initial peak height of profile (counts)
+
+       xcen : float
+           initial X value at centre of profile (unbinned absolute
+           coordinates)
+
+       ycen : float
+           initial Y value at centre of profile (unbinned absolute
+           coordinates)
+
+       fwhm : float
+           initial FWHM (unbinned pixels).
+
+       fwhm_min : float
+           minimum value to allow FWHM to go to. Useful for heavily binned
+           data especially where all signal might be in a single pixel to
+           prevent going to silly values. Routine first fits with a free
+           FWHM. If it goes below this value it tries again, setting to
+           this value. (unbinned pixels)
+
+       fwhm_fix : bool
+           fix the FWHM at the value `fwhm` during fits. Should be a bit
+           faster and more robust.
+
+       beta : float
+           initial value of Moffat exponent beta
+
+       beta_max : float
+           maximum value to allow beta to go to. For large beta,
+           Moffat profiles degenerate into guassians. The routines
+           tries with a free beta, but restarts if beta goes above
+           this value.
+
+       beta_fix : bool
+           fix beta at its initial value during fits. Should be a bit
+           faster and more robust.
+
+       read : float | array
+           readout noise, from which weights are generated (RMS counts)
+
+       gain : float | array
+           gain, from which weights are generated (e- per count)
+
+       thresh : float
+           threshold in terms of RMS for rejection. The RMS is obtained from
+           read and gain but scaled by the sqrt(chi**2/d.o.f). Typical value
+           = 4
+
+       ndiv : int
+           Parameter controlling treatment of sub-pixellation. If ndiv > 0,
+           every pixel will be sub-divided first into unbinned pixels, and
+           then each unbinned pixels will be split into a square array of
+           ndiv by ndiv points. The profile will be evaluated and averaged
+           over each of these points. Thus if the pixels in `wind` are binned
+           xbin by ybin, there will be xbin*ybin*ndiv**2 evaluations per
+           pixel. This is to cope with the case where the seeing is becoming
+           small compared to the pixels, but obviously will slow things. To
+           simply evaluate the profile once at the centre of each pixel in
+           `wind`, set ndiv = 0.
+
+       max_nfev : int or None
+          maximum number of function evaluations during fits. Passed
+          direct to least_squares.
+
+   Returns:: tuple
+
+       (pars, sigs, extras) where::
+
+          pars : tuple
+               (sky, height, xcen, yce, fwhm, beta), the fitted parameters.
+               fwhm = fwhm_min if initial fit returns an fwhm < fwhm_min,
+               or == initial fwhm if fwhm_fix == True. sky = 0 if sky
+               not fitted.
+
+          sigs : tuple
+               (skye, heighte, xcene, ycene, fwhme, betae), standard errors
+               on the fit parameters. If fwhm defaults to `fwhm_min` or
+               `fwhm_fix` == True, then `fwhme` will come back as -1. If
+               the sky is not fitted, skye comes back as -1.
+
+          extras : tuple
+               (fit, x, y, chisq, nok, nrej, npar, nfev) where: `fit`
+               is an :class:`Window` containing the best fit; `x` and
+               `y` are the x and y positions of all pixels (2D numpy
+               arrays); `chisq` is the raw chi**2; `nok` is the
+               number of points fitted; `nrej` is the number
+               rejected; `npar` is the number of parameters fitted (3
+               to 6), `nfev` is the number of functions evaluations.
+
+   The program re-scales the uncertainties on the fit parameters by
+   sqrt(chi**2/ndof) where ndof is the number of degrees of freedom =
+   number of points - 5 or 6, depending on the fit. This allows for
+   poor values of `read` and `gain` to a certain extent, which happen
+   especially if a sky background has been removed at the start. The
+   value of `sigma` on any rejected pixel is < 0.
+
+   Raises a HipercamError if the least_squares fails.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: moffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv)
+
+   
+   Returns a numpy array corresponding to the ordinate grids in xy
+   set to a Moffat profile plus a constant. Defined by
+   sky + height/(1+alpha*r**2)**beta where r is the distance from the
+   centre and alpha is set to give the desired FWHM given the exponent
+   beta. As beta becomes large, this tends to a Gaussian shape but has
+   more extended wings at low beta.
+
+   Parameters:
+
+     x : 2D numpy array
+        the X ordinates over which you want to compute the
+        profile. They should be measured in term of unbinned pixels.
+
+     y : 2D numpy array
+        the Y ordinates over which you want to compute the
+        profile. They should be measured in term of unbinned pixels.
+
+     sky : float
+        sky background.
+
+     height : float
+        height of central peak
+
+     xcen : float
+        X-ordinate of centre
+
+     ycen : float
+        Y-ordinate of centre
+
+     fwhm : float
+        FWHM of the profile
+
+     beta : float
+        Moffat exponent
+
+     xbin : int
+        X-size of pixels in terms of unbinned pixels, i.e. the binning factor in X
+
+     ybin : int
+        Y-size of pixels in terms of unbinned pixels, i.e. the binning factor in Y
+
+     ndiv : int
+        Parameter controlling treatment of sub-pixellation. If > 0, every
+        pixel will be sub-divided first into unbinned pixels, and then each
+        unbinned pixel will be split into a square array of ndiv by ndiv
+        points. The profile will be evaluated and averaged over each of these
+        points. Thus if the pixels are binned xbin by ybin, there will be
+        xbin*ybin*ndiv**2 evaluations per pixel. This is to cope with the
+        case where the seeing is becoming small compared to the pixels, but
+        obviously will slow things. To simply evaluate the profile once at
+        the centre of each pixel, set ndiv = 0.
+
+   Returns:: 2D numpy array containg the Moffat profile plus constant evaluated
+   on the ordinate grids in xy.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: fitGaussian(wind, sigma, sky, height, xcen, ycen, fwhm, fwhm_min, fwhm_fix, thresh, ndiv, max_nfev=0)
+
+   
+   Fits the profile of one target in an Window with a 2D symmetric Gaussian
+   profile "c + h*exp(-alpha*r**2)" where r is the distance from the centre
+   of the aperture. The constant alpha is fixed by the FWHM. The function
+   returns the fitted parameters, covariances and a few extras; see below.
+   The FWHM can be constrained to lie above a lower limit which can be useful
+   when data are heavily binned. If when fwhm_fix == False, the first fit
+   with a free FWHM fails, the routine will try again with the fwhm held
+   fixed at its input value `fwhm`.
+
+   Arguments::
+
+       wind : Window
+           the Window with the data to be fitted. Ideally should contain only
+           one target, so chopping down to a small region around the target
+           of interest is usually a good idea.
+
+       sigma : np.array
+           array of uncertainties matching wind. Modified on exit. Rejected
+           points multiplied by -1
+
+       sky : float
+           initial value of the (assumed constant) sky background (counts per
+           pixel)
+
+       height : float
+           initial peak height of profile (counts)
+
+       xcen : float
+           initial X value at centre of profile (unbinned absolute
+           coordinates)
+
+       ycen : float
+           initial Y value at centre of profile (unbinned absolute
+           coordinates)
+
+       fwhm : float
+           initial FWHM (unbinned pixels).
+
+       fwhm_min : float
+           minimum value to allow FWHM to go to. Useful for heavily binned
+           data especially where all signal might be in a single pixel to
+           prevent going to silly values. Routine first fits with a free
+           FWHM. If it goes below this value it tries again, setting to this
+           value. (unbinned pixels)
+
+       fwhm_fix : bool
+           fix the FWHM at the value 'fwhm' during fits. Should be a bit
+           faster and more robust.
+
+       read : float / array
+           readout noise, from which weights are generated. If an
+           array it must match the dimensions of the Window. (RMS counts)
+
+       gain : float / array
+           gain, from which weights are generated. If an array it
+           must match the dimensions of the Window (e- per count)
+
+       thresh : float
+           threshold in terms of RMS for rejection. The RMS is obtained from
+           read and gain but scaled by the sqrt(chi**2/d.o.f). Typical value
+           = 4
+
+       ndiv : int
+           Parameter controlling treatment of sub-pixellation. If ndiv > 0,
+           every pixel will be sub-divided first into unbinned pixels, and
+           then each unbinned pixels will be split into a square array of
+           ndiv by ndiv points. The profile will be evaluated and averaged
+           over each of these points. Thus if the pixels in `wind` are binned
+           xbin by ybin, there will be xbin*ybin*ndiv**2 evaluations per
+           pixel. This is to cope with the case where the seeing is becoming
+           small compared to the pixels, but obviously will slow things. To
+           simply evaluate the profile once at the centre of each pixel in
+           `wind`, set ndiv = 0.
+
+       max_nfev : int
+           maximum number of function evaluations during fits. Passed directly
+           to leastsq.
+
+   Returns:: tuple of tuples
+
+       (pars, sigs, extras) where::
+
+          pars : tuple
+               (sky, height, xcen, yce, fwhm). Fitted parameters.
+               `fwhm` == `fwhm_min` if fwhm after first fit is < `fwhm_min`,
+               or == initial fwhm if `fwhm_fix` == True.
+
+          sigs : tuple
+               (skye, heighte, xcene, ycene, fwhme). Standard errors on
+               the fit parameters. If `fwhm` defaults to `fwhm_min` or
+               `fwhm_fix` == True, then `fwhme` will come back as -1.
+
+          extras : tuple
+               (fit, x, y, chisq, nok, nrej, npar, nfev) where: `fit`
+               is an :class:`Window` containing the best fit; `x` and
+               `y` are the x and y positions of all pixels (2D numpy
+               arrays); `chisq` is the raw chi**2; `nok` is the
+               number of points fitted; `nrej` is the number
+               rejected; `npar` is the number of parameters fitted (3
+               to 5), `nfev` is the number of functions evaluations.
+
+   Raises a HipercamError least_squares fails.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: gaussian(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv)
+
+   
+   Returns a numpy array corresponding to the ordinate grids in xy set to a
+   symmetric 2D Gaussian plus a constant. The profile is essentially defined
+   by sky + height*exp(-alpha*r**2) where r is the distance from the centre
+   and alpha is set to give the desired FWHM, but account is taken of the
+   finite size of the pixels by summing over multiple points in each one.
+
+   Arguments::
+
+     x  : 2D numpy array
+        the X ordinates over which you want to compute the
+        profile. They should be measured in term of unbinned pixels.
+
+     y  : 2D numpy array
+        the Y ordinates over which you want to compute the
+        profile. They should be measured in term of unbinned pixels.
+
+     sky : float
+        sky background
+
+     height : float
+        height of central peak
+
+     xcen : float
+        X-ordinate of centre
+
+     ycen : float
+        Y-ordinate of centre
+
+     fwhm : float
+        FWHM of the profile (unbinned pixels)
+
+     xbin : int
+        X-size of pixels in terms of unbinned pixels, i.e. the binning factor in X
+
+     ybin : int
+        Y-size of pixels in terms of unbinned pixels, i.e. the binning factor in Y
+
+     ndiv : int
+        Parameter controlling treatment of sub-pixellation. If > 0, every
+        pixel will be sub-divided first into unbinned pixels, and then each
+        unbinned pixels will be split into a square array of ndiv by ndiv
+        points. The profile will be evaluated and averaged over each of these
+        points. Thus if the pixels are binned xbin by ybin, there will be
+        xbin*ybin*ndiv**2 evaluations per pixel. This is to cope with the
+        case where the seeing is becoming small compared to the pixels, but
+        obviously will slow things. To simply evaluate the profile once at
+        the centre of each pixel, set ndiv = 0.
+
+   Returns:: 2D numpy array containing the Gaussian plus constant evaluated
+   on the ordinate grids in xy.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+

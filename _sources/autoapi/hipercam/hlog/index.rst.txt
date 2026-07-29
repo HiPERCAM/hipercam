@@ -1,0 +1,1605 @@
+hipercam.hlog
+=============
+
+.. py:module:: hipercam.hlog
+
+.. autoapi-nested-parse::
+
+   hlog is a sub-module for reading in the log files written by
+   reduce. It defines one class :class:`hipercam.hlog.Hlog` to hold log
+   files and another :class:`hipercam.hlog.Tseries` to represent time
+   series to allow quick development of scripts to plot results.
+
+   For example, suppose a log file 'eg.log' has been written with 2 CCDs,
+   '1' and '2', and that CCD '2' has apertures labelled '1' and '2' for
+   target and comparison. Then the following commands would load it,
+   divide target by comparison and plot the result with matplotlib:
+
+   .. code-block::
+
+     import matplotlib.pyplot as plt
+     import hipercam as hcam
+
+     hlog = hcam.hlog.Hlog.rascii('ts.log')
+     targ = hlog.tseries('2','1')
+     comp = hlog.tseries('2','2')
+
+     ratio = targ / comp
+     ratio.mplot(plt, 'r')
+     plt.show()
+
+   :class:`hipercam.hlog.Tseries` objects know about bad data and carry
+   a bitmask array reflecting problems flagged during reduction, so for
+   example the bitmask array of the `ratio` object above combined the
+   bitmask array of the objects `targ` and `comp` used to create it.
+
+   ..
+       !! processed by numpydoc !!
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   hipercam.hlog.Hlog
+   hipercam.hlog.Tseries
+
+
+Module Contents
+---------------
+
+.. py:class:: Hlog
+
+   Bases: :py:obj:`dict`
+
+
+   
+   Class to represent |hiper| logs as produced by |reduce|.  Based on
+   dictionaries, Hlog files contain numpy structured arrays for each CCD
+   which can be accessed by the CCD label name. Each array contains data that
+   can be accessed by the label of the column. e.g.
+
+   .. code-block:: python
+
+      >> import hipercam as hcam
+      >> hlog = hcam.hlog.Hlog.rascii('run011.log')
+      >> print(hlog['2']['x_1'])
+
+   would print the X-values of aperture '1' from CCD '2'.
+
+   Hlog objects have in addition four attributes::
+
+      apnames : dict
+        Keyed by CCD label, gives a list of the
+        aperture labels used for each CCD. e.g.
+
+        .. code-block:: python
+
+           >> print(hlog.apnames['2'])
+
+        might return ['1','2','3'] meaning the apertures used for CCD 2.
+
+      cnames : dict
+        Keyed by CCD label giving a list of the column
+        names in the order they appeared in the original file. This is to
+        help write out the data
+
+      comments : list
+        List of strings storing the header comments to
+        allow the Hlog to be written out with full information if read
+        from an ASCII log.
+
+      writable : bool
+        Flag to say whether the Hlog can be written which
+        at the moment is only true if it has been read from an ASCII
+        |hiper| log file.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:method:: rascii(fname)
+      :classmethod:
+
+
+      
+      Loads a HiPERCAM ASCII log file written by reduce. Each CCD is loaded
+      into a separate structured array, returned in a dictionary keyed by
+      the CCD label.
+
+      Argument::
+
+         fname : str | list
+            Can be a single log file name or a list of log file
+            names. If a list, just the first file's comments will be
+            read, the others ignored, and it will be assumed, but
+            not checked, that the later files have the same number
+            and order of columns.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: rfits(fname)
+      :classmethod:
+
+
+      
+      Loads a HiPERCAM FITS log file written by |reduce| and subsequently
+      converted by |hlog2fits|. Each CCD is loaded into a separate
+      structured array, returned in a dictionary labelled by the CCD key.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: rulog(fname)
+      :classmethod:
+
+
+      
+      Creates an Hlog from an ASCII file produced by the C++ ULTRACAM
+      pipeline.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: tseries(cnam, apnam, name='counts', ecol=True)
+
+      
+      Returns with a Tseries corresponding to CCD cnam and
+      aperture apnam. By default it accesses the 'counts',
+      but 'x', 'y', 'fwhm', 'beta', 'sky' and 'cmax' are alternative
+      choices. Looks at the column names in a HiPERCAM log.
+      Can also access items not specific to apertures.
+
+      Arguments:
+
+         cnam : str
+            CCD label. 'str' will be used to make a string of non-string
+            entries.
+
+         apnam : str
+            Aperture label. Set = 'None' if the item of interest is not
+            specific to apertures, e.g. 'mfwhm'.
+
+         name : str
+            Item to return. e.g. 'counts', 'x', 'fwhm', 'mfwhm'. If apnam is
+            not None, then f"{name}_{apnam}" will be used as the column name,
+            else f"{name}"
+
+         ecol : bool
+            If True, an attempt will be made to read errors from a
+            column called f"{name}e_{apnam}" or f"{name}e" will be
+            made. If ecol is False or the error columns don't exist,
+            the errors are set = 0.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: write(fname)
+
+      
+      Writes out the Hlog to an ASCII file. This is to allow one to read
+      in a log file, modify it and then write it out, useful for
+      example to flag cloudy data. At the moment, it will only work
+      for an Hlog read from a |hiper| ASCII log file. NB It won't
+      exactly replicate the log file input since it writes out in
+      CCD order.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+.. py:class:: Tseries(t, y, ye=None, bmask=None, te=None, cpy=False)
+
+   
+   Class to represent time series with times, y values, y
+   errors and flags, and allowing bad data. Tseries objects know how
+   to plot themselves with matplotlib.
+
+   Attributes::
+
+      t : ndarray
+        mid-times
+
+      y : ndarray
+        y values
+
+      ye : ndarray
+        y errors
+
+      bmask : ndarray
+        bitmask propagated through from reduce log, that indicates possible
+        problems affecting each data point. See core.py for the defined flags.
+
+      te : None | ndarray
+        Exposure times (not much is done with these, but sometimes it's good
+        to have them on output).
+
+      cpy : bool
+        If True, copy the arrays by value, not reference.
+
+   Data can be bad, or it can be flagged, or it can be both. Some
+   flags imply that the associated data will be bad, but there are
+   some you may be able to live with. Bad data are indicated by
+   any/all of t,y,ye being set = NaN. The bitmask values correspond
+   to flags defined in hipercam.core. The bitmask values are OR-ed
+   when an operation on two Tseries is performed. Thus the child of
+   two Tseries inherits all the problems of each of its parents.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:method:: __len__()
+
+
+   .. py:method:: set_bitmask(bitmask, mask)
+
+      
+      This updates the internal bitmask by 'bitwise_or'-ing it with the
+      input bitmask value 'bitmask' for all values for which 'mask'
+      is true. 'mask' should match the Tseries length.  Arguments::
+
+         bitmask : int
+           a bitmask value which will be OR-ed with elements of the current
+           bitmask array
+
+         mask: np.ndarray
+           the bitmask will be applied to every element for which mask is True.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: clear_bitmask(bitmask, mask)
+
+      
+      This clears any of the internal bitmask elements of the
+      input bitmask value 'bitmask' for all values for which 'mask'
+      is true. 'mask' should match the Tseries length.  It does
+      this by bitwise_and-ing with ~bitmask. It reverses the effect
+      of set_bitmask. Arguments::
+
+         bitmask : int
+           a bitmask value which will be cleaned from the current bitmask array
+
+         mask: np.ndarray
+           the bitmask will be applied to every element for which mask is True.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: get_bad()
+
+      
+      Returns with a numpy boolean array of bad data defined as data
+      where any one of t, y, ye has been set to NaN or Inf
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: get_mask(bitmask=None, flag_bad=True)
+
+      
+      Returns logical array of all points which contain NaN values or
+      which match the bitmask 'bitmask' (i.e. bitwise_and > 0) The
+      intention is to return a boolean mask suitable for creating
+      numpy.ma.masked_array objects. i.e. bitmask=(hcam.NOSKY |
+      hcam.TARGET_SATURATED) would pick up all points said to have
+      no sky or saturated target pixels. Thus the array returned
+      flags bad data.
+
+      Arguments::
+
+         bitmask : None | numpy.uint32
+            32-bit bitmask to select points according to the internal bmask
+            array.  e.g. mvalue=(NO_FWHM | NO_SKY) would select
+            all points without a FWHM or sky aperture.
+            See Tseries.report for how to get a full list of
+            possible flags. A value of None makes no selection and only
+            NaN data will be flagged.
+
+         flag_bad : bool
+            The usual operating mode (flag_bad=True) is to flag up any bad
+            data (affected by NaNs) as well as data matching 'bitmask'. If
+            set False, only data matching 'bitmask' is flagged.
+
+      Returns::
+
+        numpy logical array of same length as the Tseries.
+
+      .. Note::
+
+         The logical array returned is not the same as the internal
+         attribute 'bmask' which contains the bitmask array itself.
+
+      .. Note::
+
+         Because of the way the mask is applied using
+         'numpy.bitwise_and', it makes no sense to set
+         bitmask=ALL_OK (it would actually be equivalent to setting
+         bitmask=None in terms of operation) and so to do so raises
+         a ValueErrror. In this instance you may want to set it to
+         ANY_FLAG instead to flag up points flagged for any reason.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: get_data(bitmask=None, flagged=False)
+
+      
+      Returns the data as (times, exposures, values, errors). 'bitmask' is a bitmask
+      to define which the data to exclude in addition to any NaN values.
+
+      Arguments::
+
+         bitmask : int | None
+           bitmask to identify points flagged in the internal bmask array. Use to
+           exclude bad data (in addition to data with NaN). See get_mask for usage.
+
+         flagged : bool
+           If set True, rather than using 'bitmask' to exclude data, this uses it
+           to include data (but still avoids bad NaN data)
+
+      Returns::
+         data : tuple
+           times, exposures times [or None if they are not defined], y values and their
+           uncertainties
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: percentile(q, bitmask=None)
+
+      
+      Returns percentiles of the y-array and their -/+ 1 sigma to allow
+      for error bars.  q = a percentile or array of percentiles
+      (values from 0 to 100) The return value is a tuple of three
+      lists containing the percentiles for y, y-ye, y+ye.
+
+      Arguments::
+
+         q : float | array
+           Percentile or list of percentiles to calculate, in range 0-100.
+
+         bitmask : None | int
+           see get_mask for meaning. Bad data are always ignored.
+
+      Returns::
+
+         Three lists containing percentiles for y, y-ye and y+ye
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: mplot(axes, color='b', fmt='.', bitmask=None, flagged=False, capsize=0, errx=False, erry=True, trange=None, mask=None, **kwargs)
+
+      
+      Plots a Tseries to a matplotlib Axes instance, only plotting points
+      that match the bitmask `mask` and have positive errors.
+
+      Arguments::
+
+         axes : Axes
+            the axis instance to plot to. Can just be matplotlib.pyplot
+
+         color : matplotlib colour
+            the colour to use (fed into kwargs to establish a fixed default)
+
+         fmt : str
+            marker to use for points or style for line plots, e.g. ',',
+            '.', 'o' give different points while '-' and '--' give
+            different lines. (fed into kwargs)
+
+         bitmask : None | int
+            bitmask to remove bad points. See 'get_mask' for usage.
+
+         flagged : bool
+            set True to plot points that match the bitmask rather than
+            ones that don't.
+
+         capsize : float
+            if error bars are plotted with points, this sets
+            the length of terminals (fed into kwargs)
+
+         errx : bool
+            True / False for bars indicating exposure length (i.e. +/- 1/2
+            whatever is in the te array)
+
+         erry : bool
+            True / False for vertical error bars or not
+
+         trange : None | (t1,t2)
+            Two element tuple to limit the time range
+
+         mask : None | logical array
+            True for point to be plotted
+
+         kwargs : keyword arguments
+            These will be fed to the plot routine which is either
+            matplotlib.pyplot.errorbar or matplotlib.pyplot.plot.
+            e.g. 'ms=2' will set the markersize to 2.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __repr__()
+
+
+   .. py:method:: __truediv__(other)
+
+      
+      Divides the Tseries by 'other' returning the result as another
+      Tseries. Propagates errors where possible, but just takes one of the
+      sets of exposure times (if present). 'other' can be a constant
+      or another Tseries or a compatible numpy array. If it is a Tseries,
+      the bit masks are bitwise_or-ed together.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __itruediv__(other)
+
+      
+      Divides the Tseries by 'other' in place. See __truediv__ for more details.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __mul__(other)
+
+      
+      Multiplies the Tseries by 'other' returning the result as another
+      Tseries. Propagates errors where possible. 'other' can be a constant
+      or another Tseries or a compatible numpy array. If it is a Tseries,
+      the bit masks are bitwise_or-ed together. bad data also propagates,
+      i.e. if either input on a given pixel is bad, then so too is the output
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __imul__(other)
+
+      
+      Multiplies the Tseries by 'other' in place. See __mul__ for more.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __add__(other)
+
+      
+      Add 'other' to the Tseries returning the result as another
+      Tseries. Propagates errors where possible. 'other' can be a constant
+      or another Tseries or a compatible numpy array. If it is a Tseries,
+      the bit masks are bitwise_or-ed together.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __iadd__(other)
+
+      
+      Add 'other' to the Tseries in place. See __add_ for more details.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __sub__(other)
+
+      
+      Subtracts 'other' from the Tseries returning the result as another
+      Tseries. Propagates errors where possible. 'other' can be a constant
+      or another Tseries or a compatible numpy array. If it is a Tseries,
+      the bit masks are bitwise_or-ed together.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __isub__(other)
+
+      
+      Subtracts 'other' from the Tseries in place. See __sub__ for more.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __getitem__(key)
+
+
+   .. py:method:: tadd(other)
+
+      
+      Adds 'other' to the times, in place.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: tsub(other)
+
+      
+      Subtracts 'other' to the times, in place.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: tmul(other)
+
+      
+      Multiplies the times by 'other', in place.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: tdiv(other)
+
+      
+      Divides the times by 'other', in place.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: resample(bin_edges, weighted=True, errors_from_rms=True, bitmask=None, inplace=True)
+
+      
+      Resamples the Timeseries onto a uniform grid.
+
+
+      :Parameters:
+
+          **bin_edges** : `~np.ndarray`
+              The left-hand edges of the grid.
+
+          **weighted** : bool | True
+              If true, points will be combined using a weighted mean.
+
+          **errors_from_rms** : bool | True
+              If True, the errors in each bin will be calculated from the RMS of the
+              points contributing to the bin. Otherwise, the measured errors on each
+              point will be used.
+
+          **bitmask** : int | None
+              Bitmask that selects elements to ignore before binning, in addition to
+              bad points. e.g. bitmask=hcam.TARGET_SATURATED will skip points
+              flagged as saturated.
+
+          **inplace** : bool
+              If True, self is modified, else a new Tseries is created
+              and self is untouched. A reference to a Tseries is always returned
+
+
+
+      :Returns:
+
+          **TSeries** : Tseries object
+              Binned Timeseries. If any output bin has no allowed input points (all
+              bad or flagged by bitmask) it will be flagged as bad.
+
+          .. Note::
+              1. The binned TSeries will report the root-mean-square error.
+              
+              2. The bitwise OR of the quality flags will be returned per bin.
+              
+              3. Any bins with no points will have their data set bad to mask them
+              
+              4. The exposure time will be set to span the first to last time
+                 contributing to the bin.
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: bin(binsize, bitmask=None, inplace=True)
+
+      
+      Bins the Timeseries into blocks of binsize; bitmask mvalue
+      can be used to skip points.
+
+
+      :Parameters:
+
+          **binsize** : int
+              Number of observations to incude in every bin
+
+          **bitmask** : int | None
+              Bitmask that selects elements to ignore before binning, in addition to
+              bad points. e.g. bitmask=hcam.TARGET_SATURATED will skip points
+              flagged as saturated.
+
+          **inplace** : bool
+              If True, self is modified, else a new Tseries is created
+              and self is untouched. A reference to a Tseries is always returned
+
+
+
+      :Returns:
+
+          **TSeries** : Tseries object
+              Binned Timeseries. If any output bin has no allowed input points (all
+              bad or flagged by bitmask)
+
+          .. Note::
+              1. If the ratio between the Tseries length and the binsize is not
+                 a whole number, then the remainder of the data points will be
+                 ignored.
+              
+              2. The binned TSeries will report the root-mean-square error.
+              
+              3. The bitwise OR of the quality flags will be returned per bin.
+              
+              4. Any bins with no points will have their data set bad to mask them
+              
+              5. The exposure time will be set to span the first to last time
+                 contributing to the bin.
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: flag_outliers(sigma=4.0, inplace=True, **kwargs)
+
+      
+      Flags outlier flux values using sigma-clipping according to
+      `astropy.stats.sigma_clip` [see docs on that for details].
+
+
+      :Parameters:
+
+          **sigma** : float
+              The number of standard deviations to use for clipping outliers.
+              Defaults to 5.
+
+          **inplace** : bool
+              Default action is to apply the mask in place. Otherwise returns
+              a new Tseries, leaving the current one untouched.
+
+          **\*\*kwargs** : dict
+              Dictionary of arguments to be passed to `astropy.stats.sigma_clip`.
+
+
+
+      :Returns:
+
+          **clean_tseries** : Tseries object [if not inplace]
+              Modified Tseries
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: append(others)
+
+      
+      Append Tseries objects
+
+
+      :Parameters:
+
+          **others** : Tseries object or list of Tseries objects
+              Time series to be appended to the current one
+
+
+
+      :Returns:
+
+          **new_ts** : Tseries object
+              Concatenated time series
+
+          .. Note::
+              To end with any exposure times, all contributing series
+              will need to have exposure times defined.
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: ttrans(func, efunc=None, inplace=True)
+
+      
+      Applies "func" to transform a time scale. "func" should return
+      an array of transformed times given an array of raw times. "efunc"
+      if defined will transform the exposure times (if they exist).
+
+      For instance:
+
+         .. code-block::
+
+            ts.ttrans(lambda t : 1440*(t-T0), lambda te : 1440*te)
+
+      would convert times in days to minutes offset from T0.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: mjd2tdb(position, telescope, inplace=True)
+
+      
+      Convert times in MJD to BMJD(TDB), i.e. barycentrically corrected
+      the time into phase.
+
+      Arguments::
+
+        position : str | SkyCoord
+
+          RA/Dec string (sexagesimal form e.g. 20:23:04,5
+          -00:02:56.3") suitable for creating an
+          astropy.coordinates.SkyCoord object, or a pre-built
+          SkyCoord
+
+        telescope : str | EarthLocation
+          string recognised for creating an
+          astropy.coordinates.EarthLocation object, or a pre-built
+          EarthLocation. Examples: 'lapalma', 'paranal'.
+
+        inplace : bool
+          whether to transform the times in the object or create a
+          new object
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: to_airmass(position, telescope, inplace=True)
+
+      
+      Converts times in MJD to airmass. This is a first step when
+      measuring extinction. The airmass computation uses Eq (1) from
+      Young & Irvine (1967) which is OK up to 4 and better than plain
+      secz. Any error array on the times is set to None.
+
+      Arguments::
+
+        position : str | SkyCoord
+
+          RA/Dec string (sexagesimal form e.g. 20:23:04,5
+          -00:02:56.3") suitable for creating an
+          astropy.coordinates.SkyCoord object, or a pre-built
+          SkyCoord
+
+        telescope : str | EarthLocation
+          string recognised for creating an
+          astropy.coordinates.EarthLocation object, or a pre-built
+          EarthLocation. Examples: 'lapalma', 'paranal'.
+
+        pressure: float
+          Atmospheric pressure in terms of standard atmospheres. Used
+          to compute refraction. Set = 0 if you get problems as it becomes
+          inaccurate near the horizon.
+
+        inplace : bool
+          whether to transform the times in the object or create a
+          new object
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: phase(t0, period, fold=False, inplace=True, sort=True)
+
+      
+      Convert the time into phase.
+
+      This method returns a new ``Tseries`` object in which the time
+      values range between -0.5 to +0.5.  Data points which occur exactly
+      at ``t0`` or an integer multiple of `t0 + n*period` have time
+      value 0.0.
+
+      :Parameters:
+
+          **t0** : float
+              Time reference point.
+
+          **period** : float
+              The period
+
+          **fold** : bool
+              If True, map the phases to -0.5 to 0.5.
+
+          **inplace** : bool
+              Operation in place, else return a new Tseries
+
+          **sort** : bool
+              Sort into ascending phase order
+
+
+
+      :Returns:
+
+          folded_tseries: Tseries object
+              A new ``Tseries`` with the time converted to phase
+              (if inplace=False)
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: normalise(bitmask=None, method='median', weighted=False, inplace=True)
+
+      
+      Returns a normalized version of the time series.
+
+      The normalized timeseries is obtained by dividing `y` and `ye`
+      by the median (or mean) y value. Arguments::
+
+        bitmask : None | int
+           see get_mask for meaning. Bad data are always ignored.
+
+        method : str
+           method to apply, either 'median' or 'mean'
+
+        weighted : bool
+           if method == 'mean', compute an inverse-variance weighted mean
+
+        inplace: bool
+           if True, self is modfied, else a new Tseries is created. A
+           reference to a Tseries is always returned.
+
+
+
+
+      :Returns:
+
+          **normalized_tseries** : Tseries object
+              A new ``Tseries`` in which `y` and `ye` are divided
+              by the median / mean y value.
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: downsize(other, bitmask=None, inplace=True)
+
+      
+      Bins the Tseries down to match the times from 'other'.
+      Useful for dealing with data taken with nskips
+
+      Parameters::
+
+        other : Tseries
+          A coarser Tseries you wish to match. Must have
+          an integer ratio fewer points. e.g. for HiPERCAM this
+          might be the u-band while 'self' is 'g'-band data, assuming
+          they are commensurate.
+
+        bitmask : None | int
+          Bitmask to feed through to the binning routine used; see 'bin'.
+          Use to try to exclude bad data where possible.
+
+        inplace : bool
+          If True, overwrite the Tseries, else just return a new one.
+          A reference to a Tseries is always returned
+
+
+
+
+      :Returns:
+
+          **TSeries** : Tseries
+              Binned version of the Tseries. Every output bin will be present
+              but some could be flagged as bad if there was no valid input. This
+              allows the binned and coarse Tseries to stay 'in step'.
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: ymean(bitmask=None, weighted=True)
+
+      
+      Computes the mean of the y-values. "weighted=True"
+      means the mean is calculated with inverse variance
+      weighting.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: clip_ends(nstart, nend)
+
+      
+      Clips points off either end of Tseries, returns a new Tseries,
+      leaves old one unchanged.
+
+      Arguments::
+
+         nstart : int
+            number to remove from start
+
+         nstart : int
+            number to remove from end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: report()
+
+      
+      Reports numbers and types of bad points and details which are problematical.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: to_mag(inplace=True)
+
+      
+      Convert to magnitudes, i.e. take -2.5*log10(y) (inverse of from_mag)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: from_mag(inplace=True)
+
+      
+      Convert from magnitudes to a linear scale (inverse of to_mag)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: write(fname, lcurve=False, bitmask=None, skip=False, **kwargs)
+
+      
+      Writes out the Tseries to an ASCII file using numpy.savetxt. Other
+      arguments to savetxt can be passed via kwargs. The data are
+      written with a default choice of "fmt" sent to savetxt unless
+      overridden using kwargs.  The default "fmt" uses a high
+      precision on the times based upon typical usage for ULTRACAM
+      derived (MJD) data.
+
+      Arguments::
+
+         fname : str
+           output file name
+
+         lcurve : bool
+           if True, tack on two extra columns to make it easy to read the data
+           into the program lcurve. This does not write bad data or the bitmask
+           but uses the supplied bitmask to set weights on bad points to zero.
+           If False all data including bad data are written and the fill bitmask
+           value is given. Explanotory header info is tacked onto to whatever header
+           is passed via kwargs to savetxt.
+
+         bitmask : None | int [if lcurve]
+           if lcurve=True, this is used to set the weight on matching points to 0.
+           This allows bad data to be plotted but not fitted e.g. by "lroche"
+
+         skip : bool [if lcurve]
+           if True, any data matched by bitmask are simply skipped on output.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: read(fname, has_exposures=True)
+      :classmethod:
+
+
+      
+      Creates a Tseries from an ASCII column data file. This
+      should either contain times, y-values, y-errors, bitmask
+      or times, exposures, y-values, y-errors, bitmask
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+

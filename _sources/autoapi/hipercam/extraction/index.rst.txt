@@ -1,0 +1,88 @@
+hipercam.extraction
+===================
+
+.. py:module:: hipercam.extraction
+
+.. autoapi-nested-parse::
+
+   Defines classes and functions used to detect and characterise
+   objects in photometric data.
+
+   Adds optional dependency on sep package ()
+
+   ..
+       !! processed by numpydoc !!
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   hipercam.extraction.SMALL_TYPE
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   hipercam.extraction.findStars
+
+
+Module Contents
+---------------
+
+.. py:data:: SMALL_TYPE
+
+.. py:function:: findStars(wind, thresh, kernel_fwhm, return_bkg=False)
+
+   
+   Use sep to find objects in image. Not sure the outputs returned
+   are correct for xbin != ybin
+
+
+   :Parameters:
+
+       **wind** : `~hipercam.window.Window`
+           window in which to detect objects.
+
+       **thresh** : float
+           threshold for object detection, in muliples of background RMS.
+
+       **kernel_fwhm** : float
+           Image is convolved with a Gaussian kernel of this FWHM prior to object
+           detection. Should be set to something similar to the typical FWHM in image.
+
+       **return_bkg** : bool
+           True to return the background as calculated by sep.Background
+
+
+
+   :Returns:
+
+       **objects** : np.ndarray
+           Extracted object parameters (structured array).
+           For available fields, see sep documentation.
+           http://sep.readthedocs.io/en/v1.0.x/api/sep.extract.html#sep.extract
+           
+           Most quantities are converted to unbinned coordinates and pixels,
+           apart from npix, and tnpix, the number of pixels in the objects.
+
+       **bkg** : `~sep.Background` [if return_bkg]
+           The background estimated by 'sep'. Use sep.subfrom
+           to subtract from data.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+

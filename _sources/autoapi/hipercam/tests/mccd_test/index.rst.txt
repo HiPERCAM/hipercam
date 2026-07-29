@@ -1,0 +1,70 @@
+hipercam.tests.mccd_test
+========================
+
+.. py:module:: hipercam.tests.mccd_test
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   hipercam.tests.mccd_test.TestMCCD
+
+
+Module Contents
+---------------
+
+.. py:class:: TestMCCD(methodName='runTest')
+
+   Bases: :py:obj:`unittest.TestCase`
+
+
+   
+   Provides simple tests of MCCD methods and attributes.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:method:: setUp()
+
+      
+      Hook method for setting up the test fixture before exercising it.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: test_mccd_copy()
+
+

@@ -1,0 +1,650 @@
+hipercam.group
+==============
+
+.. py:module:: hipercam.group
+
+.. autoapi-nested-parse::
+
+   Defines classes which contain groups of objects of identical type
+   keyed with strings only.
+
+   ..
+       !! processed by numpydoc !!
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   hipercam.group.Group
+   hipercam.group.Agroup
+
+
+Module Contents
+---------------
+
+.. py:class:: Group(ftype, *args, **kwargs)
+
+   Bases: :py:obj:`collections.OrderedDict`
+
+
+   
+   A specialized OrderedDict that enforces string keys only and a
+   single class for the values. The objects stored as values should
+   support a `copy` method to return a deepcopy for use in the
+   :class:`Group` copy operation.
+
+   :class:`Group` is designed to amalgamate several of the classes used for
+   objects associated with CCDs such as :class:`Window` (see :class:`CCD`),
+   and :class:`Aperture` (see :class:`CcdAper`)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:attribute:: ftype
+
+
+   .. py:method:: __setitem__(key, item)
+
+      
+      Adds an item `item` keyed by `key`
+      checking that its type matches 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: copy(memo=None)
+
+      
+      Copy operation. The stored objects must have a `copy(self, memo)` method.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: check()
+
+      
+      Checks validity of a Group if its objects have a method
+      'clash' defined to check that they are compatible. This should
+      have signature 'clash(self, other)', but does not have to be
+      defined for all objects storable in Groups. See :class:`Winhead` for
+      an example of an object for which this makes sense.
+
+      If the Group fails this check, a ValueError is raised.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: get_num(num)
+
+      
+      Returns the num element of the Group (starting from 0)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __copy__()
+
+      
+      Copy operation for copy.copy
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __deepcopy__(memo)
+
+      
+      Copy operation for copy.deepcopy
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __repr__()
+
+      
+      Return repr(self).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+.. py:class:: Agroup(ftype, *args, **kwargs)
+
+   Bases: :py:obj:`Group`
+
+
+   
+   A :class:`Group` which defines arithmetic methods +=, +, etc which must be
+   supported by whatever objects the :class:`Group` contains. This allows the
+   same approach to be taken when operating on :class:`CCD` and :class:`MCCD`
+   objects which are based on this class. The objects stored in the
+   :class:`Agroup` must define a method `copy` which returns a deep copy;
+   this is required by several operators.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:method:: copy(memo=None)
+
+      
+      Copy operation.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __iadd__(other)
+
+      
+      Adds `other` to the :class:`Agroup` as 'self += other'. If `other` is
+      another :class:`Agroup` with the same object type (`ftype`) as self,
+      then the operation will be applied to each pair of objects with
+      matching keys. Otherwise `other` will be regarded as a constant object
+      to add to each object in the :class:`Agroup`.
+
+      In the first case, if self has keys that are not in `other`, then they
+      will be left untouched. Any keys in `other` not in self are ignored.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __isub__(other)
+
+      
+      Subtracts `other` from the :class:`Agroup` as 'self -= other'. If `other`
+      is another :class:`Agroup` with the same object type (`ftype`) as
+      self, then the operation will be applied to each pair of objects with
+      matching keys. Otherwise `other` will be regarded as a constant object
+      to subtract from each object in the :class:`Agroup`.
+
+      In the first case, if self has keys that are not in `other`, then they
+      will be left untouched. Any keys in `other` not in self are ignored.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __imul__(other)
+
+      
+      Multiplies the :class:`Agroup` by `other` as 'self *= other'. If `other` is
+      another :class:`Agroup` with the same object type (`ftype`) as self,
+      then the operation will be applied to each pair of objects with
+      matching keys. Otherwise `other` will be regarded as a constant object
+      to multiply each object in the :class:`Agroup`.
+
+      In the first case, if self has keys that are not in `other`, then they
+      will be left untouched. Any keys in `other` not in self are ignored.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __itruediv__(other)
+
+      
+      Divides the :class:`Agroup` by `other` as 'self /= other'. If `other` is
+      another :class:`Agroup` with the same object type (`ftype`) as self,
+      then the operation will be applied to each pair of objects with
+      matching keys. Otherwise `other` will be regarded as a constant object
+      to divide into each object in the :class:`Agroup`.
+
+      In the first case, if self has keys that are not in `other`, then they
+      will be left untouched. Any keys in `other` not in self are ignored.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __add__(other)
+
+      
+      Adds `other` to the :class:`Agroup` as '= self + other'. If `other` is
+      another :class:`Agroup` with the same object type (`ftype`) as self,
+      then the operation will be applied to each pair of objects with
+      matching keys. Otherwise `other` will be regarded as a constant object
+      to add to each object in the :class:`Agroup`.
+
+      In the first case, if self has keys that are not in `other`, then they
+      will be left untouched. Any keys in `other` not in self are ignored.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __sub__(other)
+
+      
+      Subtracts `other` from the :class:`Agroup` as '= self - other'. If `other` is
+      another :class:`Agroup` with the same object type (`ftype`) as self,
+      then the operation will be applied to each pair of objects with
+      matching keys. Otherwise `other` will be regarded as a constant object
+      to subtract from each object in the :class:`Agroup`.
+
+      In the first case, if self has keys that are not in `other`, then they
+      will be left untouched. Any keys in `other` not in self are ignored.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __mul__(other)
+
+      
+      Multiplies the :class:`Agroup` by `other` as '= self * other'. If `other`
+      is another :class:`Agroup` with the same object type (`ftype`) as
+      self, then the operation will be applied to each pair of objects with
+      matching keys. Otherwise `other` will be regarded as a constant object
+      to multiply each object in the :class:`Agroup`.
+
+      In the first case, if self has keys that are not in `other`, then they
+      will be left untouched. Any keys in `other` not in self are ignored.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __truediv__(other)
+
+      
+      Divides the :class:`Agroup` by `other` as '= self / other'. If `other` is
+      another :class:`Agroup` with the same object type (`ftype`) as self,
+      then the operation will be applied to each pair of objects with
+      matching keys. Otherwise `other` will be regarded as a constant object
+      to divide into each object in the :class:`Agroup`.
+
+      In the first case, if self has keys that are not in `other`, then they
+      will be left untouched. Any keys in `other` not in self are ignored.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __radd__(other)
+
+      
+      Adds the :class:`Agroup` to other as '= other + self'.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __rsub__(other)
+
+      
+      Subtracts the :class:`Agroup` from `other` as '= other - self'.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __rmul__(other)
+
+      
+      Multiplies the :class:`Agroup` by `other` as '= other * self'.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __rtruediv__(other)
+
+      
+      Divides a :class:`Agroup` by `other` as '= other / self'.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __repr__()
+
+      
+      Return repr(self).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+

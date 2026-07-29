@@ -1,0 +1,320 @@
+hipercam.psf_reduction
+======================
+
+.. py:module:: hipercam.psf_reduction
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   hipercam.psf_reduction.IntegratedGaussianPRF2
+   hipercam.psf_reduction.MoffatPSF
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   hipercam.psf_reduction.extractFluxPSF
+
+
+Module Contents
+---------------
+
+.. py:class:: IntegratedGaussianPRF2
+
+   Bases: :py:obj:`astropy.modeling.Fittable2DModel`
+
+
+   
+   Circular Gaussian model integrated over pixels.
+
+   Because it is integrated, this model is considered a PRF, *not* a
+   PSF (see :ref:`psf-terminology` for more about the terminology used
+   here.)
+
+   This model is a Gaussian *integrated* over an area of
+   ``1`` (in units of the model input coordinates, e.g., 1
+   pixel). This is in contrast to the apparently similar
+   `astropy.modeling.functional_models.Gaussian2D`, which is the value
+   of a 2D Gaussian *at* the input coordinates, with no integration.
+   So this model is equivalent to assuming the PSF is Gaussian at a
+   *sub-pixel* level.
+
+   Based on the same named model in photutils, but with different
+   std deviations in x and y.
+
+   :Parameters:
+
+       **sigma_x** : float
+           Width of the Gaussian PSF in x.
+
+       **sigma_y** : float
+           Width of the Gaussian PSF in y.
+
+       **flux** : float, optional
+           Total integrated flux over the entire PSF
+
+       **x_0** : float, optional
+           Position of the peak in x direction.
+
+       **y_0** : float, optional
+           Position of the peak in y direction.
+
+
+
+
+
+
+
+
+
+
+
+   .. rubric:: Notes
+
+   This model is evaluated according to the following formula:
+
+       .. math::
+
+           f(x, y) =
+               \frac{F}{4}
+               \left[
+               {\rm erf} \left(\frac{x - x_0 + 0.5}
+               {\sqrt{2} \sigma_x} \right) -
+               {\rm erf} \left(\frac{x - x_0 - 0.5}
+               {\sqrt{2} \sigma_x} \right)
+               \right]
+               \left[
+               {\rm erf} \left(\frac{y - y_0 + 0.5}
+               {\sqrt{2} \sigma_y} \right) -
+               {\rm erf} \left(\frac{y - y_0 - 0.5}
+               {\sqrt{2} \sigma_y} \right)
+               \right]
+
+   where ``erf`` denotes the error function and ``F`` the total
+   integrated flux.
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:attribute:: flux
+
+
+   .. py:attribute:: x_0
+
+
+   .. py:attribute:: y_0
+
+
+   .. py:attribute:: sigma_x
+
+
+   .. py:attribute:: sigma_y
+
+
+   .. py:attribute:: _erf
+      :value: None
+
+
+
+   .. py:property:: bounding_box
+
+
+   .. py:property:: fwhm
+
+
+   .. py:method:: evaluate(x, y, flux, x_0, y_0, sigma_x, sigma_y)
+
+      
+      Model function Gaussian PSF model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+.. py:class:: MoffatPSF
+
+   Bases: :py:obj:`astropy.modeling.Fittable2DModel`
+
+
+   
+   Standard Moffat model, but with parameter names that work with photutils
+
+   Different FWHM parameters apply in x and y, the fwhm property gives
+   the average of both.
+
+   :Parameters:
+
+       **fwhm_x** : float
+           Full-Width at Half-Maximum of profile in x
+
+       **fwhm_y** : float
+           Full-Width at Half-Maximum of profile in y
+
+       **beta** : float
+           Beta parameter of Moffat profile
+
+       **flux** : float (default 1)
+           Total integrated flux over the entire PSF
+
+       **x_0** : float (default 0)
+           Position of peak in x direction
+
+       **y_0** : float (default 0)
+           Position of peak in y direction
+
+
+
+
+
+
+
+
+
+
+
+   .. rubric:: Notes
+
+   This model is evaluated according to the following formula:
+
+       .. math::
+           f(x, y) = F [1 + ((x-x_o)/lpha_x)**2 + ((y-y_o)/lpha_y)**2]**(-beta)
+
+   where ``F`` is the total integrated flux, and ``alpha_i`` is chosen
+   so the profile has the appropriate FWHM.
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:attribute:: flux
+
+
+   .. py:attribute:: x_0
+
+
+   .. py:attribute:: y_0
+
+
+   .. py:attribute:: beta
+
+
+   .. py:attribute:: fwhm_x
+
+
+   .. py:attribute:: fwhm_y
+
+
+   .. py:attribute:: fit_deriv
+      :value: None
+
+
+
+   .. py:property:: fwhm
+
+
+   .. py:property:: bounding_box
+
+
+   .. py:method:: evaluate(x, y, flux, x_0, y_0, beta, fwhm_x, fwhm_y)
+
+
+.. py:function:: extractFluxPSF(cnam, ccd, bccd, rccd, read, gain, ccdwin, rfile, store)
+
+   
+   This extracts the flux of all apertures of a given CCD.
+
+   The steps are (1) creation of PSF model, (2) PSF fitting, (3)
+   flux extraction. The apertures are assumed to be correctly positioned.
+
+   It returns the results as a dictionary keyed on the aperture label. Each
+   entry returns a list:
+
+   [x, ex, y, ey, fwhm, efwhm, beta, ebeta, counts, countse, sky, esky,
+   nsky, nrej, flag, cmax]
+
+   flag = bitmask. See hipercam.core to see all the options which are
+   referred to by name in the code e.g. ALL_OK. The various flags can
+   signal that there no sky pixels (NO_SKY), the sky aperture was off
+   the edge of the window (SKY_AT_EDGE), etc.
+
+   This code::
+
+      >> bset = flag & TARGET_SATURATED
+
+   determines whether the data saturation flag is set for example.
+
+   .. note::
+       not all arguments are used by this routine, but the call signature is
+       fixed to be a drop-in replacement for the normal and optimal photometry
+       function called by reduce
+
+   Arguments::
+
+      cnam : string
+         CCD identifier label
+
+      ccd : CCD
+          the fully processed CCD (debiassed, dark-corrected, flat-fielded, fringe-corrected)
+
+      bccd : CCD
+          debiassed-only CCD. Used in variance computation.
+
+      rccd : CCD
+         corresponding raw CCD, used to work out whether data are
+         saturated in target aperture.
+
+      read : CCD
+          readnoise divided by the flat-field
+
+      gain : CCD
+          gain multiplied by the flat field
+
+      ccdwin : dictionary of strings
+          the Window label corresponding to each Aperture
+
+      rfile : Rfile
+          reduce file configuration parameters
+
+      store : dict of dicts
+          see moveApers for what this contains.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
