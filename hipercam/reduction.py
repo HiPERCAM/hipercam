@@ -1,6 +1,7 @@
 """
 This contains code used in common by the script reduce.py
 """
+
 from collections import OrderedDict
 import sys
 import warnings
@@ -31,7 +32,6 @@ from trm.pgplot import (
     pgdraw,
     pgpt1,
 )
-
 
 NaN = float("NaN")
 
@@ -3067,6 +3067,7 @@ class LightCurve(BaseBuffer):
                 ft = targ["counts"]
                 fte = targ["countse"]
                 saturated = targ["flag"] & hcam.TARGET_SATURATED
+                nonlinear = targ["flag"] & hcam.TARGET_NONLINEAR
 
                 if fte == fte:
                     if self.comp != "!":
@@ -3074,6 +3075,7 @@ class LightCurve(BaseBuffer):
                         fc = comp["counts"]
                         fce = comp["countse"]
                         saturated |= comp["flag"] & hcam.TARGET_SATURATED
+                        nonlinear |= comp["flag"] & hcam.TARGET_NONLINEAR
 
                         if fc == fc and fce == fce:
                             f = ft / fc
@@ -3108,6 +3110,9 @@ class LightCurve(BaseBuffer):
                 if saturated:
                     # mark saturated data with cross
                     self.symb.append(5)
+                elif nonlinear:
+                    # mark nonlinear data with triangle
+                    self.symb.append(7)
                 else:
                     # blob if OK
                     self.symb.append(17)
@@ -3201,6 +3206,9 @@ class Xposition(BaseBuffer):
                 if targ["flag"] & hcam.TARGET_SATURATED:
                     # mark saturated data with cross
                     self.symb.append(5)
+                elif targ["flag"] & hcam.TARGET_NONLINEAR:
+                    # mark nonlinear data with triangle
+                    self.symb.append(7)
                 else:
                     # blob if OK
                     self.symb.append(17)
@@ -3293,6 +3301,9 @@ class Yposition(BaseBuffer):
                 if targ["flag"] & hcam.TARGET_SATURATED:
                     # mark saturated data with cross
                     self.symb.append(5)
+                elif targ["flag"] & hcam.TARGET_NONLINEAR:
+                    # mark nonlinear data with triangle
+                    self.symb.append(7)
                 else:
                     # blob if OK
                     self.symb.append(17)
@@ -3363,6 +3374,9 @@ class Transmission(BaseBuffer):
                 if targ["flag"] & hcam.TARGET_SATURATED:
                     # mark saturated data with cross
                     self.symb.append(5)
+                elif targ["flag"] & hcam.TARGET_NONLINEAR:
+                    # mark nonlinear data with triangle
+                    self.symb.append(7)
                 else:
                     # blob if OK
                     self.symb.append(17)
@@ -3441,6 +3455,9 @@ class Seeing(BaseBuffer):
                 if targ["flag"] & hcam.TARGET_SATURATED:
                     # mark saturated data with cross
                     self.symb.append(5)
+                elif targ["flag"] & hcam.TARGET_NONLINEAR:
+                    # mark nonlinear data with triangle
+                    self.symb.append(7)
                 else:
                     # blob if OK
                     self.symb.append(17)
@@ -3650,8 +3667,7 @@ class LogWriter:
 
     def write_header(self):
         # first, a general description
-        self.log.write(
-            """#
+        self.log.write("""#
 # This is a logfile produced by the HiPERCAM pipeline command 'reduce'. It consists
 # of one line per reduced CCD per exposure. Each line contains all the information
 # from all apertures defined for the CCD. The column names are defined just before
@@ -3662,23 +3678,18 @@ class LogWriter:
 # of the HiPERCAM reduction software, and was generated using the following
 # command-line inputs to 'reduce':
 #
-""".format(
-                hipercam_version=self.hipercam_version
-            )
-        )
+""".format(hipercam_version=self.hipercam_version))
 
         # second, list the command-line inputs to the logfile
         for line in self.plist:
             self.log.write("# {:s}".format(line))
 
         # third, list the reduce file
-        self.log.write(
-            """#
+        self.log.write("""#
 # and here is a minimal version of the reduce file used ['rfile' above] with
 # all between-line comments removed for compactness:
 #
-"""
-        )
+""")
 
         # skip these as they only affect the on the fly plots,
         # not the final values
@@ -3699,13 +3710,11 @@ class LogWriter:
                         self.log.write("#   {:s}".format(line))
 
         # fourth, write the apertures
-        self.log.write(
-            """#
+        self.log.write("""#
 # Next here is the aperture file used in JSON-style format that (without
 # the initial comment hashes) is readable by setaper and reduce:
 #
-"""
-        )
+""")
         # convert aperture file to JSON-style string, split line by line,
         # pre-pend comment and indentation, write out to the logfile.
         lines = [
@@ -3716,8 +3725,7 @@ class LogWriter:
 
         # fifth the column names for each CCD which has any
         # apertures
-        self.log.write(
-            """#
+        self.log.write("""#
 # Now follow column name definitions for each CCD. These include all apertures
 # of the CCD. Since there are 15 items stored per aperture and each column name
 # is built from the item name followed by an underscore and finally the aperture
@@ -3757,8 +3765,7 @@ class LogWriter:
 #
 # Start of column name definitions:
 #
-"""
-        )
+""")
         toffset = self.rfile["general"]["toffset"]
         for cnam, ccdaper in self.rfile.aper.items():
             if len(ccdaper) == 0:
@@ -3787,8 +3794,7 @@ class LogWriter:
             self.log.write(cnames + "\n")
 
         # now the datatypes for building into structured arrays
-        self.log.write(
-            """#
+        self.log.write("""#
 # End of column name definitions
 #
 # Now follow a similar series of datatypes which are designed to be used to
@@ -3797,8 +3803,7 @@ class LogWriter:
 #
 # Start of data type definitions:
 #
-"""
-        )
+""")
         atypes = "f4 f4 f4 f4 f4 f4 f4 f4 f4 f4 f4 f4 i4 i4 i4 u4 "
         for cnam, ccdaper in self.rfile.aper.items():
             if len(ccdaper) == 0:
@@ -3810,11 +3815,9 @@ class LogWriter:
                 "# {:s} = s i4 f8 ? f4 f4 f4 {:s}\n".format(cnam, len(ccdaper) * atypes)
             )
 
-        self.log.write(
-            """#
+        self.log.write("""#
 # End of data type definitions
 #
-"""
-        )
+""")
 
     # that's it for the headers!
