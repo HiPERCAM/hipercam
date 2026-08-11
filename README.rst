@@ -55,9 +55,8 @@ Manual Installation
 
 hipercam is written in Python3; it does not support Python2.x It
 relies on multiple third-party packages, as described in the next
-section.  At minimum, you should ensure that Cython and trm.pgplot are
-installed.  Once you have, get the hipercam pipeline software itself
-using::
+section.  At minimum, you should ensure that trm.pgplot is installed.
+Once you have, get the hipercam pipeline software itself using::
 
   git clone https://github.com/HiPERCAM/hipercam.git
 
@@ -110,31 +109,28 @@ For development, you can install the package in editable mode::
 This will install the package in development mode, so changes to the
 source code are immediately reflected without needing to reinstall.
 
-Note: The package includes Cython extensions that need to be compiled,
-so you'll need a C compiler and the build dependencies (Cython, numpy)
+Note: The package includes compiled extensions that need to be built,
+so you'll need a C++ compiler and the build dependencies (numpy, pybind11)
 available during the build process.
 
 Third-Party Modules
 ===================
 
-Apart from Cython and trm.pgplot, I hope that most of the extras will
-get automatically installed if necessary by pip. So, if you have
-Cython and PGPLOT ready, you might as well try ``pip install
-. --user`` here and now.
+Apart from trm.pgplot, I hope that most of the extras will get
+automatically installed if necessary by pip. So, if you have PGPLOT ready,
+you might as well try ``pip install . --user`` here and now.
 
 If something seems amiss, here are details of the third-party packages
 which you can either install via pip or by looking for the packages in
-your O/S package manager. e.g. under fedora, Cython appears as
-``python3-Cython``.
+your O/S package manager.
 
   astropy :
          astronomical Python package with lots of useful stuff.
 
-  Cython :
-         C-extensions for Python. Widely used package used to interface
-         to C-libraries and to enable faster code when critical. It is
-         needed at the setup stage so it might have to be installed first
-         rather than relying on pip finding it, although I could be wrong.
+  pybind11 :
+         Lightweight C++ binding library used to expose compiled helpers for
+         the fitting and support routines. It is needed at the setup stage so
+         it may need to be installed before building the package.
 
   fitsio :
          Provides fairly direct access to FITS through the cfitsio library.

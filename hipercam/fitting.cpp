@@ -109,7 +109,7 @@ inline double gaussian_value_at(double x_val, double y_val, double height,
 }
 
 // Calculate Moffat derivatives at one pixel coordinate.
-// The outputs follow the same normalization as dmoffat_cpp so the fit path
+// The outputs follow the same normalization as dmoffat so the fit path
 // stays numerically equivalent.
 inline void
 moffat_derivs_at(double x_val, double y_val, double height, double xcen,
@@ -231,7 +231,7 @@ moffat_derivs_at(double x_val, double y_val, double height, double xcen,
 }
 
 // Calculate Gaussian derivatives at one pixel coordinate.
-// The outputs follow the same normalization as dgaussian_cpp so the fit path
+// The outputs follow the same normalization as dgaussian so the fit path
 // stays numerically equivalent.
 inline void gaussian_derivs_at(double x_val, double y_val, double height,
                                double xcen, double ycen, double alpha,
@@ -300,7 +300,7 @@ inline void gaussian_derivs_at(double x_val, double y_val, double height,
 }
 
 py::array_t<double>
-moffat_resid_cpp(py::array_t<double> x, py::array_t<double> y,
+moffat_resid(py::array_t<double> x, py::array_t<double> y,
                  py::array_t<double> data, py::array_t<double> sigma,
                  py::array_t<std::int64_t> ok_indices, double sky,
                  double height, double xcen, double ycen, double fwhm,
@@ -369,7 +369,7 @@ moffat_resid_cpp(py::array_t<double> x, py::array_t<double> y,
   return result;
 }
 
-py::array_t<double> dmoffat_jac_cpp(
+py::array_t<double> dmoffat_jac(
     py::array_t<double> x, py::array_t<double> y, py::array_t<double> sigma,
     py::array_t<std::int64_t> ok_indices, double sky, double height,
     double xcen, double ycen, double fwhm, double beta, int xbin, int ybin,
@@ -475,13 +475,13 @@ py::array_t<double> dmoffat_jac_cpp(
 }
 
 py::array_t<double>
-gaussian_resid_cpp(py::array_t<double> x, py::array_t<double> y,
+gaussian_resid(py::array_t<double> x, py::array_t<double> y,
                    py::array_t<double> data, py::array_t<double> sigma,
                    py::array_t<std::int64_t> ok_indices, double sky,
                    double height, double xcen, double ycen, double fwhm,
                    int xbin, int ybin, int ndiv) {
 
-  // Gaussian equivalent of moffat_resid_cpp: selected-pixel residuals only.
+  // Gaussian equivalent of moffat_resid: selected-pixel residuals only.
 
   py::buffer_info x_info = x.request();
   py::buffer_info y_info = y.request();
@@ -539,7 +539,7 @@ gaussian_resid_cpp(py::array_t<double> x, py::array_t<double> y,
   return result;
 }
 
-py::array_t<double> dgaussian_jac_cpp(
+py::array_t<double> dgaussian_jac(
     py::array_t<double> x, py::array_t<double> y, py::array_t<double> sigma,
     py::array_t<std::int64_t> ok_indices, double sky, double height,
     double xcen, double ycen, double fwhm, int xbin, int ybin, int ndiv,
@@ -624,7 +624,7 @@ py::array_t<double> dgaussian_jac_cpp(
 }
 
 // C++ implementation of the Moffat profile function
-py::array_t<double> moffat_cpp(py::array_t<double> x, py::array_t<double> y,
+py::array_t<double> moffat(py::array_t<double> x, py::array_t<double> y,
                                double sky, double height, double xcen,
                                double ycen, double fwhm, double beta, int xbin,
                                int ybin, int ndiv) {
@@ -701,7 +701,7 @@ py::array_t<double> moffat_cpp(py::array_t<double> x, py::array_t<double> y,
 
 // C++ implementation of the Moffat profile derivatives
 std::vector<py::array_t<double>>
-dmoffat_cpp(py::array_t<double> x, py::array_t<double> y, double sky,
+dmoffat(py::array_t<double> x, py::array_t<double> y, double sky,
             double height, double xcen, double ycen, double fwhm, double beta,
             int xbin, int ybin, int ndiv, bool comp_dfwhm, bool comp_dbeta) {
 
@@ -901,7 +901,7 @@ dmoffat_cpp(py::array_t<double> x, py::array_t<double> y, double sky,
 }
 
 // C++ implementation of the Gaussian profile function
-py::array_t<double> gaussian_cpp(py::array_t<double> x, py::array_t<double> y,
+py::array_t<double> gaussian(py::array_t<double> x, py::array_t<double> y,
                                  double sky, double height, double xcen,
                                  double ycen, double fwhm, int xbin, int ybin,
                                  int ndiv) {
@@ -977,7 +977,7 @@ py::array_t<double> gaussian_cpp(py::array_t<double> x, py::array_t<double> y,
 
 // C++ implementation of the Gaussian profile derivatives
 std::vector<py::array_t<double>>
-dgaussian_cpp(py::array_t<double> x, py::array_t<double> y, double sky,
+dgaussian(py::array_t<double> x, py::array_t<double> y, double sky,
               double height, double xcen, double ycen, double fwhm, int xbin,
               int ybin, int ndiv, bool comp_dfwhm) {
 
@@ -1129,29 +1129,29 @@ dgaussian_cpp(py::array_t<double> x, py::array_t<double> y, double sky,
   return result;
 }
 
-PYBIND11_MODULE(fitting_cpp, m) {
+PYBIND11_MODULE(_fitting_cpp, m) {
   m.doc() = "C++ implementation of profile fitting functions";
 
-  m.def("moffat", &moffat_cpp, "C++ implementation of Moffat profile",
+  m.def("moffat", &moffat, "C++ implementation of Moffat profile",
         py::arg("x"), py::arg("y"), py::arg("sky"), py::arg("height"),
         py::arg("xcen"), py::arg("ycen"), py::arg("fwhm"), py::arg("beta"),
         py::arg("xbin"), py::arg("ybin"), py::arg("ndiv"));
 
-  m.def("dmoffat", &dmoffat_cpp,
+  m.def("dmoffat", &dmoffat,
         "C++ implementation of Moffat profile derivatives", py::arg("x"),
         py::arg("y"), py::arg("sky"), py::arg("height"), py::arg("xcen"),
         py::arg("ycen"), py::arg("fwhm"), py::arg("beta"), py::arg("xbin"),
         py::arg("ybin"), py::arg("ndiv"), py::arg("comp_dfwhm"),
         py::arg("comp_dbeta"));
 
-  m.def("moffat_resid", &moffat_resid_cpp,
+  m.def("moffat_resid", &moffat_resid,
         "C++ implementation of Moffat residuals at selected pixels",
         py::arg("x"), py::arg("y"), py::arg("data"), py::arg("sigma"),
         py::arg("ok_indices"), py::arg("sky"), py::arg("height"),
         py::arg("xcen"), py::arg("ycen"), py::arg("fwhm"), py::arg("beta"),
         py::arg("xbin"), py::arg("ybin"), py::arg("ndiv"));
 
-  m.def("dmoffat_jac", &dmoffat_jac_cpp,
+  m.def("dmoffat_jac", &dmoffat_jac,
         "C++ implementation of Moffat residual Jacobian at selected pixels",
         py::arg("x"), py::arg("y"), py::arg("sigma"), py::arg("ok_indices"),
         py::arg("sky"), py::arg("height"), py::arg("xcen"), py::arg("ycen"),
@@ -1159,25 +1159,25 @@ PYBIND11_MODULE(fitting_cpp, m) {
         py::arg("ndiv"), py::arg("comp_dfwhm"), py::arg("comp_dbeta"),
         py::arg("inds"));
 
-  m.def("gaussian", &gaussian_cpp, "C++ implementation of Gaussian profile",
+  m.def("gaussian", &gaussian, "C++ implementation of Gaussian profile",
         py::arg("x"), py::arg("y"), py::arg("sky"), py::arg("height"),
         py::arg("xcen"), py::arg("ycen"), py::arg("fwhm"), py::arg("xbin"),
         py::arg("ybin"), py::arg("ndiv"));
 
-  m.def("dgaussian", &dgaussian_cpp,
+  m.def("dgaussian", &dgaussian,
         "C++ implementation of Gaussian profile derivatives", py::arg("x"),
         py::arg("y"), py::arg("sky"), py::arg("height"), py::arg("xcen"),
         py::arg("ycen"), py::arg("fwhm"), py::arg("xbin"), py::arg("ybin"),
         py::arg("ndiv"), py::arg("comp_dfwhm"));
 
-  m.def("gaussian_resid", &gaussian_resid_cpp,
+  m.def("gaussian_resid", &gaussian_resid,
         "C++ implementation of Gaussian residuals at selected pixels",
         py::arg("x"), py::arg("y"), py::arg("data"), py::arg("sigma"),
         py::arg("ok_indices"), py::arg("sky"), py::arg("height"),
         py::arg("xcen"), py::arg("ycen"), py::arg("fwhm"), py::arg("xbin"),
         py::arg("ybin"), py::arg("ndiv"));
 
-  m.def("dgaussian_jac", &dgaussian_jac_cpp,
+  m.def("dgaussian_jac", &dgaussian_jac,
         "C++ implementation of Gaussian residual Jacobian at selected pixels",
         py::arg("x"), py::arg("y"), py::arg("sigma"), py::arg("ok_indices"),
         py::arg("sky"), py::arg("height"), py::arg("xcen"), py::arg("ycen"),

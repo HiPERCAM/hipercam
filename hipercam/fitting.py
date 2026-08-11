@@ -4,6 +4,8 @@ Code for profile fitting. Currently supports symmetric 2D Gaussian and
 Moffat profiles plus constants.
 """
 
+import importlib
+
 from numba import jit
 import numpy as np
 from scipy.optimize import least_squares
@@ -11,7 +13,7 @@ from .core import *
 from .window import *
 
 try:
-    from . import fitting_cpp
+    fitting_cpp = importlib.import_module("._fitting_cpp", __package__)
 except ImportError:
     fitting_cpp = None
 

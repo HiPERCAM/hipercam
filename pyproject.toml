@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0", "setuptools-scm", "wheel", "Cython", "numpy", "pybind11>=2.6.0"]
+requires = ["setuptools>=61.0", "setuptools-scm", "wheel", "numpy", "pybind11>=2.6.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -22,7 +22,6 @@ classifiers = [
 requires-python = ">=3.9"
 dependencies = [
     "astropy",
-    "Cython",
     "fitsio",
     "keyring",
     "matplotlib",
