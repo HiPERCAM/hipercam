@@ -10,11 +10,13 @@ import importlib
 import numpy as np
 
 try:
-    support_cpp = importlib.import_module("._support_cpp", __package__)
+    _support_cpp = importlib.import_module("._support_cpp", __package__)
+    _avgstd_cpp = _support_cpp.avgstd
+    SUPPORT_CPP_AVAILABLE = True
 except ImportError:
-    support_cpp = None
+    SUPPORT_CPP_AVAILABLE = False
 
-__all__ = ["avgstd", "gaussian"]
+__all__ = ["avgstd"]
 
 
 def avgstd(cube, sigma):
@@ -39,11 +41,14 @@ def avgstd(cube, sigma):
     if sigma <= 1.0:
         raise ValueError("sigma must be greater than 1")
 
-    if support_cpp is not None:
-        avg, std, num = support_cpp.avgstd(cube_arr, float(sigma))
-        return avg, std, num
+    if SUPPORT_CPP_AVAILABLE:
+        return _avgstd_cpp(cube_arr, float(sigma))
 
-    # Fallback to pure-NumPy implementation if the extension is not available
+    return _avgstd_numpy(cube_arr, float(sigma))
+
+
+def _avgstd_numpy(cube_arr, sigma):
+    """Compute clipped mean, standard deviation and accepted-frame counts."""
     nf, ny, nx = cube_arr.shape
     avg = np.empty((ny, nx), dtype=np.float32)
     std = np.empty((ny, nx), dtype=np.float32)

@@ -13,9 +13,18 @@ from .core import *
 from .window import *
 
 try:
-    fitting_cpp = importlib.import_module("._fitting_cpp", __package__)
+    _fitting_cpp = importlib.import_module("._fitting_cpp", __package__)
+    _moffat_cpp = _fitting_cpp.moffat
+    _moffat_resid = _fitting_cpp.moffat_resid
+    _dmoffat_cpp = _fitting_cpp.dmoffat
+    _dmoffat_jac = _fitting_cpp.dmoffat_jac
+    _gaussian_cpp = _fitting_cpp.gaussian
+    _gaussian_resid = _fitting_cpp.gaussian_resid
+    _dgaussian_cpp = _fitting_cpp.dgaussian
+    _dgaussian_jac = _fitting_cpp.dgaussian_jac
+    FITTING_CCP_AVAILABLE = True
 except ImportError:
-    fitting_cpp = None
+    FITTING_CCP_AVAILABLE = False
 
 __all__ = ("combFit", "fitMoffat", "fitGaussian", "moffat", "gaussian")
 
@@ -519,14 +528,10 @@ def moffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv):
     on the ordinate grids in xy.
 
     """
-    if fitting_cpp is not None:
-        return fitting_cpp.moffat(
-            x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv
-        )
-    else:
-        return _moffat_numba(
-            x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv
-        )
+    if FITTING_CCP_AVAILABLE:
+        return _moffat_cpp(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv)
+
+    return _moffat_numba(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv)
 
 
 @jit(nopython=True, cache=True)
@@ -642,8 +647,8 @@ def dmoffat(
     numba just-in-time compiler function better.
 
     """
-    if fitting_cpp is not None:
-        return fitting_cpp.dmoffat(
+    if FITTING_CCP_AVAILABLE:
+        return _dmoffat_cpp(
             x,
             y,
             sky,
@@ -658,22 +663,22 @@ def dmoffat(
             comp_dfwhm,
             comp_dbeta,
         )
-    else:
-        return _dmoffat_numba(
-            x,
-            y,
-            sky,
-            height,
-            xcen,
-            ycen,
-            fwhm,
-            beta,
-            xbin,
-            ybin,
-            ndiv,
-            comp_dfwhm,
-            comp_dbeta,
-        )
+
+    return _dmoffat_numba(
+        x,
+        y,
+        sky,
+        height,
+        xcen,
+        ycen,
+        fwhm,
+        beta,
+        xbin,
+        ybin,
+        ndiv,
+        comp_dfwhm,
+        comp_dbeta,
+    )
 
 
 @jit(nopython=True, cache=True)
@@ -1067,9 +1072,9 @@ class Mfit:
 
         Used by scipy.optimize.least_squares.
         """
-        if fitting_cpp is not None and hasattr(fitting_cpp, "moffat_resid"):
+        if FITTING_CCP_AVAILABLE:
             sky, height, xcen, ycen, fwhm, beta = self.get_par(param)
-            return fitting_cpp.moffat_resid(
+            return _moffat_resid(
                 self.x,
                 self.y,
                 self.data,
@@ -1098,9 +1103,9 @@ class Mfit:
 
         Used by scipy.optimize.least_squares.
         """
-        if fitting_cpp is not None and hasattr(fitting_cpp, "dmoffat_jac"):
+        if FITTING_CCP_AVAILABLE:
             sky, height, xcen, ycen, fwhm, beta = self.get_par(param)
-            return fitting_cpp.dmoffat_jac(
+            return _dmoffat_jac(
                 self.x,
                 self.y,
                 self.sigma,
@@ -1423,12 +1428,10 @@ def gaussian(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv):
     on the ordinate grids in xy.
 
     """
-    if fitting_cpp is not None:
-        return fitting_cpp.gaussian(
-            x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv
-        )
-    else:
-        return _gaussian_numba(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv)
+    if FITTING_CCP_AVAILABLE:
+        return _gaussian_cpp(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv)
+
+    return _gaussian_numba(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv)
 
 
 @jit(nopython=True, cache=True)
@@ -1528,14 +1531,10 @@ def dgaussian(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv, comp_dfwhm)
     appear in the function call.
 
     """
-    if fitting_cpp is not None:
-        return fitting_cpp.dgaussian(
-            x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv, comp_dfwhm
-        )
-    else:
-        return _dgaussian_numba(
-            x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv, comp_dfwhm
-        )
+    if FITTING_CCP_AVAILABLE:
+        return _dgaussian_cpp(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv, comp_dfwhm)
+
+    return _dgaussian_numba(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv, comp_dfwhm)
 
 
 @jit(nopython=True, cache=True)
@@ -1801,9 +1800,9 @@ class Gfit:
 
         Used by scipy.optimize.least_squares.
         """
-        if fitting_cpp is not None and hasattr(fitting_cpp, "gaussian_resid"):
+        if FITTING_CCP_AVAILABLE:
             sky, height, xcen, ycen, fwhm = self.get_par(param)
-            return fitting_cpp.gaussian_resid(
+            return _gaussian_resid(
                 self.x,
                 self.y,
                 self.data,
@@ -1831,9 +1830,9 @@ class Gfit:
 
         Used by scipy.optimize.least_squares.
         """
-        if fitting_cpp is not None and hasattr(fitting_cpp, "dgaussian_jac"):
+        if FITTING_CCP_AVAILABLE:
             sky, height, xcen, ycen, fwhm = self.get_par(param)
-            return fitting_cpp.dgaussian_jac(
+            return _dgaussian_jac(
                 self.x,
                 self.y,
                 self.sigma,
