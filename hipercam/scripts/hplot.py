@@ -1,14 +1,13 @@
-import sys
 import os
+import sys
 from functools import partial
 
-import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-
-from trm.pgplot import *
+import numpy as np
 from trm import cline
 from trm.cline import Cline
+from trm.pgplot import *
 
 import hipercam as hcam
 from hipercam import utils
@@ -340,18 +339,18 @@ def hplot(args=None):
         )
         shbox = cl.get_value(
             "shbox",
-            "half width of box for initial location" " of target [unbinned pixels]",
+            "half width of box for initial location of target [unbinned pixels]",
             11.0,
             2.0,
         )
         smooth = cl.get_value(
             "smooth",
-            "FWHM for smoothing for initial object" " detection [binned pixels]",
+            "FWHM for smoothing for initial object detection [binned pixels]",
             6.0,
         )
         fhbox = cl.get_value(
             "fhbox",
-            "half width of box for profile fit" " [unbinned pixels]",
+            "half width of box for profile fit [unbinned pixels]",
             21.0,
             3.0,
         )
@@ -514,6 +513,11 @@ class OnDemandFit(object):
         self.thresh = thresh
 
     def _keyPressEvent(self, event):
+        # matplotlib 3.11 changes callback order so for "q" there is no
+        # canvas manager any more
+        if event.key == "q":
+            return
+
         pzoom = self.fig.canvas.manager.toolbar.mode == "pan/zoom"
         # only when not in pan/zoom mode
         if not pzoom and event.key in [" ", "r"] and event.inaxes is not None:
