@@ -1,9 +1,11 @@
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <stdexcept>
 #include <vector>
 #ifdef _OPENMP
 #include <omp.h>
@@ -20,16 +22,18 @@ namespace py = pybind11;
 #define RESTRICT
 #endif
 
+namespace {
+
 // Helper function to generate sub-pixel offsets for binning.
 // This creates a vector of offsets for each bin and sub-bin, centered around
 // zero, to be used in the sub-pixellation loops in the profile evaluation and
 // derivatives.
-inline std::vector<double> make_subpixel_offsets(int bin, int ndiv) {
+std::vector<double> make_subpixel_offsets(int bin, int ndiv) {
   std::vector<double> offsets;
   if (ndiv <= 0) {
     return offsets;
   }
-  offsets.reserve(static_cast<size_t>(bin * ndiv));
+  offsets.reserve(static_cast<std::size_t>(bin * ndiv));
   double inv_ndiv = 1.0 / static_cast<double>(ndiv);
   double soff = (ndiv - 1.0) / (2.0 * ndiv);
 
@@ -44,7 +48,7 @@ inline std::vector<double> make_subpixel_offsets(int bin, int ndiv) {
 }
 
 // Helper function to calculate the Moffat alpha parameter.
-inline double calc_moffat_alpha(double fwhm, double beta) {
+double calc_moffat_alpha(double fwhm, double beta) {
   double tbeta = std::max(0.01, beta);
   return 4.0 * (std::pow(2.0, 1.0 / tbeta) - 1.0) / (fwhm * fwhm);
 }
@@ -52,11 +56,10 @@ inline double calc_moffat_alpha(double fwhm, double beta) {
 // Evaluate one Moffat model value at a single pixel coordinate.
 // This is used by the selected-pixel residual path to avoid building
 // full 2D model arrays when only masked pixels are needed.
-inline double moffat_value_at(double x_val, double y_val, double height,
-                              double xcen, double ycen, double alpha,
-                              double tbeta,
-                              const std::vector<double> &x_offsets,
-                              const std::vector<double> &y_offsets) {
+double moffat_value_at(double x_val, double y_val, double height, double xcen,
+                       double ycen, double alpha, double tbeta,
+                       const std::vector<double> &x_offsets,
+                       const std::vector<double> &y_offsets) {
   if (!x_offsets.empty() && !y_offsets.empty()) {
     double prof = 0.0;
     double inv_nadd =
@@ -82,10 +85,10 @@ inline double moffat_value_at(double x_val, double y_val, double height,
 // Evaluate one Gaussian model value at a single pixel coordinate.
 // This is used by the selected-pixel residual path to avoid building
 // full 2D model arrays when only masked pixels are needed.
-inline double gaussian_value_at(double x_val, double y_val, double height,
-                                double xcen, double ycen, double alpha,
-                                const std::vector<double> &x_offsets,
-                                const std::vector<double> &y_offsets) {
+double gaussian_value_at(double x_val, double y_val, double height, double xcen,
+                         double ycen, double alpha,
+                         const std::vector<double> &x_offsets,
+                         const std::vector<double> &y_offsets) {
   if (!x_offsets.empty() && !y_offsets.empty()) {
     double prof = 0.0;
     double inv_nadd =
@@ -111,13 +114,13 @@ inline double gaussian_value_at(double x_val, double y_val, double height,
 // Calculate Moffat derivatives at one pixel coordinate.
 // The outputs follow the same normalization as dmoffat so the fit path
 // stays numerically equivalent.
-inline void
-moffat_derivs_at(double x_val, double y_val, double height, double xcen,
-                 double ycen, double alpha, double tbeta, double dfwhm_coeff,
-                 double dbeta_coeff, const std::vector<double> &x_offsets,
-                 const std::vector<double> &y_offsets, bool comp_dfwhm,
-                 bool comp_dbeta, double &dheight, double &dxcen, double &dycen,
-                 double &dfwhm, double &dbeta) {
+void moffat_derivs_at(double x_val, double y_val, double height, double xcen,
+                      double ycen, double alpha, double tbeta,
+                      double dfwhm_coeff, double dbeta_coeff,
+                      const std::vector<double> &x_offsets,
+                      const std::vector<double> &y_offsets, bool comp_dfwhm,
+                      bool comp_dbeta, double &dheight, double &dxcen,
+                      double &dycen, double &dfwhm, double &dbeta) {
   double two_alpha_tbeta = 2.0 * alpha * tbeta;
   dheight = 0.0;
   dxcen = 0.0;
@@ -233,13 +236,13 @@ moffat_derivs_at(double x_val, double y_val, double height, double xcen,
 // Calculate Gaussian derivatives at one pixel coordinate.
 // The outputs follow the same normalization as dgaussian so the fit path
 // stays numerically equivalent.
-inline void gaussian_derivs_at(double x_val, double y_val, double height,
-                               double xcen, double ycen, double alpha,
-                               double two_alpha_height, double dfwhm_coeff,
-                               const std::vector<double> &x_offsets,
-                               const std::vector<double> &y_offsets,
-                               bool comp_dfwhm, double &dheight, double &dxcen,
-                               double &dycen, double &dfwhm) {
+void gaussian_derivs_at(double x_val, double y_val, double height, double xcen,
+                        double ycen, double alpha, double two_alpha_height,
+                        double dfwhm_coeff,
+                        const std::vector<double> &x_offsets,
+                        const std::vector<double> &y_offsets, bool comp_dfwhm,
+                        double &dheight, double &dxcen, double &dycen,
+                        double &dfwhm) {
   dheight = 0.0;
   dxcen = 0.0;
   dycen = 0.0;
@@ -299,12 +302,52 @@ inline void gaussian_derivs_at(double x_val, double y_val, double height,
   }
 }
 
-py::array_t<double>
-moffat_resid(py::array_t<double> x, py::array_t<double> y,
-                 py::array_t<double> data, py::array_t<double> sigma,
-                 py::array_t<std::int64_t> ok_indices, double sky,
-                 double height, double xcen, double ycen, double fwhm,
-                 double beta, int xbin, int ybin, int ndiv) {
+// Shared shape validation for the selected-pixel residual/Jacobian entry
+// points, which all require a set of same-shaped 2D input arrays.
+// py::buffer_info is move-only, so callers pass pointers rather than values.
+void check_matching_2d_shapes(
+    std::initializer_list<const py::buffer_info *> infos) {
+  const py::buffer_info &first = **infos.begin();
+  bool ok = first.ndim == 2;
+  for (const py::buffer_info *info : infos) {
+    ok = ok && info->ndim == 2 && info->shape[0] == first.shape[0] &&
+         info->shape[1] == first.shape[1];
+  }
+  if (!ok) {
+    throw std::runtime_error(
+        "Input arrays have invalid dimensions or mismatched shapes");
+  }
+}
+
+// Companion check for the 1D ok_indices array passed alongside the 2D
+// inputs validated by check_matching_2d_shapes.
+void check_ok_indices_1d(const py::buffer_info &ok_info) {
+  if (ok_info.ndim != 1) {
+    throw std::runtime_error(
+        "Input arrays have invalid dimensions or mismatched shapes");
+  }
+}
+
+// Bounds-check every selected pixel index against the flattened pixel count.
+void check_ok_indices_range(const std::int64_t *ok_ptr, std::size_t n_ok,
+                            std::size_t n_pixels) {
+  for (std::size_t i = 0; i < n_ok; ++i) {
+    std::int64_t idx = ok_ptr[i];
+    if (idx < 0 || static_cast<std::size_t>(idx) >= n_pixels) {
+      throw std::runtime_error("ok_indices contains out-of-range values");
+    }
+  }
+}
+
+} // namespace
+
+py::array_t<double> moffat_resid(py::array_t<double> x, py::array_t<double> y,
+                                 py::array_t<double> data,
+                                 py::array_t<double> sigma,
+                                 py::array_t<std::int64_t> ok_indices,
+                                 double sky, double height, double xcen,
+                                 double ycen, double fwhm, double beta,
+                                 int xbin, int ybin, int ndiv) {
 
   // Compute residuals only at valid indices provided by Python. This
   // bypasses full-frame residual assembly and boolean masking in Python.
@@ -315,17 +358,8 @@ moffat_resid(py::array_t<double> x, py::array_t<double> y,
   py::buffer_info sigma_info = sigma.request();
   py::buffer_info ok_info = ok_indices.request();
 
-  if (x_info.ndim != 2 || y_info.ndim != 2 || data_info.ndim != 2 ||
-      sigma_info.ndim != 2 || ok_info.ndim != 1 ||
-      x_info.shape[0] != y_info.shape[0] ||
-      x_info.shape[1] != y_info.shape[1] ||
-      x_info.shape[0] != data_info.shape[0] ||
-      x_info.shape[1] != data_info.shape[1] ||
-      x_info.shape[0] != sigma_info.shape[0] ||
-      x_info.shape[1] != sigma_info.shape[1]) {
-    throw std::runtime_error(
-        "Input arrays have invalid dimensions or mismatched shapes");
-  }
+  check_matching_2d_shapes({&x_info, &y_info, &data_info, &sigma_info});
+  check_ok_indices_1d(ok_info);
 
   const double *x_ptr = static_cast<double *>(x_info.ptr);
   const double *y_ptr = static_cast<double *>(y_info.ptr);
@@ -333,8 +367,8 @@ moffat_resid(py::array_t<double> x, py::array_t<double> y,
   const double *sigma_ptr = static_cast<double *>(sigma_info.ptr);
   const std::int64_t *ok_ptr = static_cast<std::int64_t *>(ok_info.ptr);
 
-  size_t n_pixels = x_info.shape[0] * x_info.shape[1];
-  size_t n_ok = ok_info.shape[0];
+  std::size_t n_pixels = x_info.shape[0] * x_info.shape[1];
+  std::size_t n_ok = ok_info.shape[0];
 
   double tbeta = std::max(0.01, beta);
   double alpha = calc_moffat_alpha(fwhm, beta);
@@ -345,19 +379,14 @@ moffat_resid(py::array_t<double> x, py::array_t<double> y,
   py::buffer_info result_info = result.request();
   double *result_ptr = static_cast<double *>(result_info.ptr);
 
-  for (size_t i = 0; i < n_ok; ++i) {
-    std::int64_t idx = ok_ptr[i];
-    if (idx < 0 || static_cast<size_t>(idx) >= n_pixels) {
-      throw std::runtime_error("ok_indices contains out-of-range values");
-    }
-  }
+  check_ok_indices_range(ok_ptr, n_ok, n_pixels);
 
   // Release the GIL now the Python operations are complete.
   // pybind11 buffer operations (request, array creation) require the GIL,
   // so we can only release it after extracting all pointers and dimensions.
   py::gil_scoped_release release;
 
-  for (size_t i = 0; i < n_ok; ++i) {
+  for (std::size_t i = 0; i < n_ok; ++i) {
     std::int64_t idx = ok_ptr[i];
 
     double model =
@@ -369,11 +398,13 @@ moffat_resid(py::array_t<double> x, py::array_t<double> y,
   return result;
 }
 
-py::array_t<double> dmoffat_jac(
-    py::array_t<double> x, py::array_t<double> y, py::array_t<double> sigma,
-    py::array_t<std::int64_t> ok_indices, double sky, double height,
-    double xcen, double ycen, double fwhm, double beta, int xbin, int ybin,
-    int ndiv, bool comp_dfwhm, bool comp_dbeta, const std::vector<int> &inds) {
+py::array_t<double> dmoffat_jac(py::array_t<double> x, py::array_t<double> y,
+                                py::array_t<double> sigma,
+                                py::array_t<std::int64_t> ok_indices,
+                                double sky, double height, double xcen,
+                                double ycen, double fwhm, double beta, int xbin,
+                                int ybin, int ndiv, bool comp_dfwhm,
+                                bool comp_dbeta, const std::vector<int> &inds) {
 
   // sky affects residuals but not derivatives; suppress unused-param warning
   (void)sky;
@@ -386,23 +417,17 @@ py::array_t<double> dmoffat_jac(
   py::buffer_info sigma_info = sigma.request();
   py::buffer_info ok_info = ok_indices.request();
 
-  if (x_info.ndim != 2 || y_info.ndim != 2 || sigma_info.ndim != 2 ||
-      ok_info.ndim != 1 || x_info.shape[0] != y_info.shape[0] ||
-      x_info.shape[1] != y_info.shape[1] ||
-      x_info.shape[0] != sigma_info.shape[0] ||
-      x_info.shape[1] != sigma_info.shape[1]) {
-    throw std::runtime_error(
-        "Input arrays have invalid dimensions or mismatched shapes");
-  }
+  check_matching_2d_shapes({&x_info, &y_info, &sigma_info});
+  check_ok_indices_1d(ok_info);
 
   const double *x_ptr = static_cast<double *>(x_info.ptr);
   const double *y_ptr = static_cast<double *>(y_info.ptr);
   const double *sigma_ptr = static_cast<double *>(sigma_info.ptr);
   const std::int64_t *ok_ptr = static_cast<std::int64_t *>(ok_info.ptr);
 
-  size_t n_pixels = x_info.shape[0] * x_info.shape[1];
-  size_t n_ok = ok_info.shape[0];
-  size_t n_par = inds.size();
+  std::size_t n_pixels = x_info.shape[0] * x_info.shape[1];
+  std::size_t n_ok = ok_info.shape[0];
+  std::size_t n_par = inds.size();
 
   double tbeta = std::max(0.01, beta);
   double alpha = calc_moffat_alpha(fwhm, beta);
@@ -418,17 +443,12 @@ py::array_t<double> dmoffat_jac(
   py::buffer_info result_info = result.request();
   double *result_ptr = static_cast<double *>(result_info.ptr);
 
-  for (size_t i = 0; i < n_ok; ++i) {
-    std::int64_t idx = ok_ptr[i];
-    if (idx < 0 || static_cast<size_t>(idx) >= n_pixels) {
-      throw std::runtime_error("ok_indices contains out-of-range values");
-    }
-  }
+  check_ok_indices_range(ok_ptr, n_ok, n_pixels);
 
   // Release the GIL now the Python operations are complete.
   py::gil_scoped_release release;
 
-  for (size_t i = 0; i < n_ok; ++i) {
+  for (std::size_t i = 0; i < n_ok; ++i) {
     std::int64_t idx = ok_ptr[i];
 
     double dheight, dxcen, dycen, dfwhm, dbeta;
@@ -462,7 +482,7 @@ py::array_t<double> dmoffat_jac(
     double derivs[6] = {d0, d1, d2, d3, d4, d5};
     double inv_sigma = -1.0 / sigma_ptr[idx];
 
-    for (size_t j = 0; j < n_par; ++j) {
+    for (std::size_t j = 0; j < n_par; ++j) {
       int ind = inds[j];
       if (ind < 0 || ind > 5) {
         throw std::runtime_error("inds contains out-of-range derivative index");
@@ -474,12 +494,13 @@ py::array_t<double> dmoffat_jac(
   return result;
 }
 
-py::array_t<double>
-gaussian_resid(py::array_t<double> x, py::array_t<double> y,
-                   py::array_t<double> data, py::array_t<double> sigma,
-                   py::array_t<std::int64_t> ok_indices, double sky,
-                   double height, double xcen, double ycen, double fwhm,
-                   int xbin, int ybin, int ndiv) {
+py::array_t<double> gaussian_resid(py::array_t<double> x, py::array_t<double> y,
+                                   py::array_t<double> data,
+                                   py::array_t<double> sigma,
+                                   py::array_t<std::int64_t> ok_indices,
+                                   double sky, double height, double xcen,
+                                   double ycen, double fwhm, int xbin, int ybin,
+                                   int ndiv) {
 
   // Gaussian equivalent of moffat_resid: selected-pixel residuals only.
 
@@ -489,17 +510,8 @@ gaussian_resid(py::array_t<double> x, py::array_t<double> y,
   py::buffer_info sigma_info = sigma.request();
   py::buffer_info ok_info = ok_indices.request();
 
-  if (x_info.ndim != 2 || y_info.ndim != 2 || data_info.ndim != 2 ||
-      sigma_info.ndim != 2 || ok_info.ndim != 1 ||
-      x_info.shape[0] != y_info.shape[0] ||
-      x_info.shape[1] != y_info.shape[1] ||
-      x_info.shape[0] != data_info.shape[0] ||
-      x_info.shape[1] != data_info.shape[1] ||
-      x_info.shape[0] != sigma_info.shape[0] ||
-      x_info.shape[1] != sigma_info.shape[1]) {
-    throw std::runtime_error(
-        "Input arrays have invalid dimensions or mismatched shapes");
-  }
+  check_matching_2d_shapes({&x_info, &y_info, &data_info, &sigma_info});
+  check_ok_indices_1d(ok_info);
 
   const double *x_ptr = static_cast<double *>(x_info.ptr);
   const double *y_ptr = static_cast<double *>(y_info.ptr);
@@ -507,8 +519,8 @@ gaussian_resid(py::array_t<double> x, py::array_t<double> y,
   const double *sigma_ptr = static_cast<double *>(sigma_info.ptr);
   const std::int64_t *ok_ptr = static_cast<std::int64_t *>(ok_info.ptr);
 
-  size_t n_pixels = x_info.shape[0] * x_info.shape[1];
-  size_t n_ok = ok_info.shape[0];
+  std::size_t n_pixels = x_info.shape[0] * x_info.shape[1];
+  std::size_t n_ok = ok_info.shape[0];
 
   double alpha = 4.0 * std::log(2.0) / (fwhm * fwhm);
   const std::vector<double> x_offsets = make_subpixel_offsets(xbin, ndiv);
@@ -518,17 +530,12 @@ gaussian_resid(py::array_t<double> x, py::array_t<double> y,
   py::buffer_info result_info = result.request();
   double *result_ptr = static_cast<double *>(result_info.ptr);
 
-  for (size_t i = 0; i < n_ok; ++i) {
-    std::int64_t idx = ok_ptr[i];
-    if (idx < 0 || static_cast<size_t>(idx) >= n_pixels) {
-      throw std::runtime_error("ok_indices contains out-of-range values");
-    }
-  }
+  check_ok_indices_range(ok_ptr, n_ok, n_pixels);
 
   // Release the GIL now the Python operations are complete.
   py::gil_scoped_release release;
 
-  for (size_t i = 0; i < n_ok; ++i) {
+  for (std::size_t i = 0; i < n_ok; ++i) {
     std::int64_t idx = ok_ptr[i];
 
     double model = sky + gaussian_value_at(x_ptr[idx], y_ptr[idx], height, xcen,
@@ -539,11 +546,13 @@ gaussian_resid(py::array_t<double> x, py::array_t<double> y,
   return result;
 }
 
-py::array_t<double> dgaussian_jac(
-    py::array_t<double> x, py::array_t<double> y, py::array_t<double> sigma,
-    py::array_t<std::int64_t> ok_indices, double sky, double height,
-    double xcen, double ycen, double fwhm, int xbin, int ybin, int ndiv,
-    bool comp_dfwhm, const std::vector<int> &inds) {
+py::array_t<double> dgaussian_jac(py::array_t<double> x, py::array_t<double> y,
+                                  py::array_t<double> sigma,
+                                  py::array_t<std::int64_t> ok_indices,
+                                  double sky, double height, double xcen,
+                                  double ycen, double fwhm, int xbin, int ybin,
+                                  int ndiv, bool comp_dfwhm,
+                                  const std::vector<int> &inds) {
 
   // sky affects residuals but not derivatives; suppress unused-param warning
   (void)sky;
@@ -555,23 +564,17 @@ py::array_t<double> dgaussian_jac(
   py::buffer_info sigma_info = sigma.request();
   py::buffer_info ok_info = ok_indices.request();
 
-  if (x_info.ndim != 2 || y_info.ndim != 2 || sigma_info.ndim != 2 ||
-      ok_info.ndim != 1 || x_info.shape[0] != y_info.shape[0] ||
-      x_info.shape[1] != y_info.shape[1] ||
-      x_info.shape[0] != sigma_info.shape[0] ||
-      x_info.shape[1] != sigma_info.shape[1]) {
-    throw std::runtime_error(
-        "Input arrays have invalid dimensions or mismatched shapes");
-  }
+  check_matching_2d_shapes({&x_info, &y_info, &sigma_info});
+  check_ok_indices_1d(ok_info);
 
   const double *x_ptr = static_cast<double *>(x_info.ptr);
   const double *y_ptr = static_cast<double *>(y_info.ptr);
   const double *sigma_ptr = static_cast<double *>(sigma_info.ptr);
   const std::int64_t *ok_ptr = static_cast<std::int64_t *>(ok_info.ptr);
 
-  size_t n_pixels = x_info.shape[0] * x_info.shape[1];
-  size_t n_ok = ok_info.shape[0];
-  size_t n_par = inds.size();
+  std::size_t n_pixels = x_info.shape[0] * x_info.shape[1];
+  std::size_t n_ok = ok_info.shape[0];
+  std::size_t n_par = inds.size();
 
   double alpha = 4.0 * std::log(2.0) / (fwhm * fwhm);
   double two_alpha_height = 2.0 * alpha * height;
@@ -584,17 +587,12 @@ py::array_t<double> dgaussian_jac(
   py::buffer_info result_info = result.request();
   double *result_ptr = static_cast<double *>(result_info.ptr);
 
-  for (size_t i = 0; i < n_ok; ++i) {
-    std::int64_t idx = ok_ptr[i];
-    if (idx < 0 || static_cast<size_t>(idx) >= n_pixels) {
-      throw std::runtime_error("ok_indices contains out-of-range values");
-    }
-  }
+  check_ok_indices_range(ok_ptr, n_ok, n_pixels);
 
   // Release the GIL now the Python operations are complete.
   py::gil_scoped_release release;
 
-  for (size_t i = 0; i < n_ok; ++i) {
+  for (std::size_t i = 0; i < n_ok; ++i) {
     std::int64_t idx = ok_ptr[i];
 
     double dheight, dxcen, dycen, dfwhm;
@@ -611,7 +609,7 @@ py::array_t<double> dgaussian_jac(
     double derivs[5] = {d0, d1, d2, d3, d4};
     double inv_sigma = -1.0 / sigma_ptr[idx];
 
-    for (size_t j = 0; j < n_par; ++j) {
+    for (std::size_t j = 0; j < n_par; ++j) {
       int ind = inds[j];
       if (ind < 0 || ind > 4) {
         throw std::runtime_error("inds contains out-of-range derivative index");
@@ -625,9 +623,9 @@ py::array_t<double> dgaussian_jac(
 
 // C++ implementation of the Moffat profile function
 py::array_t<double> moffat(py::array_t<double> x, py::array_t<double> y,
-                               double sky, double height, double xcen,
-                               double ycen, double fwhm, double beta, int xbin,
-                               int ybin, int ndiv) {
+                           double sky, double height, double xcen, double ycen,
+                           double fwhm, double beta, int xbin, int ybin,
+                           int ndiv) {
 
   // Get input array dimensions and data pointers
   py::buffer_info x_info = x.request();
@@ -651,7 +649,7 @@ py::array_t<double> moffat(py::array_t<double> x, py::array_t<double> y,
   double tbeta = std::max(0.01, beta);
   double alpha = calc_moffat_alpha(fwhm, beta);
 
-  size_t n_pixels = x_info.shape[0] * x_info.shape[1];
+  std::size_t n_pixels = x_info.shape[0] * x_info.shape[1];
 
   // Release the GIL now the Python operations are complete.
   py::gil_scoped_release release;
@@ -669,7 +667,7 @@ py::array_t<double> moffat(py::array_t<double> x, py::array_t<double> y,
 #endif
 
     // Loop over all pixels
-    for (size_t pixel_idx = 0; pixel_idx < n_pixels; ++pixel_idx) {
+    for (std::size_t pixel_idx = 0; pixel_idx < n_pixels; ++pixel_idx) {
       double x_val = x_ptr[pixel_idx];
       double y_val = y_ptr[pixel_idx];
       double prof = 0.0;
@@ -688,7 +686,7 @@ py::array_t<double> moffat(py::array_t<double> x, py::array_t<double> y,
     }
   } else {
     // Fast calculation at pixel centers
-    for (size_t i = 0; i < n_pixels; ++i) {
+    for (std::size_t i = 0; i < n_pixels; ++i) {
       double dx = x_ptr[i] - xcen;
       double dy = y_ptr[i] - ycen;
       double rsq = dx * dx + dy * dy;
@@ -701,9 +699,9 @@ py::array_t<double> moffat(py::array_t<double> x, py::array_t<double> y,
 
 // C++ implementation of the Moffat profile derivatives
 std::vector<py::array_t<double>>
-dmoffat(py::array_t<double> x, py::array_t<double> y, double sky,
-            double height, double xcen, double ycen, double fwhm, double beta,
-            int xbin, int ybin, int ndiv, bool comp_dfwhm, bool comp_dbeta) {
+dmoffat(py::array_t<double> x, py::array_t<double> y, double sky, double height,
+        double xcen, double ycen, double fwhm, double beta, int xbin, int ybin,
+        int ndiv, bool comp_dfwhm, bool comp_dbeta) {
 
   // sky affects residuals but not derivatives; suppress unused-param warning
   (void)sky;
@@ -777,7 +775,7 @@ dmoffat(py::array_t<double> x, py::array_t<double> y, double sky,
   double dbeta_coeff =
       4.0 * std::log(2.0) * std::pow(2.0, 1.0 / tbeta) / tbeta / (fwhm * fwhm);
 
-  size_t n_pixels = x_info.shape[0] * x_info.shape[1];
+  std::size_t n_pixels = x_info.shape[0] * x_info.shape[1];
 
   // Release the GIL now the Python operations are complete.
   py::gil_scoped_release release;
@@ -798,7 +796,7 @@ dmoffat(py::array_t<double> x, py::array_t<double> y, double sky,
 #endif
 
     // Loop over all pixels
-    for (size_t pixel_idx = 0; pixel_idx < n_pixels; ++pixel_idx) {
+    for (std::size_t pixel_idx = 0; pixel_idx < n_pixels; ++pixel_idx) {
       double x_val = x_ptr[pixel_idx];
       double y_val = y_ptr[pixel_idx];
       // Use _sum suffix to avoid shadowing the outer py::array_t declarations.
@@ -851,7 +849,7 @@ dmoffat(py::array_t<double> x, py::array_t<double> y, double sky,
     }
   } else {
     // Fast calculation at pixel centers
-    for (size_t i = 0; i < n_pixels; ++i) {
+    for (std::size_t i = 0; i < n_pixels; ++i) {
       double dx = x_ptr[i] - xcen;
       double dy = y_ptr[i] - ycen;
       double rsq = dx * dx + dy * dy;
@@ -902,9 +900,9 @@ dmoffat(py::array_t<double> x, py::array_t<double> y, double sky,
 
 // C++ implementation of the Gaussian profile function
 py::array_t<double> gaussian(py::array_t<double> x, py::array_t<double> y,
-                                 double sky, double height, double xcen,
-                                 double ycen, double fwhm, int xbin, int ybin,
-                                 int ndiv) {
+                             double sky, double height, double xcen,
+                             double ycen, double fwhm, int xbin, int ybin,
+                             int ndiv) {
 
   // Get input array dimensions and data pointers
   py::buffer_info x_info = x.request();
@@ -927,7 +925,7 @@ py::array_t<double> gaussian(py::array_t<double> x, py::array_t<double> y,
   // Calculate Gaussian profile parameter
   double alpha = 4.0 * std::log(2.0) / (fwhm * fwhm);
 
-  size_t n_pixels = x_info.shape[0] * x_info.shape[1];
+  std::size_t n_pixels = x_info.shape[0] * x_info.shape[1];
 
   // Release the GIL now the Python operations are complete.
   py::gil_scoped_release release;
@@ -945,7 +943,7 @@ py::array_t<double> gaussian(py::array_t<double> x, py::array_t<double> y,
 #endif
 
     // Loop over all pixels
-    for (size_t pixel_idx = 0; pixel_idx < n_pixels; ++pixel_idx) {
+    for (std::size_t pixel_idx = 0; pixel_idx < n_pixels; ++pixel_idx) {
       double x_val = x_ptr[pixel_idx];
       double y_val = y_ptr[pixel_idx];
       double prof = 0.0;
@@ -964,7 +962,7 @@ py::array_t<double> gaussian(py::array_t<double> x, py::array_t<double> y,
     }
   } else {
     // Fast calculation at pixel centers
-    for (size_t i = 0; i < n_pixels; ++i) {
+    for (std::size_t i = 0; i < n_pixels; ++i) {
       double dx = x_ptr[i] - xcen;
       double dy = y_ptr[i] - ycen;
       double rsq = dx * dx + dy * dy;
@@ -978,8 +976,8 @@ py::array_t<double> gaussian(py::array_t<double> x, py::array_t<double> y,
 // C++ implementation of the Gaussian profile derivatives
 std::vector<py::array_t<double>>
 dgaussian(py::array_t<double> x, py::array_t<double> y, double sky,
-              double height, double xcen, double ycen, double fwhm, int xbin,
-              int ybin, int ndiv, bool comp_dfwhm) {
+          double height, double xcen, double ycen, double fwhm, int xbin,
+          int ybin, int ndiv, bool comp_dfwhm) {
 
   // sky affects residuals but not derivatives; suppress unused-param warning
   (void)sky;
@@ -1038,7 +1036,7 @@ dgaussian(py::array_t<double> x, py::array_t<double> y, double sky,
   double two_alpha_height = 2.0 * alpha * height;
   double dfwhm_coeff = two_alpha_height / fwhm;
 
-  size_t n_pixels = x_info.shape[0] * x_info.shape[1];
+  std::size_t n_pixels = x_info.shape[0] * x_info.shape[1];
 
   // Release the GIL now the Python operations are complete.
   py::gil_scoped_release release;
@@ -1059,7 +1057,7 @@ dgaussian(py::array_t<double> x, py::array_t<double> y, double sky,
 #endif
 
     // Loop over all pixels
-    for (size_t pixel_idx = 0; pixel_idx < n_pixels; ++pixel_idx) {
+    for (std::size_t pixel_idx = 0; pixel_idx < n_pixels; ++pixel_idx) {
       double x_val = x_ptr[pixel_idx];
       double y_val = y_ptr[pixel_idx];
       // Use _sum suffix to avoid shadowing the outer py::array_t declarations.
@@ -1097,7 +1095,7 @@ dgaussian(py::array_t<double> x, py::array_t<double> y, double sky,
     }
   } else {
     // Fast calculation at pixel centers
-    for (size_t i = 0; i < n_pixels; ++i) {
+    for (std::size_t i = 0; i < n_pixels; ++i) {
       double dx = x_ptr[i] - xcen;
       double dy = y_ptr[i] - ycen;
       double rsq = dx * dx + dy * dy;
@@ -1132,17 +1130,16 @@ dgaussian(py::array_t<double> x, py::array_t<double> y, double sky,
 PYBIND11_MODULE(_fitting_cpp, m) {
   m.doc() = "C++ implementation of profile fitting functions";
 
-  m.def("moffat", &moffat, "C++ implementation of Moffat profile",
-        py::arg("x"), py::arg("y"), py::arg("sky"), py::arg("height"),
-        py::arg("xcen"), py::arg("ycen"), py::arg("fwhm"), py::arg("beta"),
-        py::arg("xbin"), py::arg("ybin"), py::arg("ndiv"));
-
-  m.def("dmoffat", &dmoffat,
-        "C++ implementation of Moffat profile derivatives", py::arg("x"),
+  m.def("moffat", &moffat, "C++ implementation of Moffat profile", py::arg("x"),
         py::arg("y"), py::arg("sky"), py::arg("height"), py::arg("xcen"),
         py::arg("ycen"), py::arg("fwhm"), py::arg("beta"), py::arg("xbin"),
-        py::arg("ybin"), py::arg("ndiv"), py::arg("comp_dfwhm"),
-        py::arg("comp_dbeta"));
+        py::arg("ybin"), py::arg("ndiv"));
+
+  m.def("dmoffat", &dmoffat, "C++ implementation of Moffat profile derivatives",
+        py::arg("x"), py::arg("y"), py::arg("sky"), py::arg("height"),
+        py::arg("xcen"), py::arg("ycen"), py::arg("fwhm"), py::arg("beta"),
+        py::arg("xbin"), py::arg("ybin"), py::arg("ndiv"),
+        py::arg("comp_dfwhm"), py::arg("comp_dbeta"));
 
   m.def("moffat_resid", &moffat_resid,
         "C++ implementation of Moffat residuals at selected pixels",

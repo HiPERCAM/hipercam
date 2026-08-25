@@ -33,11 +33,11 @@ py::tuple avgstd_impl(const py::array_t<float> &cube, float sigma) {
   const float *data = static_cast<const float *>(buf.ptr);
 
   py::array_t<float> avg({ny, nx});
-  py::array_t<float> std({ny, nx});
+  py::array_t<float> stddev({ny, nx});
   py::array_t<std::int32_t> num({ny, nx});
 
   auto avg_mut = avg.mutable_unchecked<2>();
-  auto std_mut = std.mutable_unchecked<2>();
+  auto std_mut = stddev.mutable_unchecked<2>();
   auto num_mut = num.mutable_unchecked<2>();
 
   std::vector<float> vals(nf);
@@ -126,7 +126,7 @@ py::tuple avgstd_impl(const py::array_t<float> &cube, float sigma) {
     }
   }
 
-  return py::make_tuple(avg, std, num);
+  return py::make_tuple(avg, stddev, num);
 }
 
 } // namespace
