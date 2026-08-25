@@ -45,7 +45,8 @@ def combFit(
         beta_fix,
         thresh,
         ndiv=0,
-        max_nfev=None
+        max_nfev=None,
+        ls_tol=1e-8,
 ):
     """Fits a stellar profile in a :class:Window using either a 2D Gaussian
     or Moffat profile. This is a convenience wrapper of fitMoffat and
@@ -111,6 +112,15 @@ def combFit(
             will slow things. To simply evaluate the profile once at the
             centre of each pixel in `wind`, set ndiv = 0.
 
+        max_nfev : int or None
+           maximum number of function evaluations during fits.
+           Passed directly to scipy.optimize.least_squares.
+
+        ls_tol : float or None
+            tolerance for least squares termination.
+            Used to set ftol, xtol and gtol in scipy.optimize.least_squares.
+
+
     Returns:: (pars, epars, extras)
 
     where::
@@ -145,7 +155,7 @@ def combFit(
             (fit, X, Y, chisq, nok, nrej, npar, nfev)
         ) = fitGaussian(
             wind, sigma, sky, height, x, y, fwhm, fwhm_min, fwhm_fix,
-            thresh, ndiv, max_nfev
+            thresh, ndiv, max_nfev, ls_tol
         )
 
     elif method == "m":
@@ -156,7 +166,7 @@ def combFit(
             (fit, X, Y, chisq, nok, nrej, npar, nfev)
         ) = fitMoffat(
             wind, sigma, sky, height, x, y, fwhm, fwhm_min, fwhm_fix, beta,
-            beta_max, beta_fix, thresh, ndiv, max_nfev
+            beta_max, beta_fix, thresh, ndiv, max_nfev, ls_tol
         )
 
     else:
@@ -214,6 +224,7 @@ def fitMoffat(
         thresh,
         ndiv,
         max_nfev=None,
+        ls_tol=1e-8,
 ):
     """Fits the profile of one target in a Window with a symmetric 2D Moffat
     profile plus a constant "c + h/(1+alpha**2)**beta" where r is the distance
@@ -304,8 +315,12 @@ def fitMoffat(
             `wind`, set ndiv = 0.
 
         max_nfev : int or None
-           maximum number of function evaluations during fits. Passed
-           direct to least_squares.
+           maximum number of function evaluations during fits.
+           Passed directly to scipy.optimize.least_squares.
+
+        ls_tol : float or None
+            tolerance for least squares termination.
+            Used to set ftol, xtol and gtol in scipy.optimize.least_squares.
 
     Returns:: tuple
 
@@ -372,7 +387,14 @@ def fitMoffat(
 
         # carry out fit
         res = least_squares(
-            mfit.fun, param, jac=mfit.jac, method="lm", max_nfev=max_nfev
+            mfit.fun,
+            param,
+            jac=mfit.jac,
+            method="lm",
+            max_nfev=max_nfev,
+            ftol=ls_tol,
+            xtol=ls_tol,
+            gtol=ls_tol,
         )
         if not res.success:
             raise HipercamError(res.message)
@@ -1149,7 +1171,8 @@ def fitGaussian(
         fwhm_fix,
         thresh,
         ndiv,
-        max_nfev=0,
+        max_nfev=None,
+        ls_tol=1e-8,
 ):
     """Fits the profile of one target in an Window with a 2D symmetric Gaussian
     profile "c + h*exp(-alpha*r**2)" where r is the distance from the centre
@@ -1225,9 +1248,14 @@ def fitGaussian(
             simply evaluate the profile once at the centre of each pixel in
             `wind`, set ndiv = 0.
 
-        max_nfev : int
-            maximum number of function evaluations during fits. Passed directly
-            to leastsq.
+        max_nfev : int or None
+            maximum number of function evaluations during fits.
+            Passed directly to scipy.optimize.least_squares.
+
+        ls_tol : float or None
+            tolerance for least squares termination.
+            Used to set ftol, xtol and gtol in scipy.optimize.least_squares.
+
 
     Returns:: tuple of tuples
 
@@ -1281,7 +1309,14 @@ def fitGaussian(
 
         # carry out fit
         res = least_squares(
-            gfit.fun, param, jac=gfit.jac, method="lm", max_nfev=max_nfev
+            gfit.fun,
+            param,
+            jac=gfit.jac,
+            method="lm",
+            max_nfev=max_nfev,
+            ftol=ls_tol,
+            xtol=ls_tol,
+            gtol=ls_tol,
         )
         if not res.success:
             raise HipercamError(res.message)
