@@ -130,7 +130,7 @@ def pbands(args=None):
         cl.register("over", Cline.LOCAL, Cline.PROMPT)
         cl.register("title", Cline.LOCAL, Cline.PROMPT)
         cl.register("colours", Cline.LOCAL, Cline.PROMPT)
-        cl.register("", Cline.LOCAL, Cline.HIDE)
+        cl.register("badtime", Cline.LOCAL, Cline.HIDE)
 
         # get inputs
         log = cl.get_value(
@@ -196,8 +196,10 @@ def pbands(args=None):
             cl.set_default("colours", colours)
         colours = cl.get_value("colours", "colours [strings, one per CCD]", colours)
 
-        # plot points marked as bad time in the log file. Default False.
-        badtime = cl.get_value("badtime", "plot points marked as bad time in the log file?", False)
+        # plot points marked as bad time in the log file. Default False.
+        badtime = cl.get_value(
+            "badtime", "plot points marked as bad time in the log file?", False
+        )
 
     if width > 0 and height > 0:
         fig, axs = plt.subplots(
