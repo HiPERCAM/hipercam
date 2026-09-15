@@ -28,7 +28,7 @@ from hipercam import (
     HipercamError,
 )
 
-__all__ = ["Rhead", "Rdata", "Rtime", "Rtbytes"]
+__all__ = ["Rhead", "Rdata", "Rtime", "Rtbytes", "IendError", "get_ccd_pars"]
 
 # First come a set of constants to do with timing and various changes that
 # occurred to ULTRACAM over time.
@@ -158,6 +158,9 @@ class Rhead:
         # initialise the header
         head = self.header = Header()
         self.run = run
+        # fname is the canonical attribute name in InstrumentModuleProtocol;
+        # self.run is kept for full backward compatibility.
+        self.fname = run
         self.server = server
 
         if server:
@@ -611,8 +614,8 @@ class Rhead:
                 xsl = wl.llx
                 xsr = wr.llx
                 ys = wl.lly
-                nx = wl.nx
-                ny = wl.ny
+                nx = wl.nx * wl.xbin
+                ny = wl.ny * wl.ybin
                 self.wforms.append(f"{xsl},{xsr},{ys},{nx},{ny}")
 
         elif instrument == "ULTRASPEC":
@@ -620,8 +623,8 @@ class Rhead:
             for w in self.win:
                 xs = w.llx
                 ys = w.lly
-                nx = w.nx
-                ny = w.ny
+                nx = w.nx * w.xbin
+                ny = w.ny * w.ybin
                 self.wforms.append(f"{xs},{ys},{nx},{ny}")
 
         # Finally have reached end of constructor / initialiser
@@ -2582,3 +2585,50 @@ class PowerOnOffError(UltracamError):
     """
 
     pass
+
+
+# Alias satisfying InstrumentModuleProtocol; keeps the module self-describing
+# without breaking any code that already catches UendError directly.
+IendError = UendError
+
+
+def get_ccd_pars(resource, server=False):
+    """Return CCD geometry parameters for ULTRACAM or ULTRASPEC.
+
+    Opens the run header to determine whether the instrument is ULTRACAM
+    (3 CCDs) or ULTRASPEC (1 CCD) and returns a corresponding
+    :class:`~collections.OrderedDict`.
+
+    Parameters
+    ----------
+    resource : str
+        Run name, e.g. ``'run003'``.
+    server : bool
+        ``True`` to fetch the header from the ATC fileserver;
+        ``False`` (default) to read from a local ``.xml`` file.
+
+    Returns
+    -------
+    collections.OrderedDict
+        Mapping CCD label to ``(nxmax, nymax, nxpad, nypad)``.
+
+    Raises
+    ------
+    ValueError
+        If the instrument recorded in the header is not recognised.
+    """
+    from collections import OrderedDict
+
+    rhead = Rhead(resource, server=server)
+    if rhead.instrument == "ULTRACAM":
+        return OrderedDict((
+            ("1", (1080, 1032, 56, 8)),
+            ("2", (1080, 1032, 56, 8)),
+            ("3", (1080, 1032, 56, 8)),
+        ))
+    elif rhead.instrument == "ULTRASPEC":
+        return OrderedDict((("1", (1056, 1072, 0, 0)),))
+    else:
+        raise ValueError(
+            "instrument = {:s} not supported".format(rhead.instrument)
+        )

@@ -9,6 +9,7 @@ from trm.cline import Cline
 
 import hipercam as hcam
 from hipercam import spooler
+from hipercam.instruments import available_instruments
 from hipercam.reduction import (
     LogWriter,
     ProcessCCDs,
@@ -74,7 +75,7 @@ def reduce(args=None):
     Parameters:
 
         source : str [hidden]
-           Data source, five options:
+           Data source, five options for built-in sources:
 
              |  'hs': HiPERCAM server
              |  'hl': local HiPERCAM FITS file
@@ -89,6 +90,9 @@ def reduce(args=None):
            :code:`export HIPERCAM_DEFAULT_SOURCE="us"` would ensure it
            always started with the ULTRACAM server by default.  If
            unspecified, it defaults to 'hl'.
+
+           Any instruments installed via plugins can be used as a source by
+           specifying either ``<instrument>:local`` or ``<instrument>:server``.
 
         run : str [if source ends 's' or 'l']
            run number to access, e.g. 'run034' or a file list. If a run,
@@ -246,9 +250,9 @@ def reduce(args=None):
         default_source = os.environ.get("HIPERCAM_DEFAULT_SOURCE", "hl")
         source = cl.get_value(
             "source",
-            "data source [hs, hl, us, ul, hf]",
+            "data source [hs, hl, us, ul, hf, or <instrument>:local/<instrument>:server]",
             default_source,
-            lvals=("hs", "hl", "us", "ul", "hf"),
+            lvals=available_instruments(),
         )
 
         # set some flags

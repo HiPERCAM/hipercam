@@ -34,6 +34,7 @@ more information on
    api/api
    installation
    files
+   plugins
    api/bugs
    makingmovies
    phaseII

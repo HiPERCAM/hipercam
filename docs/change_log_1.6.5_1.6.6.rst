@@ -1,9 +1,9 @@
-.. changelog created on Wed 26 Nov 2025 15:53:40 GMT
+.. changelog created on Tue 10 Mar 2026 10:26:02 GMT
 
 .. include:: globals.rst
 
-|hiper| pipeline changes since v1.6.5
-**************************************
+|hiper| pipeline changes from v1.6.5 to v1.6.6
+**************************************************
 
 List of changes from git, newest first, with the commit keys linked to github:
 
