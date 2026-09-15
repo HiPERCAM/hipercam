@@ -24,7 +24,7 @@ from hipercam.psf_reduction import MoffatPSF, create_psf_model
 # re-configure the cursors: backend specific.
 # aim to get rid of irritating 'hand' icon in
 # favour of something pointier.
-    
+
 backend = mpl.get_backend()
 
 if backend == "Qt4Agg" or "Qt5Agg":
@@ -468,7 +468,7 @@ def psfaper(args=None):
             # plot any pre-existing apertures, keeping track of
             # the plot objects
             pobjs[cnam] = hcam.Group(list)
-            for key, value in hcam.mpl.pCcdAper(axes, mccdaper[cnam]):
+            for key, value in hcam.mpl.pCcdAper(axes, mccdaper[cnam]).items():
                 pobjs[cnam][key] = value
 
         else:
@@ -800,10 +800,10 @@ class PickRef:
         """
         Runs PSF photometry on the region of interest, finds the stars, adds them as apertures.
 
-        For each CCD the PSF shape parameters are estimated from the reference stars, 
-        at which point the PSF shape parameters are held fixed and multiple iterations 
-        of the FIND-FIT-SUBTRACT loop are run to find more stars. 
-        
+        For each CCD the PSF shape parameters are estimated from the reference stars,
+        at which point the PSF shape parameters are held fixed and multiple iterations
+        of the FIND-FIT-SUBTRACT loop are run to find more stars.
+
         The final apertures are then saved to the aperture file and the program exits.
         """
         for cnam, ccdaper in self.mccdaper.items():
@@ -811,7 +811,9 @@ class PickRef:
             ylo, yhi = self.anams[cnam].get_ylim()
 
             if cnam not in self.psf_data:
-                warnings.warn("no (new) reference stars for CCD{} - skipping".format(cnam))
+                warnings.warn(
+                    "no (new) reference stars for CCD{} - skipping".format(cnam)
+                )
                 continue
 
             fwhm = -1
@@ -845,7 +847,7 @@ class PickRef:
                 self.gfac,
                 self.thresh,
                 self.rejthresh,
-                self.read, 
+                self.read,
                 self.gain,
             )
 
@@ -880,13 +882,28 @@ class PickRef:
 
 
 def daophot(
-    cnam, ccd, ccdaper, xlo, xhi, ylo, yhi, niters, method, fwhm, beta, gfac, thresh, rejthresh, read, gain
+    cnam,
+    ccd,
+    ccdaper,
+    xlo,
+    xhi,
+    ylo,
+    yhi,
+    niters,
+    method,
+    fwhm,
+    beta,
+    gfac,
+    thresh,
+    rejthresh,
+    read,
+    gain,
 ):
     """
     Perform PSF photometry on region of CCD.
 
-    The PSF shape parameters are determined from the reference stars, at which point 
-    the PSF shape parameters are held fixed and multiple iterations of the FIND-FIT-SUBTRACT 
+    The PSF shape parameters are determined from the reference stars, at which point
+    the PSF shape parameters are held fixed and multiple iterations of the FIND-FIT-SUBTRACT
     loop are run to find more stars.
 
     Parameters
@@ -908,7 +925,7 @@ def daophot(
     beta : float
         initial beta to use for Moffat PSF model, ignored if method is 'g'
     gfac : float
-        multiple of FWHM used to group stars for fitting. 
+        multiple of FWHM used to group stars for fitting.
         Stars within gfac*FWHM of each other are fitted simultaneously in the FIND-FIT-SUBTRACT loop.
     thresh : float
         threshold for object detection in FIND-FIT-SUBTRACT, in multiples of the background RMS
@@ -931,7 +948,8 @@ def daophot(
     # background stats from whole windpw
     # estimate background RMS
     wind = ccd[wnam]
-    
+    warnings.simplefilter("ignore")
+
     rms_func = MADStdBackgroundRMS(sigma_clip=SigmaClip(sigma=rejthresh))
     bkg_rms = rms_func(wind.data)
     bkg_func = MMMBackground(sigma_clip=SigmaClip(sigma=rejthresh))
@@ -946,9 +964,9 @@ def daophot(
     # correct FWHM for binning
     fwhm /= wind.xbin
     if method == "m":
-        psf_model =  MoffatPSF(beta=beta, x_fwhm=fwhm, y_fwhm=fwhm)
+        psf_model = MoffatPSF(beta=beta, x_fwhm=fwhm, y_fwhm=fwhm)
         print("  FWHM = {:.1f}, BETA={:.1f}".format(fwhm, beta))
-        psf_model_name = 'moffat'
+        psf_model_name = "moffat"
     else:
         psf_model = GaussianPRF(x_fwhm=fwhm, y_fwhm=fwhm)
         psf_model.x_fwhm.fixed = False
@@ -956,7 +974,7 @@ def daophot(
         psf_model.theta.fixed = False
         psf_model.theta.bounds = (-90, 90)
         print("  FWHM = {:.1f}".format(fwhm))
-        psf_model_name = 'gaussian'
+        psf_model_name = "gaussian"
 
     # define region to extract around positions for fits
     fitshape = int(5 * fwhm)
@@ -964,49 +982,49 @@ def daophot(
     if fitshape % 2 == 0:
         fitshape += 1
 
-    # Step 1: fit the reference stars to determine the PSF parameters. 
+    # Step 1: fit the reference stars to determine the PSF parameters.
     # get pixel positions of reference apertures
-    xpos, ypos = list(zip(*[(wind.x_pixel(aper.x), wind.y_pixel(aper.y)) for aper in ccdaper.values()]))
-    reference_positions = Table(names=['x_0', 'y_0'], data=(xpos, ypos))
+    xpos, ypos = list(
+        zip(
+            *[(wind.x_pixel(aper.x), wind.y_pixel(aper.y)) for aper in ccdaper.values()]
+        )
+    )
+    reference_positions = Table(names=["x_0", "y_0"], data=(xpos, ypos))
 
     photometry_task = PSFPhotometry(
         psf_model=psf_model,
-        aperture_radius=1.7*fwhm,
+        aperture_radius=1.7 * fwhm,
         fit_shape=fitshape,
     )
     # do the PSF photometry
     photom_results = photometry_task(
         wind.data - bkg, error=sigma, init_params=reference_positions
     )
-    colnames = [col for col in photom_results.colnames if 'init' not in col]
+    colnames = [col for col in photom_results.colnames if "init" not in col]
     print(photom_results[colnames])
 
     # now create the PSF model from fitting the reference stars
-    psf_model = create_psf_model(
-        photom_results, psf_model_name, fixed_positions=True
-    )
+    psf_model = create_psf_model(photom_results, psf_model_name, fixed_positions=False)
     print(psf_model)
     # Step 2: run the FIND-FIT-SUBTRACT loop to find all stars in the region.
     photometry_task = IterativePSFPhotometry(
         psf_model=psf_model,
         fit_shape=fitshape,
-        finder=DAOStarFinder(threshold=thresh * bkg_rms, fwhm=fwhm), 
+        finder=DAOStarFinder(threshold=thresh * bkg_rms, fwhm=fwhm),
         grouper=SourceGrouper(gfac * fwhm),
         maxiters=niters,
-        mode='all',
-        aperture_radius=1.7*fwhm,
+        mode="all",
+        aperture_radius=1.7 * fwhm,
         localbkg_estimator=None,
     )
 
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        results = photometry_task(wind.data - bkg, error=sigma)
+    results = photometry_task(wind.data - bkg, error=sigma)
 
-    colnames = [col for col in results.colnames if 'fit' in col]
+    colnames = [col for col in results.colnames if "fit" in col]
     print(results[colnames])
     # filter out junk fits
     results = results[results["flags"] == 0]
-    
+
     tiny = 1e-30
     bad_errs = (
         (results["flux_err"] < tiny)
