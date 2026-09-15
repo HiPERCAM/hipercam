@@ -13,6 +13,7 @@ from photutils.psf.functional_models import FLOAT_EPSILON, GAUSSIAN_FWHM_TO_SIGM
 
 import hipercam as hcam
 
+NaN = float("NaN")
 # Stuff below here are helper routines that are not exported
 
 
@@ -478,10 +479,10 @@ def extractFluxPSF(cnam, ccd, bccd, rccd, read, gain, ccdwin, rfile, store):
                 "fwhme": info["fwhme"],
                 "beta": info["beta"],
                 "betae": info["betae"],
-                "counts": 0.0,
-                "countse": -1,
-                "sky": 0.0,
-                "skye": 0.0,
+                "counts": NaN,
+                "countse": NaN,
+                "sky": NaN,
+                "skye": NaN,
                 "nsky": 0,
                 "nrej": 0,
                 "flag": flag,
@@ -515,10 +516,10 @@ def extractFluxPSF(cnam, ccd, bccd, rccd, read, gain, ccdwin, rfile, store):
                 "fwhme": info["fwhme"],
                 "beta": info["beta"],
                 "betae": info["betae"],
-                "counts": 0.0,
-                "countse": -1,
-                "sky": 0.0,
-                "skye": 0.0,
+                "counts": NaN,
+                "countse": NaN,
+                "sky": NaN,
+                "skye": NaN,
                 "nsky": 0,
                 "nrej": 0,
                 "flag": flag,
@@ -551,10 +552,10 @@ def extractFluxPSF(cnam, ccd, bccd, rccd, read, gain, ccdwin, rfile, store):
                 "fwhme": info["fwhme"],
                 "beta": info["beta"],
                 "betae": info["betae"],
-                "counts": 0.0,
-                "countse": -1,
-                "sky": 0.0,
-                "skye": 0.0,
+                "counts": NaN,
+                "countse": NaN,
+                "sky": NaN,
+                "skye": NaN,
                 "nsky": 0,
                 "nrej": 0,
                 "flag": flag,
@@ -704,7 +705,7 @@ def extractFluxPSF(cnam, ccd, bccd, rccd, read, gain, ccdwin, rfile, store):
             else:
                 # USE PSF PHOTOMETRY FLAGS TO SET EXTRACTION FLAG
                 result_row = result_row[0]
-                if result_row['flags'] > 0:
+                if result_row["flags"] > 8:
                     flag |= hcam.NO_EXTRACTION
 
             # compute X, Y arrays over the sub-window relative to the centre
@@ -794,10 +795,10 @@ def extractFluxPSF(cnam, ccd, bccd, rccd, read, gain, ccdwin, rfile, store):
                 "fwhme": info["fwhme"],
                 "beta": info["beta"],
                 "betae": info["betae"],
-                "counts": 0.0,
-                "countse": -1,
-                "sky": 0.0,
-                "skye": 0.0,
+                "counts": NaN,
+                "countse": NaN,
+                "sky": NaN,
+                "skye": NaN,
                 "nsky": 0,
                 "nrej": 0,
                 "flag": flag,
