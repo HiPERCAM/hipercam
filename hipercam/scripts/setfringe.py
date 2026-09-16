@@ -1,9 +1,9 @@
-import sys
 import os
+import sys
 import warnings
 
-import numpy as np
 import matplotlib as mpl
+import numpy as np
 
 # re-configure the cursors: backend specific.
 # aim to get rid of irritating 'hand' icon in
@@ -30,12 +30,11 @@ if curs is not None:
         pass
 
 import matplotlib.pyplot as plt
-
 from trm import cline
 from trm.cline import Cline
 
 import hipercam as hcam
-from hipercam import utils, fringe
+from hipercam import fringe, utils
 
 __all__ = [
     "setfringe",
@@ -126,7 +125,6 @@ def setfringe(args=None):
 
     # get input section
     with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
-
         # register parameters
         cl.register("fmap", Cline.LOCAL, Cline.PROMPT)
         cl.register("fringe", Cline.LOCAL, Cline.PROMPT)
@@ -159,9 +157,7 @@ def setfringe(args=None):
         else:
             # create empty container
             mccd_fpair = fringe.MccdFringePair()
-            print(
-                "No file called {:s} exists; " "will create from scratch".format(fpair)
-            )
+            print("No file called {:s} exists; will create from scratch".format(fpair))
 
         max_ccd = len(mccd)
         if max_ccd > 1:
@@ -186,14 +182,16 @@ def setfringe(args=None):
         else:
             nx = 1
 
-        cmap = cl.get_value("cmap", "colour map to use ['none' for mpl default]", "Greys")
+        cmap = cl.get_value(
+            "cmap", "colour map to use ['none' for mpl default]", "Greys"
+        )
         cmap = None if cmap == "none" else cmap
 
         nhalf = cl.get_value("nhalf", "half-width of stats box (binned pixels)", 2, 0)
 
         iset = cl.get_value(
             "iset",
-            "set intensity a(utomatically)," " d(irectly) or with p(ercentiles)?",
+            "set intensity a(utomatically), d(irectly) or with p(ercentiles)?",
             "a",
             lvals=["a", "A", "d", "D", "p", "P"],
         )
@@ -221,9 +219,6 @@ def setfringe(args=None):
         xlo, xhi, ylo, yhi = 0, nxmax + 1, 0, nymax + 1
 
     # Inputs obtained.
-
-    # ignore irritating warning associated with my use of 'a'
-    warnings.filterwarnings('ignore', '', mpl.cbook.mplDeprecation)
 
     # re-configure keyboard shortcuts to avoid otherwise confusing behaviour
     # quit_all does not seem to be universal, hence the try/except
@@ -321,8 +316,7 @@ def setfringe(args=None):
 
 
 class PickFringePair:
-    """Class to pick fringe pairs
-    """
+    """Class to pick fringe pairs"""
 
     def __init__(
         self, mccd, cnams, anams, toolbar, fig, mccd_fpair, fringenam, nhalf, pobjs
@@ -369,7 +363,6 @@ class PickFringePair:
         """
 
         if self._mid_pair:
-
             if event.key == "q":
                 self._mid_pair = False
                 print("pair not added")
@@ -398,7 +391,6 @@ class PickFringePair:
         """
 
         if axes is not None:
-
             # store information in attributes accessible to all
             # methods, for later access: name, the key hit, the axes
             # instance, x, y
@@ -428,7 +420,6 @@ as it is close enough (< 10 pixels)
                 )
 
             elif key == "a":
-
                 # add a fringe pair
                 print(key)
 
@@ -491,7 +482,6 @@ as it is close enough (< 10 pixels)
         self._pair_stage += 1
 
         if self._pair_stage == 1:
-
             wnam = self.mccd[self._cnam].inside(self._x, self._y, 0)
             if wnam is None:
                 self._line_mode = False
@@ -499,7 +489,6 @@ as it is close enough (< 10 pixels)
                 self.action_prompt(True)
 
             else:
-
                 # store the CCD, window, and the first x,y position
                 self._first_cnam = self._cnam
                 self._first_wnam = wnam
@@ -510,7 +499,6 @@ as it is close enough (< 10 pixels)
                 print(" second point: a(dd) or q(uit)")
 
         elif self._pair_stage == 2:
-
             wnam = self.mccd[self._cnam].inside(self._x, self._y, 0)
             self._mid_pair = False
             if wnam is None:
@@ -524,23 +512,19 @@ as it is close enough (< 10 pixels)
 
             else:
                 # add new pair
-                frng = fringe.FringePair(
-                    self._first_x,
-                    self._first_y,
-                    self._x,
-                    self._y
-                )
+                frng = fringe.FringePair(self._first_x, self._first_y, self._x, self._y)
                 self.mccd_fpair[self._cnam][self._buffer] = frng
 
                 # add fringe pair to the plot, store plot objects
-                self.pobjs[self._cnam][self._buffer] = \
-                    hcam.mpl.pFringePair(self._axes, frng)
+                self.pobjs[self._cnam][self._buffer] = hcam.mpl.pFringePair(
+                    self._axes, frng
+                )
 
                 # make sure it appears
                 plt.draw()
 
                 # let user know what has happened
-                diff = frng.diff(self.mccd[self._cnam],self.nhalf)
+                diff = frng.diff(self.mccd[self._cnam], self.nhalf)
                 print(
                     (
                         f"added fringe pair to CCD {self._cnam} "
@@ -559,8 +543,7 @@ as it is close enough (< 10 pixels)
 
         # search for enclosing window, print stats
         wnam, wind = utils.print_stats(
-            self.mccd[self._cnam], self._cnam,
-            self._x, self._y, self.nhalf, False
+            self.mccd[self._cnam], self._cnam, self._x, self._y, self.nhalf, False
         )
         if wnam is None:
             print('  must hit "s" inside a window')
@@ -577,7 +560,6 @@ as it is close enough (< 10 pixels)
         frng, frngnam, dmin = self._find_fringe()
 
         if dmin is not None and dmin < 10:
-
             # delete plot objects
             for pobj in self.pobjs[self._cnam][frngnam]:
                 pobj.remove()
