@@ -4,7 +4,6 @@ import time
 from signal import signal, SIGINT
 import requests
 import socket
-from numba import jit
 
 import numpy as np
 
@@ -362,40 +361,29 @@ def ncal(args=None):
     plt.title(f'RMS vs level, CCD {cnam}')
     plt.show()
 
-@jit(nopython=True, cache=True)
+
 def procdata(data, xybox):
     """Given a numpy array and a box size returns two arrays of mean vs
     standard deviation for all the boxes. The standard deviation is
     estimated using a robust technique involving the absolute
-    difference of each pixel from the 8 surrounding pixels.  Only
+    difference of each pixel from the 8 surrounding pixels. Only
     pixels more than 1 in from the edge are processed as a result.
-
-    Very loopy this routine, hence the "numba" directive
     """
 
-    ny,nx = data.shape
-    xlo,xhi = 1,nx-1
-    ylo,yhi = 1,ny-1
+    data = np.asarray(data, dtype=float)
+    ny, nx = data.shape
+    nxbox = (nx - 2) // xybox
+    nybox = (ny - 2) // xybox
 
-    nxbox = (xhi-xlo) // xybox
-    nybox = (yhi-ylo) // xybox
+    # centre pixels and the sum over each 3x3 neighbourhood
+    centre = data[1:-1, 1:-1]
+    sum9 = sum(data[dy : ny - 2 + dy, dx : nx - 2 + dx] for dy in range(3) for dx in range(3))
+    absdev = np.abs(centre - (sum9 - centre) / 8)
 
-    nbox = nxbox*nybox
-    means = np.empty((nbox))
-    stds = np.empty((nbox))
-    ibox = 0
-    for iybox in range(nybox):
-        for ixbox in range(nxbox):
-            # next two lines loop over all pixels in the box
-            sumv, sumd = 0., 0.
-            for iy in range(ylo+xybox*iybox,ylo+xybox*(iybox+1)):
-                for ix in range(xlo+xybox*ixbox,xlo+xybox*(ixbox+1)):
-                    # need mean of surrounding 8 pixels
-                    mean8 = (data[iy-1:iy+2,ix-1:ix+2].sum() - data[iy,ix])/8
-                    sumv += data[iy,ix]
-                    sumd += abs(data[iy,ix]-mean8)
-            means[ibox] = sumv/xybox**2
-            stds[ibox] = sumd/xybox**2
-            ibox += 1
-    stds *= np.sqrt(4*np.pi/9.)
+    # trim to a whole number of boxes then average within each box
+    shape = (nybox, xybox, nxbox, xybox)
+    nyt, nxt = nybox * xybox, nxbox * xybox
+    means = centre[:nyt, :nxt].reshape(shape).mean(axis=(1, 3)).ravel()
+    stds = absdev[:nyt, :nxt].reshape(shape).mean(axis=(1, 3)).ravel()
+    stds *= np.sqrt(4 * np.pi / 9.0)
     return (means, stds)
