@@ -4,27 +4,12 @@ Code for profile fitting. Currently supports symmetric 2D Gaussian and
 Moffat profiles plus constants.
 """
 
-import importlib
-
-from numba import jit
 import numpy as np
 from scipy.optimize import least_squares
-from .core import *
-from .window import *
 
-try:
-    _fitting_cpp = importlib.import_module("._fitting_cpp", __package__)
-    _moffat_cpp = _fitting_cpp.moffat
-    _moffat_resid = _fitting_cpp.moffat_resid
-    _dmoffat_cpp = _fitting_cpp.dmoffat
-    _dmoffat_jac = _fitting_cpp.dmoffat_jac
-    _gaussian_cpp = _fitting_cpp.gaussian
-    _gaussian_resid = _fitting_cpp.gaussian_resid
-    _dgaussian_cpp = _fitting_cpp.dgaussian
-    _dgaussian_jac = _fitting_cpp.dgaussian_jac
-    FITTING_CCP_AVAILABLE = True
-except ImportError:
-    FITTING_CCP_AVAILABLE = False
+from . import _fitting_cpp
+from .core import HipercamError
+from .window import Window
 
 __all__ = ("combFit", "fitMoffat", "fitGaussian", "moffat", "gaussian")
 
@@ -497,10 +482,6 @@ def moffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv):
     beta. As beta becomes large, this tends to a Gaussian shape but has
     more extended wings at low beta.
 
-    This function will use the fastest available implementation:
-    1. C++ implementation (if available)
-    2. Numba-accelerated Python implementation (fallback)
-
     Parameters:
 
       x : 2D numpy array
@@ -550,52 +531,10 @@ def moffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv):
     on the ordinate grids in xy.
 
     """
-    if FITTING_CCP_AVAILABLE:
-        return _moffat_cpp(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv)
-
-    return _moffat_numba(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv)
+    return _fitting_cpp.moffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv)
 
 
-@jit(nopython=True, cache=True)
-def _moffat_numba(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv):
-    tbeta = max(0.01, beta)
-    alpha = 4 * (2 ** (1.0 / tbeta) - 1) / fwhm ** 2
-
-    if ndiv > 0:
-        # Complicated case with sub-pixellation allowed for
-
-        # mean offset within sub-pixels
-        soff = (ndiv - 1) / (2 * ndiv)
-
-        prof = np.zeros_like(x)
-        for iy in range(ybin):
-            # loop over unbinned pixels in Y
-            yoff = iy - (ybin - 1) / 2 - soff
-            for ix in range(xbin):
-                # loop over unbinned pixels in X
-                xoff = ix - (xbin - 1) / 2 - soff
-                for isy in range(ndiv):
-                    # loop over sub-pixels in y
-                    ysoff = yoff + isy / ndiv
-                    for isx in range(ndiv):
-                        # loop over sub-pixels in x
-                        xsoff = xoff + isx / ndiv
-                        rsq = (x + xsoff - xcen) ** 2 + (y + ysoff - ycen) ** 2
-                        prof += (height / xbin / ybin / ndiv ** 2) * (
-                            1 + alpha * rsq
-                        ) ** (-tbeta)
-
-        return sky + prof
-
-    else:
-        # Fast as possible, compute profile at pixel centres only
-        rsq = (x - xcen) ** 2 + (y - ycen) ** 2
-        return height * (1 + alpha * rsq) ** (-tbeta) + sky
-
-
-def dmoffat(
-    x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv, comp_dfwhm, comp_dbeta
-):
+def dmoffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv, comp_dfwhm, comp_dbeta):
     """Returns a list of numpy arrays corresponding to the ordinate grids
     in xy set to the partial derivatives of a Moffat profile plus a
     constant. Defined by sky + height/(1+alpha*r**2)**beta where r is
@@ -603,10 +542,6 @@ def dmoffat(
     FWHM given the exponent beta. As beta becomes large, this tends to
     a Gaussian shape but has more extended wings at low beta. The
     partial derivatives are in the order of the parameters.
-
-    This function will use the fastest available implementation:
-    1. C++ implementation (if available)
-    2. Numba-accelerated Python implementation (fallback)
 
     Parameters:
 
@@ -665,28 +600,10 @@ def dmoffat(
 
     Returns:: in all cases a 6-element tuple is returned, but
     depending upon the comp flags only the first 4, 5 or 6 elements
-    may be useful. 6-elements always come back because this helps the
-    numba just-in-time compiler function better.
+    may be useful.
 
     """
-    if FITTING_CCP_AVAILABLE:
-        return _dmoffat_cpp(
-            x,
-            y,
-            sky,
-            height,
-            xcen,
-            ycen,
-            fwhm,
-            beta,
-            xbin,
-            ybin,
-            ndiv,
-            comp_dfwhm,
-            comp_dbeta,
-        )
-
-    return _dmoffat_numba(
+    return _fitting_cpp.dmoffat(
         x,
         y,
         sky,
@@ -701,138 +618,6 @@ def dmoffat(
         comp_dfwhm,
         comp_dbeta,
     )
-
-
-@jit(nopython=True, cache=True)
-def _dmoffat_numba(
-    x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv, comp_dfwhm, comp_dbeta
-):
-    tbeta = max(0.01, beta)
-    alpha = 4 * (2 ** (1 / tbeta) - 1) / fwhm ** 2
-
-    dsky = np.ones_like(x)
-
-    if ndiv > 0:
-        # complicated sub-pixellation case
-        dheight = np.zeros_like(x)
-        dxcen = np.zeros_like(x)
-        dycen = np.zeros_like(x)
-        if comp_dfwhm:
-            dfwhm = np.zeros_like(x)
-        if comp_dbeta:
-            dbeta = np.zeros_like(x)
-
-        # mean offset within sub-pixels
-        soff = (ndiv - 1) / (2 * ndiv)
-
-        for iy in range(ybin):
-            # loop over unbinned pixels in Y
-            yoff = iy - (ybin - 1) / 2 - soff
-            for ix in range(xbin):
-                # loop over unbinned pixels in X
-                xoff = ix - (xbin - 1) / 2 - soff
-                for isy in range(ndiv):
-                    # loop over sub-pixels in y
-                    ysoff = yoff + isy / ndiv
-                    for isx in range(ndiv):
-                        # loop over sub-pixels in x
-                        xsoff = xoff + isx / ndiv
-
-                        # finally compute stuff
-                        dx = x + xsoff - xcen
-                        dy = y + ysoff - ycen
-                        rsq = dx ** 2 + dy ** 2
-
-                        denom = 1 + alpha * rsq
-                        save1 = height * denom ** (-tbeta - 1)
-                        save2 = save1 * rsq
-
-                        # derivatives. beta is a bit complicated
-                        # because it appears directly through the
-                        # exponent but also indirectly through alpha
-                        dh = denom ** (-tbeta)
-                        dheight += dh
-                        dxcen += (2 * alpha * tbeta) * dx * save1
-                        dycen += (2 * alpha * tbeta) * dy * save1
-
-                        if comp_dfwhm:
-                            dfwhm += (2 * alpha * tbeta / fwhm) * save2
-
-                        if comp_dbeta:
-                            dbeta += (
-                                -np.log(denom) * height * dh
-                                + (
-                                    4.0
-                                    * np.log(2)
-                                    * 2 ** (1 / tbeta)
-                                    / tbeta
-                                    / fwhm ** 2
-                                )
-                                * save2
-                            )
-
-        # Normalise by number of evaluations
-        nadd = xbin * ybin * ndiv ** 2
-        dheight /= nadd
-        dxcen /= nadd
-        dycen /= nadd
-
-        # in the next lines we return the same number of arrays in all cases
-        # to help 'numba'
-        if comp_dfwhm and comp_dbeta:
-            # full set of derivs
-            dfwhm /= nadd
-            dbeta /= nadd
-            return (dsky, dheight, dxcen, dycen, dfwhm, dbeta)
-
-        elif comp_dfwhm:
-            dfwhm /= nadd
-            return (dsky, dheight, dxcen, dycen, dfwhm, dfwhm)
-
-        elif comp_dbeta:
-            dbeta /= nadd
-            return (dsky, dheight, dxcen, dycen, dbeta, dbeta)
-
-        else:
-            return (dsky, dheight, dxcen, dycen, dycen, dycen)
-
-    else:
-        # fast as possible, only compute at centre of pixels
-        dx = x - xcen
-        dy = y - ycen
-        rsq = dx ** 2 + dy ** 2
-
-        denom = 1 + alpha * rsq
-        save1 = height * denom ** (-tbeta - 1)
-        save2 = save1 * rsq
-
-        # derivatives. beta is a bit complicated because it appears directly
-        # through the exponent but also indirectly through alpha
-        dheight = denom ** (-tbeta)
-        dxcen = (2 * alpha * tbeta) * dx * save1
-        dycen = (2 * alpha * tbeta) * dy * save1
-
-        if comp_dfwhm and comp_dbeta:
-            dfwhm = (2 * alpha * tbeta / fwhm) * save2
-            dbeta = (
-                -np.log(denom) * height * dheight
-                + (4.0 * np.log(2) * 2 ** (1 / tbeta) / tbeta / fwhm ** 2) * save2
-            )
-            return (dsky, dheight, dxcen, dycen, dfwhm, dbeta)
-
-        elif comp_dfwhm:
-            dfwhm = (2 * alpha * tbeta / fwhm) * save2
-            return (dsky, dheight, dxcen, dycen, dfwhm, dfwhm)
-
-        elif comp_dbeta:
-            dbeta = (
-                -np.log(denom) * height * dheight
-                + (4.0 * np.log(2) * 2 ** (1 / tbeta) / tbeta / fwhm ** 2) * save2
-            )
-            return (dsky, dheight, dxcen, dycen, dbeta, dbeta)
-
-        else:
-            return (dsky, dheight, dxcen, dycen, dycen, dycen)
 
 
 def _mask(wind, x, y):
@@ -1094,28 +879,23 @@ class Mfit:
 
         Used by scipy.optimize.least_squares.
         """
-        if FITTING_CCP_AVAILABLE:
-            sky, height, xcen, ycen, fwhm, beta = self.get_par(param)
-            return _moffat_resid(
-                self.x,
-                self.y,
-                self.data,
-                self.sigma,
-                self.ok_indices,
-                sky,
-                height,
-                xcen,
-                ycen,
-                fwhm,
-                beta,
-                self.xbin,
-                self.ybin,
-                self.ndiv,
-            )
-
-        mod = self.model(param)
-        diff = (self.data - mod) / self.sigma
-        return diff[self.ok].ravel()
+        sky, height, xcen, ycen, fwhm, beta = self.get_par(param)
+        return _fitting_cpp.moffat_resid(
+            self.x,
+            self.y,
+            self.data,
+            self.sigma,
+            self.ok_indices,
+            sky,
+            height,
+            xcen,
+            ycen,
+            fwhm,
+            beta,
+            self.xbin,
+            self.ybin,
+            self.ndiv,
+        )
 
     def jac(self, param):
         """
@@ -1125,31 +905,25 @@ class Mfit:
 
         Used by scipy.optimize.least_squares.
         """
-        if FITTING_CCP_AVAILABLE:
-            sky, height, xcen, ycen, fwhm, beta = self.get_par(param)
-            return _dmoffat_jac(
-                self.x,
-                self.y,
-                self.sigma,
-                self.ok_indices,
-                sky,
-                height,
-                xcen,
-                ycen,
-                fwhm,
-                beta,
-                self.xbin,
-                self.ybin,
-                self.ndiv,
-                self.comp_fwhm,
-                self.comp_beta,
-                self.inds,
-            )
-
-        derivs = self.dmodel(param)
-        arr = np.stack([derivs[ind][self.ok] for ind in self.inds], axis=-1)
-        return -arr / self.sigma[self.ok, None]
-
+        sky, height, xcen, ycen, fwhm, beta = self.get_par(param)
+        return _fitting_cpp.dmoffat_jac(
+            self.x,
+            self.y,
+            self.sigma,
+            self.ok_indices,
+            sky,
+            height,
+            xcen,
+            ycen,
+            fwhm,
+            beta,
+            self.xbin,
+            self.ybin,
+            self.ndiv,
+            self.comp_fwhm,
+            self.comp_beta,
+            self.inds,
+        )
 
 
 ##########################################
@@ -1414,9 +1188,6 @@ def gaussian(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv):
     and alpha is set to give the desired FWHM, but account is taken of the
     finite size of the pixels by summing over multiple points in each one.
 
-    This function will use the optimized C++ implementation if available,
-    falling back to a Numba-accelerated Python implementation if not.
-
     Arguments::
 
       x  : 2D numpy array
@@ -1463,45 +1234,7 @@ def gaussian(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv):
     on the ordinate grids in xy.
 
     """
-    if FITTING_CCP_AVAILABLE:
-        return _gaussian_cpp(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv)
-
-    return _gaussian_numba(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv)
-
-
-@jit(nopython=True, cache=True)
-def _gaussian_numba(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv):
-
-    alpha = 4.0 * np.log(2.0) / fwhm ** 2
-
-    if ndiv > 0:
-        # Complicated case with sub-pixellation allowed for
-
-        # mean offset within sub-pixels
-        soff = (ndiv - 1) / (2 * ndiv)
-
-        prof = np.zeros_like(x)
-        for iy in range(ybin):
-            # loop over unbinned pixels in Y
-            yoff = iy - (ybin - 1) / 2 - soff
-            for ix in range(xbin):
-                # loop over unbinned pixels in X
-                xoff = ix - (xbin - 1) / 2 - soff
-                for isy in range(ndiv):
-                    # loop over sub-pixels in y
-                    ysoff = yoff + isy / ndiv
-                    for isx in range(ndiv):
-                        # loop over sub-pixels in x
-                        xsoff = xoff + isx / ndiv
-                        rsq = (x + xsoff - xcen) ** 2 + (y + ysoff - ycen) ** 2
-                        prof += np.exp(-alpha * rsq)
-
-        return sky + (height / xbin / ybin / ndiv ** 2) * prof
-
-    else:
-        # Fast as possible, compute profile at pixel centres only
-        rsq = (x - xcen) ** 2 + (y - ycen) ** 2
-        return sky + height * np.exp(-alpha * rsq)
+    return _fitting_cpp.gaussian(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv)
 
 
 def dgaussian(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv, comp_dfwhm):
@@ -1510,9 +1243,6 @@ def dgaussian(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv, comp_dfwhm)
     a constant. Defined by sky + height*exp(-alpha*r**2) where r is the
     distance from the centre and alpha is set to give the desired FWHM.  The
     partial derivatives are in the order of the parameters.
-
-    This function will use the optimized C++ implementation if available,
-    falling back to a Numba-accelerated Python implementation if not.
 
     Arguments::
 
@@ -1566,81 +1296,7 @@ def dgaussian(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv, comp_dfwhm)
     appear in the function call.
 
     """
-    if FITTING_CCP_AVAILABLE:
-        return _dgaussian_cpp(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv, comp_dfwhm)
-
-    return _dgaussian_numba(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv, comp_dfwhm)
-
-
-@jit(nopython=True, cache=True)
-def _dgaussian_numba(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv, comp_dfwhm):
-    alpha = 4.0 * np.log(2.0) / fwhm ** 2
-
-    dsky = np.ones_like(x)
-
-    if ndiv > 0:
-        # complicated sub-pixellation case
-        dheight = np.zeros_like(x)
-        dxcen = np.zeros_like(x)
-        dycen = np.zeros_like(x)
-        if comp_dfwhm:
-            dfwhm = np.zeros_like(x)
-
-        # mean offset within sub-pixels
-        soff = (ndiv - 1) / (2 * ndiv)
-
-        for iy in range(ybin):
-            # loop over unbinned pixels in Y
-            yoff = iy - (ybin - 1) / 2 - soff
-            for ix in range(xbin):
-                # loop over unbinned pixels in X
-                xoff = ix - (xbin - 1) / 2 - soff
-                for isy in range(ndiv):
-                    # loop over sub-pixels in y
-                    ysoff = yoff + isy / ndiv
-                    for isx in range(ndiv):
-                        # loop over sub-pixels in x
-                        xsoff = xoff + isx / ndiv
-
-                        # finally compute stuff
-                        dx = x + xsoff - xcen
-                        dy = y + ysoff - ycen
-                        rsq = dx ** 2 + dy ** 2
-
-                        dh = np.exp(-alpha * rsq)
-                        dheight += dh
-                        dxcen += (2 * alpha * height) * dh * dx
-                        dycen += (2 * alpha * height) * dh * dy
-                        if comp_dfwhm:
-                            dfwhm += (2 * alpha * height / fwhm) * dh * rsq
-
-        # Normalise by number of evaluations
-        nadd = xbin * ybin * ndiv ** 2
-        dheight /= nadd
-        dxcen /= nadd
-        dycen /= nadd
-        if comp_dfwhm:
-            dfwhm /= nadd
-        #            return np.dstack((dsky, dheight, dxcen, dycen, dfwhm))
-        if comp_dfwhm:
-            return (dsky, dheight, dxcen, dycen, dfwhm)
-        else:
-            return (dsky, dheight, dxcen, dycen, dycen)
-
-    else:
-        # fast as possible, only compute at centre of pixels
-        dx = x - xcen
-        dy = y - ycen
-        rsq = dx ** 2 + dy ** 2
-
-        dheight = np.exp(-alpha * rsq)
-        dxcen = (2 * alpha * height) * dheight * dx
-        dycen = (2 * alpha * height) * dheight * dy
-        if comp_dfwhm:
-            dfwhm = (2 * alpha * height / fwhm) * dheight * rsq
-            return (dsky, dheight, dxcen, dycen, dfwhm)
-        else:
-            return (dsky, dheight, dxcen, dycen, dycen)
+    return _fitting_cpp.dgaussian(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv, comp_dfwhm)
 
 
 class Gfit:
@@ -1835,27 +1491,22 @@ class Gfit:
 
         Used by scipy.optimize.least_squares.
         """
-        if FITTING_CCP_AVAILABLE:
-            sky, height, xcen, ycen, fwhm = self.get_par(param)
-            return _gaussian_resid(
-                self.x,
-                self.y,
-                self.data,
-                self.sigma,
-                self.ok_indices,
-                sky,
-                height,
-                xcen,
-                ycen,
-                fwhm,
-                self.xbin,
-                self.ybin,
-                self.ndiv,
-            )
-
-        mod = self.model(param)
-        diff = (self.data - mod) / self.sigma
-        return diff[self.ok].ravel()
+        sky, height, xcen, ycen, fwhm = self.get_par(param)
+        return _fitting_cpp.gaussian_resid(
+            self.x,
+            self.y,
+            self.data,
+            self.sigma,
+            self.ok_indices,
+            sky,
+            height,
+            xcen,
+            ycen,
+            fwhm,
+            self.xbin,
+            self.ybin,
+            self.ndiv,
+        )
 
     def jac(self, param):
         """
@@ -1865,25 +1516,20 @@ class Gfit:
 
         Used by scipy.optimize.least_squares.
         """
-        if FITTING_CCP_AVAILABLE:
-            sky, height, xcen, ycen, fwhm = self.get_par(param)
-            return _dgaussian_jac(
-                self.x,
-                self.y,
-                self.sigma,
-                self.ok_indices,
-                sky,
-                height,
-                xcen,
-                ycen,
-                fwhm,
-                self.xbin,
-                self.ybin,
-                self.ndiv,
-                self.comp_fwhm,
-                self.inds,
-            )
-
-        derivs = self.dmodel(param)
-        arr = np.stack([derivs[ind][self.ok] for ind in self.inds], axis=-1)
-        return -arr / self.sigma[self.ok, None]
+        sky, height, xcen, ycen, fwhm = self.get_par(param)
+        return _fitting_cpp.dgaussian_jac(
+            self.x,
+            self.y,
+            self.sigma,
+            self.ok_indices,
+            sky,
+            height,
+            xcen,
+            ycen,
+            fwhm,
+            self.xbin,
+            self.ybin,
+            self.ndiv,
+            self.comp_fwhm,
+            self.inds,
+        )
