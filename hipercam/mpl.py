@@ -4,15 +4,13 @@ matplotlib plotting functions.
 """
 
 import os
+
+import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 
-from .core import *
-from .window import *
-from .group import *
-from .ccd import *
-from . import utils
-from . import defect
-
+from . import defect, utils
+from .ccd import MCCD
+from .core import CIS, HipercamError
 
 # Font scale factor
 SCALE_FACTOR = float(os.environ.get("HIPERCAM_MPL_FSCALE", 1.0))
@@ -886,3 +884,117 @@ def pCcdFringePair(axes, ccdFringePair):
         pobjs[key] = pFringePair(axes, fpair)
 
     return pobjs
+
+
+def plot_frame(
+    fig: plt.Figure,
+    mccd: MCCD,
+    cnams: str | list[str] = "0",
+    ncols: int = 3,
+    msub: bool = False,
+    cmap: str = "Greys",
+    iset: str = "p",
+    ilim: tuple[float, float] | None = None,
+    region: tuple[int, int, int, int] | None = None,
+):
+    """Plots an :class:`Mccd` object on a given figure.
+
+    Each CCD is added to a subplot in a grid.
+
+    Arguments::
+
+        fig : :class:`matplotlib.figure.Figure`
+            The figure to plot to.
+
+        mccd : MCCD
+            The :class:`MCCD` to plot
+
+        cnams : str | list[str]
+            The names of the CCDs to plot.
+            If "0" then all CCDs in the MCCD are plotted.
+
+        ncols : int
+            The number of columns in the grid of subplots
+
+        msub : bool
+            Whether to subtract the median from each window before plotting
+
+        cmap : str
+            The name of the colormap to use for the images
+
+        iset : str
+            How to set the intensity scale for the images:
+                'a' for automatic min/max range
+                'p' for percentiles (set using `ilim`)
+                'd' for direct values (set using `ilim`)
+
+        ilim : tuple[float, float] | None
+            Lower and upper limits for the intensity scaling:
+                If iset='p' these are the lower and upper percentiles
+                If iset='d' these are the lower and upper intensity limits
+                If iset='a' this argument is ignored
+            If None, default values are used:
+                (5.0, 95.0) if iset='p'
+                (0.0, 1000.0) if iset='d'
+
+        region : tuple[int, int, int, int] | None
+            The region to plot, values are (xmin, xmax, ymin, ymax)
+            If None, the entire CCD is displayed.
+            If iset='p', only this region is used to compute the percentiles for
+            intensity scaling.
+
+    """
+    if ilim is None and iset == "p":
+        ilim = 5.0, 95.0
+    elif ilim is None and iset == "d":
+        ilim = 0.0, 1000.0
+    if region is None:
+        region = [None, None, None, None]
+    xlim = region[0:2]
+    ylim = region[2:4]
+
+    # define the panel grid
+    if cnams == "0" or len(mccd) == 1:
+        cnams = list(mccd.keys())
+    ncols = min(len(cnams), ncols) if len(cnams) > 1 else 1
+    nrows = len(cnams) // ncols if len(cnams) % ncols == 0 else len(cnams) // ncols + 1
+
+    # set up the axes and plot each CCD
+    for n, cnam in enumerate(cnams):
+        if n == 0:
+            axes = first_axes = fig.add_subplot(nrows, ncols, n + 1)
+            axes.set_aspect("equal", adjustable="box")
+        else:
+            # subsequent axes share the same x and y as the first
+            axes = fig.add_subplot(
+                nrows, ncols, n + 1, sharex=first_axes, sharey=first_axes
+            )
+            axes.set_aspect("equal")
+
+        if msub:
+            # subtract median from each window
+            for wind in mccd[cnam].values():
+                wind -= wind.median()
+
+        # plot the CCD windows
+        pCcd(
+            axes=axes,
+            ccd=mccd[cnam],
+            iset=iset,
+            plo=ilim[0],
+            phi=ilim[1],
+            dlo=ilim[0],
+            dhi=ilim[1],
+            tlabel=f"CCD {cnam}",
+            xlo=xlim[0],
+            xhi=xlim[1],
+            ylo=ylim[0],
+            yhi=ylim[1],
+            cmap=cmap,
+        )
+
+        # set the limits for the axes
+        axes.set_xlim(*xlim)
+        axes.set_ylim(*ylim)
+
+    return fig

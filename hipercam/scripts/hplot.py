@@ -342,45 +342,25 @@ def hplot(args=None):
     # disable 'r' key as shortcut for reset zoom
     mpl.rcParams["keymap.home"].remove("r")
 
-    nccd = len(ccds)
-    ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
+    # plot the CCDs on the figure
+    hcam.mpl.plot_frame(
+        fig=fig,
+        mccd=mccd,
+        cnams=ccds,
+        ncols=nx,
+        msub=msub,
+        cmap=cmap,
+        iset=iset,
+        ilim=(plo, phi) if iset == "p" else (ilo, ihi),
+        region=(xlo, xhi, ylo, yhi),
+    )
 
-    ax = None
-    caxes = {}
-    for n, cnam in enumerate(ccds):
-        if ax is None:
-            axes = ax = fig.add_subplot(ny, nx, n + 1)
-            axes.set_aspect("equal", adjustable="box")
-        else:
-            axes = fig.add_subplot(ny, nx, n + 1, sharex=ax, sharey=ax)
-            axes.set_aspect("equal")
-
-        # store the CCD associated with these axes for the cursor callback
-        caxes[axes] = cnam
-
-        axes.set_xlim(xlo, xhi)
-        axes.set_ylim(ylo, yhi)
-
-        if msub:
-            # subtract median from each window
-            for wind in mccd[cnam].values():
-                wind -= wind.median()
-
-        vmin, vmax, _ = hcam.mpl.pCcd(
-            axes,
-            mccd[cnam],
-            iset,
-            plo,
-            phi,
-            ilo,
-            ihi,
-            f"CCD {cnam}",
-            xlo=xlo,
-            xhi=xhi,
-            ylo=ylo,
-            yhi=yhi,
-            cmap=cmap,
-        )
+    # store the CCD associated with these axes for the cursor callback
+    caxes = {axes: axes.get_title().split()[-1] for axes in fig.axes}
+    for axes in caxes:
+        cnam = caxes[axes]
+        imgs = axes.get_images()
+        vmin, vmax = imgs[0].get_clim()
         print("CCD =", cnam, "plot range =", vmin, "to", vmax)
 
     try:
