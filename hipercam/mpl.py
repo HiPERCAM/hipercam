@@ -3,17 +3,24 @@
 matplotlib plotting functions.
 """
 
-import os
+from __future__ import annotations
 
-import matplotlib.pyplot as plt
+import os
+from typing import TYPE_CHECKING
+
 from matplotlib.patches import Circle
 
 from . import defect, utils
-from .ccd import MCCD
 from .core import CIS, HipercamError
 
+if TYPE_CHECKING:
+    import matplotlib.pyplot as plt
+
+    from .ccd import MCCD
+
+
 # Font scale factor
-SCALE_FACTOR = float(os.environ.get("HIPERCAM_MPL_FSCALE", 1.0))
+SCALE_FACTOR = float(os.environ.get("HIPERCAM_MPL_FSCALE", "1.0"))
 
 # some look-and-feel globals.
 Params = {
@@ -896,7 +903,7 @@ def plot_frame(
     iset: str = "p",
     ilim: tuple[float, float] | None = None,
     region: tuple[int, int, int, int] | None = None,
-):
+) -> None:
     """Plots an :class:`Mccd` object on a given figure.
 
     Each CCD is added to a subplot in a grid.
@@ -977,9 +984,8 @@ def plot_frame(
                 wind -= wind.median()
 
         # plot the CCD windows
-        pCcd(
-            axes=axes,
-            ccd=mccd[cnam],
+        mccd[cnam].plot(
+            axes,
             iset=iset,
             plo=ilim[0],
             phi=ilim[1],
@@ -996,5 +1002,3 @@ def plot_frame(
         # set the limits for the axes
         axes.set_xlim(*xlim)
         axes.set_ylim(*ylim)
-
-    return fig

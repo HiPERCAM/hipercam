@@ -18,6 +18,7 @@ from .core import *
 from .group import *
 from .header import *
 from .window import *
+from .mpl import pCcd
 
 __all__ = ("CCD", "MCCD", "get_ccd_info", "trim_ultracam")
 
@@ -588,6 +589,14 @@ class CCD(Agroup):
                 self.nypad,
             )
         )
+
+    def plot(self, axes, **kwargs):
+        """Plots the CCD on the given matplotlib axes.
+
+        See :func:`hipercam.mpl.pCcd` for details of the arguments.
+
+        """
+        return pCcd(axes, self, **kwargs)
 
 
 class MCCD(Agroup):
