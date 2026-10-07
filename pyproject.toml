@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0", "setuptools-scm", "wheel", "Cython", "numpy"]
+requires = ["setuptools>=61.0", "setuptools-scm", "wheel", "numpy", "pybind11>=2.6.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -19,16 +19,15 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.6",
 ]
-requires-python = ">=3.6"
+requires-python = ">=3.9"
 dependencies = [
     "astropy",
-    "Cython",
     "fitsio",
     "keyring",
     "matplotlib",
-    "numba",
     "numpy",
     "pandas",
+    "pybind11>=2.6.0",
     "requests",
     "sep>=1.4",
     "trm.cline",
