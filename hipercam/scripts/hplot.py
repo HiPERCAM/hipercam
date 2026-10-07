@@ -1,13 +1,7 @@
-import os
-import sys
-from functools import partial
-
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import numpy as np
 from trm import cline
 from trm.cline import Cline
-from trm.pgplot import *
 
 import hipercam as hcam
 from hipercam import utils
@@ -24,15 +18,12 @@ def hplot(args=None):
     """``hplot input [device] ccd nx msub ([cmap]) hsbox iset (ilo ihi | plo
     phi) xlo xhi ylo yhi [width height]``
 
-    Plots a multi-CCD image. Can use PGPLOT or matplotlib. The matplotlib
-    version is slightly clunky in its choice of the viewing area but has some
-    features that could be useful, in particular, the interactive plot
-    (device='/mpl') allows one to pan and zoom and to compare the same part of
+    Plots a multi-CCD image using matplotlib. The default matplotlib interactive
+    window allows one to pan and zoom and to compare the same part of
     multiple CCDs easily.
 
-    If the interactive plot is used (device='/mpl'), then pressing the space
-    bar will initiate a profile fit at the position of the cursor. The
-    parameters of a successfull fit will be printed to the screen.
+    Pressing the space bar will initiate a profile fit at the position of the cursor.
+    The parameters of a successful fit will be printed to the screen.
     A radial profile plot centered on the fit position can be plotted
     by pressing the 'r' key. This will open a new matplotlib window.
 
@@ -41,16 +32,9 @@ def hplot(args=None):
       input : string
          name of MCCD file
 
-      device : string [hidden]
-         Plot device name. Uses characters after a final trailing '/' to
-         identify the type in PGPLOT style. Thus:
-
-          |  /xs : PGPLOT xserver interactive plot
-          |  1/xs : PGPLOT xserver interactive plot called '1'
-          |  plot.ps/cps : PGPLOT colour postscript called 'plot.ps'
-          |  plot.ps/vps : PGPLOT B&W portrait oriented plot
-          |  /mpl : matplotlib interactive plot
-          |  plot.pdf/mpl : matplotlib PDF plot
+      device : string [hidden, defaults to 'term']
+         'term' for interactive plot, file name such as 'plot.pdf'
+         or 'object.png' for a hardcopy.
 
       ccd : string
          CCD(s) to plot, '0' for all. If not '0' then '1', '2' or even '3 4'
@@ -66,7 +50,7 @@ def hplot(args=None):
       msub : bool
          True/False to subtract median from each window before scaling
 
-      cmap : str [if matplotlib; hidden]
+      cmap : str [hidden]
          The colour map to use. "Greys" is the usual, but there are
          many others. Typing an incorrect one will give a list. "none"
          for matplotlib default.
@@ -95,10 +79,10 @@ def hplot(args=None):
          upper percentile level
 
       xlo : float
-         left X-limit, for PGPLOT plots. Applies to matplotlib plots
-         to restrict region used to compute percentile limits. This is
-         useful in case where bias strips otherwise distort the plot
-         limits (e.g. ultraspec full frame images)
+         left X-limit to restrict region used to compute percentile
+         limits. This allows you to only consider useful data if for
+         example there are bias strips, and makes setting the percentile
+         limits less fiddly.
 
       xhi : float
          right X-limit. See comments for xlo as well.
@@ -117,8 +101,8 @@ def hplot(args=None):
          AND height must be non-zero to have any effect
 
       method : str [hidden]
-          if the device is set to '/mpl' (matplotlib), then pressing the
-          space bar will initiate a profile fit at the position of the cursor.
+          when displaying an interactive window, pressing the space bar will initiate
+          a profile fit at the position of the cursor.
           This defines the profile fitting method, either a gaussian or a
           moffat profile. The latter is usually best.
 
@@ -224,22 +208,10 @@ def hplot(args=None):
         frame = cl.get_value("input", "frame to plot", cline.Fname("hcam", hcam.HCAM))
         mccd = hcam.MCCD.read(frame)
 
-        device = cl.get_value("device", "plot device name", "/mpl")
-
-        # set type of plot (PGPLOT or matplotlib) and the name of the file
-        # if any in the case of matplotlib
-        fslash = device.rfind("/")
-        if fslash > -1:
-            if device[fslash + 1 :] == "mpl":
-                ptype = "MPL"
-                hard = device[:fslash].strip()
-            else:
-                ptype = "PGP"
-
-        else:
-            raise ValueError(
-                "Could not identify plot type from device = {:s}".format(device)
-            )
+        cl.set_default("device", "term")
+        device = cl.get_value("device", "plot device name", "term")
+        if device.endswith(".png"):
+            dpi = cl.get_value("dpi", "dots per inch", 240, 10)
 
         # define the panel grid
         nxdef = cl.get_default("nx", 3)
@@ -264,13 +236,12 @@ def hplot(args=None):
         # define the display intensities
         msub = cl.get_value("msub", "subtract median from each window?", True)
 
-        if ptype == "MPL":
-            cmap = cl.get_value(
-                "cmap", "colour map to use ['none' for mpl default]", "Greys"
-            )
-            cmap = None if cmap == "none" else cmap
+        cmap = cl.get_value(
+            "cmap", "colour map to use ['none' for mpl default]", "Greys"
+        )
+        cmap = None if cmap == "none" else cmap
 
-        if ptype == "MPL" and hard == "":
+        if device == "term":
             hsbox = cl.get_value(
                 "hsbox", "half-width of stats box (binned pixels)", 2, 1
             )
@@ -360,122 +331,100 @@ def hplot(args=None):
         thresh = cl.get_value("thresh", "number of RMS to reject at", 4.0)
 
     # all inputs obtained, plot
-    if ptype == "MPL":
-        if width > 0 and height > 0:
-            fig = plt.figure(figsize=(width, height))
+    if width > 0 and height > 0:
+        fig = plt.figure(figsize=(width, height))
+    else:
+        fig = plt.figure()
+
+    # set plot label sizes
+    mpl.rcParams["xtick.labelsize"] = hcam.mpl.Params["axis.number.fs"]
+    mpl.rcParams["ytick.labelsize"] = hcam.mpl.Params["axis.number.fs"]
+    # disable 'r' key as shortcut for reset zoom
+    mpl.rcParams["keymap.home"].remove("r")
+
+    nccd = len(ccds)
+    ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
+
+    ax = None
+    caxes = {}
+    for n, cnam in enumerate(ccds):
+        if ax is None:
+            axes = ax = fig.add_subplot(ny, nx, n + 1)
+            axes.set_aspect("equal", adjustable="box")
         else:
-            fig = plt.figure()
+            axes = fig.add_subplot(ny, nx, n + 1, sharex=ax, sharey=ax)
+            axes.set_aspect("equal")
 
-        # set plot label sizes
-        mpl.rcParams["xtick.labelsize"] = hcam.mpl.Params["axis.number.fs"]
-        mpl.rcParams["ytick.labelsize"] = hcam.mpl.Params["axis.number.fs"]
-        # disable 'r' key as shortcut for reset zoom
-        mpl.rcParams["keymap.home"].remove("r")
+        # store the CCD associated with these axes for the cursor callback
+        caxes[axes] = cnam
 
-        nccd = len(ccds)
-        ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
+        axes.set_xlim(xlo, xhi)
+        axes.set_ylim(ylo, yhi)
 
-        ax = None
-        caxes = {}
-        for n, cnam in enumerate(ccds):
-            if ax is None:
-                axes = ax = fig.add_subplot(ny, nx, n + 1)
-                axes.set_aspect("equal", adjustable="box")
-            else:
-                axes = fig.add_subplot(ny, nx, n + 1, sharex=ax, sharey=ax)
-                axes.set_aspect("equal")
+        if msub:
+            # subtract median from each window
+            for wind in mccd[cnam].values():
+                wind -= wind.median()
 
-            # store the CCD associated with these axes for the cursor callback
-            caxes[axes] = cnam
+        vmin, vmax, _ = hcam.mpl.pCcd(
+            axes,
+            mccd[cnam],
+            iset,
+            plo,
+            phi,
+            ilo,
+            ihi,
+            f"CCD {cnam}",
+            xlo=xlo,
+            xhi=xhi,
+            ylo=ylo,
+            yhi=yhi,
+            cmap=cmap,
+        )
+        print("CCD =", cnam, "plot range =", vmin, "to", vmax)
 
-            axes.set_xlim(xlo, xhi)
-            axes.set_ylim(ylo, yhi)
+    try:
+        plt.tight_layout()
+    except:
+        pass
 
-            if msub:
-                # subtract median from each window
-                for wind in mccd[cnam].values():
-                    wind -= wind.median()
+    if device == "term":
+        # add in the callback
+        fig.canvas.mpl_connect("button_press_event", buttonPressEvent)
+        print(
+            f"\nClick points in windows for stats in a {2 * hsbox + 1:d}x{2 * hsbox + 1:d} box"
+        )
 
-            vmin, vmax, _ = hcam.mpl.pCcd(
-                axes,
-                mccd[cnam],
-                iset,
-                plo,
-                phi,
-                ilo,
-                ihi,
-                "CCD {:s}".format(cnam),
-                xlo=xlo,
-                xhi=xhi,
-                ylo=ylo,
-                yhi=yhi,
-                cmap=cmap,
-            )
-            print("CCD =", cnam, "plot range =", vmin, "to", vmax)
+        # add the keypress callback
+        fitter = OnDemandFit(
+            fig,
+            mccd,
+            caxes,
+            shbox,
+            fwhm,
+            beta,
+            method,
+            smooth,
+            fhbox,
+            hmin,
+            fwhm_min,
+            read,
+            gain,
+            thresh,
+        )
+        fig.canvas.mpl_connect("key_press_event", fitter._keyPressEvent)
 
-        try:
-            plt.tight_layout()
-        except:
-            pass
+        plt.subplots_adjust(wspace=0.1, hspace=0.1)
+        plt.show()
 
-        if hard == "":
-            # add in the callback
-            fig.canvas.mpl_connect("button_press_event", buttonPressEvent)
-            print(
-                "\nClick points in windows for stats in a {:d}x{:d} box".format(
-                    2 * hsbox + 1, 2 * hsbox + 1
-                )
-            )
-
-            # add the keypress callback
-            fitter = OnDemandFit(
-                fig,
-                mccd,
-                caxes,
-                shbox,
-                fwhm,
-                beta,
-                method,
-                smooth,
-                fhbox,
-                hmin,
-                fwhm_min,
-                read,
-                gain,
-                thresh,
-            )
-            fig.canvas.mpl_connect("key_press_event", fitter._keyPressEvent)
-
-            plt.subplots_adjust(wspace=0.1, hspace=0.1)
-            plt.show()
-
+    else:
+        if device.endswith(".png"):
+            plt.savefig(device, dpi=dpi, bbox_inches="tight", pad_inches=0)
         else:
-            plt.savefig(hard, bbox_inches="tight", pad_inches=0)
-
-    elif ptype == "PGP":
-        # open the plot
-        dev = hcam.pgp.Device(device)
-        if width > 0 and height > 0:
-            pgpap(width, height / width)
-
-        nccd = len(ccds)
-        ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
-
-        # set up panels and axes
-        pgsubp(nx, ny)
-
-        for cnam in ccds:
-            pgsci(hcam.pgp.Params["axis.ci"])
-            pgsch(hcam.pgp.Params["axis.number.ch"])
-            pgenv(xlo, xhi, ylo, yhi, 1, 0)
-
-            vmin, vmax = hcam.pgp.pCcd(
-                mccd[cnam], iset, plo, phi, ilo, ihi, "CCD {:s}".format(cnam)
-            )
-            print("CCD =", cnam, "plot range =", vmin, "to", vmax)
+            plt.savefig(device, bbox_inches="tight", pad_inches=0)
 
 
-class OnDemandFit(object):
+class OnDemandFit:
     """
     Callback
     """
