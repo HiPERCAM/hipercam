@@ -396,14 +396,17 @@ and usually gives poorer results, so it is not recommended.
 
 Creating aperture files for the crowded fields where PSF photometry is needed
 can be tricky. Overlapping sources can make using |setaper| difficult or 
-impossible. In this case, it is best to use the |psfaper| script. 
-This script allows you to zoom into the region where you want to 
-carry out PSF photometry and add a small number of well-isolated bright
-reference stars. The script then fits a PSF model to the reference stars 
+impossible, one option is to turn off automatic profile fitting by setting
+the profit command line option to be false. An alternative is to use the 
+experimental |psfaper| script. This script allows you to zoom into the region
+where you want to carry out PSF photometry and add a small number of well-isolated 
+bright reference stars. The script then fits a PSF model to the reference stars 
 to constrain the shape of the PSF and carries out multiple iterations
-of a FIND-FIT-SUBTRACT loop to find all the stars within a region of interest.
+of a FIND-FIT-SUBTRACT loop to find all the stars within the region of interest.
 The aperture file created with |psfaper| can (and should) be hand-edited with
-|setaper| to add any extra features such as masking and linking.
+|setaper| to delete apertures you don't need andadd any extra features such as 
+masking and linking. It can be a very good idea to link most apertures to a 
+well-isolated reference star.
 
 
 Customisation
