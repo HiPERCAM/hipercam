@@ -750,11 +750,11 @@ def extractFluxPSF(cnam, ccd, bccd, rccd, read, gain, ccdwin, rfile, store):
             slevel = result_row["local_bkg"]
 
             # check flags from PSF photom
-            if result_row["flags"] == 2:
-                flag = hcam.TARGET_AT_EDGE
-            elif result_row["flags"] > 8:
-                # fit failed
-                flag = hcam.NO_EXTRACTION
+            if result_row["flags"] & 2:
+                flag |= hcam.TARGET_AT_EDGE
+            if result_row["flags"] >= 8:
+                # Fit failed or uncertainties are unreliable.
+                flag |= hcam.NO_EXTRACTION
 
             info = store[apnam]
 
