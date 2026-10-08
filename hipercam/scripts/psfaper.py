@@ -986,7 +986,11 @@ def daophot(
     # get pixel positions of reference apertures
     xpos, ypos = list(
         zip(
-            *[(wind.x_pixel(aper.x), wind.y_pixel(aper.y)) for aper in ccdaper.values()]
+            *[
+                (wind.x_pixel(aper.x), wind.y_pixel(aper.y))
+                for aper in ccdaper.values()
+                if aper.ref
+            ]
         )
     )
     reference_positions = Table(names=["x_0", "y_0"], data=(xpos, ypos))
