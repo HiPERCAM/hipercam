@@ -658,7 +658,7 @@ def setup_plots(rfile, ccds, nx, plot_lims, implot=True, lplot=True, psfplot=Tru
     if psfplot:
         xlo, xhi, ylo, yhi = plot_lims
         # plot of image minus PSF model
-        psfdev = hcam.pgp.Device(rfile["general"]["psfdevice"])
+        psfdev = hcam.pgp.Device(rfile["general"].get("psfdevice", "/null"))
         iwidth = rfile["general"]["iwidth"]
         iheight = rfile["general"]["iheight"]
 
