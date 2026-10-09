@@ -1,0 +1,56 @@
+hipercam.scripts.rupdate
+========================
+
+.. py:module:: hipercam.scripts.rupdate
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   hipercam.scripts.rupdate.rupdate
+
+
+Module Contents
+---------------
+
+.. py:function:: rupdate(args=None)
+
+   
+   ``rupdate rfile``
+
+   As changes are made to 'reduce', old reduce files can become
+   obsolete. This script tries to bring old reduce files up to date
+   by adding in the new options but in a way that should give the old
+   behaviour. The file is modified in place.
+
+   There are some cases where a full update might not be possible and
+   a further manual edit of the reduce file might be required.
+
+   Parameters:
+
+       rfile    : string
+          the output reduce file created using |setaper|. This will be read
+          for the targets. The main target will be assumed to have been
+          called '1', the main comparison '2'. If there is a '3' it will be
+          plotted relative to '2'; all others will be ignored for plotting
+          purposes.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+

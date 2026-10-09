@@ -1,0 +1,350 @@
+hipercam.core
+=============
+
+.. py:module:: hipercam.core
+
+.. autoapi-nested-parse::
+
+   Core data, functions and classes for the hipercam package
+
+   ..
+       !! processed by numpydoc !!
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   hipercam.core.REDUCE_FILE_VERSION
+   hipercam.core.FIELD
+   hipercam.core.HCAM
+   hipercam.core.LIST
+   hipercam.core.APER
+   hipercam.core.HRAW
+   hipercam.core.RED
+   hipercam.core.LOG
+   hipercam.core.DFCT
+   hipercam.core.SEP
+   hipercam.core.TBTS
+   hipercam.core.FRNG
+   hipercam.core.DMINS
+   hipercam.core.CIS
+   hipercam.core.CNAMS
+   hipercam.core.ALL_OK
+   hipercam.core.ANY_FLAG
+   hipercam.core.NO_FWHM
+   hipercam.core.NO_SKY
+   hipercam.core.SKY_AT_EDGE
+   hipercam.core.TARGET_AT_EDGE
+   hipercam.core.TARGET_SATURATED
+   hipercam.core.TARGET_NONLINEAR
+   hipercam.core.NO_EXTRACTION
+   hipercam.core.NO_DATA
+   hipercam.core.CLOUDS
+   hipercam.core.JUNK
+   hipercam.core.BAD_FLAT
+   hipercam.core.BAD_COLUMN
+   hipercam.core.BAD_TIME
+   hipercam.core.OUTLIER
+   hipercam.core.FLAGS
+   hipercam.core.FLAG_MESSAGES
+
+
+Exceptions
+----------
+
+.. autoapisummary::
+
+   hipercam.core.HipercamError
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   hipercam.core.HipercamWarning
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   hipercam.core.version
+   hipercam.core.gregorian_to_mjd
+   hipercam.core.mjd_to_gregorian
+   hipercam.core.fday_to_hms
+
+
+Module Contents
+---------------
+
+.. py:data:: REDUCE_FILE_VERSION
+   :value: '20230222'
+
+
+.. py:data:: FIELD
+   :value: '.fld'
+
+
+.. py:data:: HCAM
+   :value: '.hcm'
+
+
+.. py:data:: LIST
+   :value: '.lis'
+
+
+.. py:data:: APER
+   :value: '.ape'
+
+
+.. py:data:: HRAW
+   :value: '.fits'
+
+
+.. py:data:: RED
+   :value: '.red'
+
+
+.. py:data:: LOG
+   :value: '.log'
+
+
+.. py:data:: DFCT
+   :value: '.dft'
+
+
+.. py:data:: SEP
+   :value: '.sep'
+
+
+.. py:data:: TBTS
+   :value: '.tbts'
+
+
+.. py:data:: FRNG
+   :value: '.frng'
+
+
+.. py:data:: DMINS
+   :value: 1440.0
+
+
+.. py:data:: CIS
+   :value: ((1, 1, 1), (0, 0, 0), (0.898, 0, 0), (0.082, 0.69, 0.102), (0.012, 0.263, 0.875), (1, 0.008,...
+
+
+.. py:data:: CNAMS
+
+.. py:data:: ALL_OK
+
+.. py:data:: ANY_FLAG
+
+.. py:data:: NO_FWHM
+
+.. py:data:: NO_SKY
+
+.. py:data:: SKY_AT_EDGE
+
+.. py:data:: TARGET_AT_EDGE
+
+.. py:data:: TARGET_SATURATED
+
+.. py:data:: TARGET_NONLINEAR
+
+.. py:data:: NO_EXTRACTION
+
+.. py:data:: NO_DATA
+
+.. py:data:: CLOUDS
+
+.. py:data:: JUNK
+
+.. py:data:: BAD_FLAT
+
+.. py:data:: BAD_COLUMN
+
+.. py:data:: BAD_TIME
+
+.. py:data:: OUTLIER
+
+.. py:data:: FLAGS
+
+.. py:data:: FLAG_MESSAGES
+
+.. py:function:: version()
+
+   
+   Returns version number of installed HiPERCAM pipeline
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: gregorian_to_mjd(year, month, day)
+
+   
+   This returns the Modified Julian Day number corresponding to the
+   start of the Gregorian date supplied. Algorithm taken from
+   Duffet-Smith. Tested against astropy.time.Time. Designed to be
+   simple and fast.
+
+
+   :Parameters:
+
+       **year** : int
+           Year (valid range: 1582 onwards)
+
+       **month** : int
+           Month of year, 1 to 12 inclusive.
+
+       **day** : int
+           day of month (1 to 31; will not check month by month)
+
+
+
+   :Returns:
+
+       **mjd** : int
+           Modified Julian Day number
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: mjd_to_gregorian(mjd)
+
+   
+   This returns the year, month, and day corresponding to the supplied
+   MJD. From Duffet-Smith. Checked against 'gregorian_to_mjd'.
+
+
+   :Parameters:
+
+       **mjd** : int
+           Modified Julian Day number
+
+
+
+   :Returns:
+
+       Returns a tuple of (year,month,day)
+           ..
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: fday_to_hms(fday)
+
+   
+   Returns a tuple of (hours, minutes, seconds) given a fraction of a
+   day.  The hours and minutes are integers, the seconds are floating
+   point.
+
+   fday should lie in the interval [0,1)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:exception:: HipercamError
+
+   Bases: :py:obj:`Exception`
+
+
+   
+   Class for the hipercam package errors
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:class:: HipercamWarning
+
+   Bases: :py:obj:`astropy.utils.exceptions.AstropyUserWarning`
+
+
+   
+   Class for hipercam package warnings. Use with warnings.warn
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+

@@ -1,0 +1,53 @@
+hipercam.scripts.atanalysis
+===========================
+
+.. py:module:: hipercam.scripts.atanalysis
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   hipercam.scripts.atanalysis.atanalysis
+
+
+Module Contents
+---------------
+
+.. py:function:: atanalysis(args=None)
+
+   
+   ``atanalysis mintim dcmax``
+
+   Specialist script to look for timing problems in all runs in
+   night directories.
+
+   Parameters:
+
+       mintim : int
+          Minimum number of frames to require a run to have before running
+          tanalysis on it
+
+       dcmax : float
+          Maximum differential in terms of cycle number from exact integers
+          to use to indicate "failed" times. Pre 2010-02 needs to be looser
+          than post 2010-02. Number of order 0.003 is appropriate.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+

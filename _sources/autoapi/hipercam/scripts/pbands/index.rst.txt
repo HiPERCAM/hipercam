@@ -1,0 +1,123 @@
+hipercam.scripts.pbands
+=======================
+
+.. py:module:: hipercam.scripts.pbands
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   hipercam.scripts.pbands.pbands
+
+
+Module Contents
+---------------
+
+.. py:function:: pbands(args=None)
+
+   
+   ``pbands log [device (dpi) width height ms line error] norm zero [plo phi increment]
+   pgram (flo fhi over) title``
+
+   Plots a HiPERCAM |reduce| log as a single light curve in one panel
+   per CCD. Can optionally be normalised and the y-axis origin set to
+   zero, and can also include periodogram plots if wanted. The
+   purpose of the routine is to facilitate quick-look plots during
+   observing runs.
+
+   Parameters:
+
+     log : string
+         name of |reduce| ASCII log file (text file with loads of columns)
+
+     device : string [hidden, defaults to 'term']
+        'term' for interactive plot, file name such as 'plot.pdf'
+        or 'object.png' for a hardcopy.
+
+     dpi : int [hidden, if device ends .png]
+        dots per inch for png output
+
+     width : float [hidden]
+        plot width (inches). Set = 0 to let the program choose.
+
+     height : float [hidden]
+        plot height (inches). Set = 0 to let the program choose. BOTH
+        width AND height must be non-zero to have any effect
+
+     ms : float [hidden]
+        marker size
+
+     line : bool [hidden]
+        connect points with a line or not
+
+     error : bool [hidden]
+        plot error bars or not
+
+     norm : bool
+        normalise each light curve to a unit median (or not)
+
+     zero : bool
+        set y-axis origin to zero
+
+     plo : float [hidden]
+        percentile to use to set the lower limit of the lightcurve plots
+        (e.g. 5). Takes account of error bars.
+
+     phi : float [hidden]
+        percentile to use to set the upper limit of the lightcurve plot
+        (e.g. 95). Must be > plo. Takes account of error bars.
+
+     increment : float [hidden]
+        fraction of plot range that comes from plo, phi to add on top and bottom.
+        If the initial numbers are y1 and y2, then each is corrected up and down by
+        increment*(y2-y1), but if "zero" then y1 is set = 0.
+
+     pgram : bool
+        plot periodogram panels (or not). They appear on the right-hand
+        side if yes.
+
+     flo : float (if pgram)
+        If pgram, the mimimum frequency for the periodogram plots,
+        cycles per day. Typically there is little point pushing flo
+        very far below 1 cycle over the timespan of the data.
+
+     fhi : float (if pgram)
+        If pgram, the maximum frequency for the periodogram plots
+        cycles per day. The maximum useful is set by the Nyquist
+        limit (1 cycle per 2 exposures). e.g. For 10 second cadence,
+        this would be be 86400/10/2 = 4320 cycles/day.
+
+     over : float (if pgram)
+        If pgram, the oversampling factor to determine the frequency grid.
+        Corresponds to the "sample_per_peak" parameter of the astropy
+        LombScargle routine.
+
+     title : str
+        plot title. Defaults to name of log file
+
+     colours : list of strings
+        colours for each CCD, space or comma-separated.
+        e.g. "r,g,b" or "r g b" (without quotes).
+
+     badtime: bool [hidden]
+        plot points marked as bad time in the log file. Default False.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+

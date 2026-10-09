@@ -1,0 +1,26 @@
+hipercam.scripts.jtrawl
+=======================
+
+.. py:module:: hipercam.scripts.jtrawl
+
+.. autoapi-nested-parse::
+
+   Command line script to generate meta data
+
+   ..
+       !! processed by numpydoc !!
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   hipercam.scripts.jtrawl.jtrawl
+
+
+Module Contents
+---------------
+
+.. py:function:: jtrawl(args=None)
+

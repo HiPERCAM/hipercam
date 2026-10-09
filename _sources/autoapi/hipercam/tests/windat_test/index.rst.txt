@@ -1,0 +1,164 @@
+hipercam.tests.windat_test
+==========================
+
+.. py:module:: hipercam.tests.windat_test
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   hipercam.tests.windat_test.TestWindow
+
+
+Module Contents
+---------------
+
+.. py:class:: TestWindow(methodName='runTest')
+
+   Bases: :py:obj:`unittest.TestCase`
+
+
+   
+   Provides simple tests of almost every Window method and attribute. If any
+   of these fail, something is badly wrong.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:method:: setUp()
+
+      
+      Hook method for setting up the test fixture before exercising it.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: test_windat_size()
+
+
+   .. py:method:: test_windat_win()
+
+
+   .. py:method:: test_windat_set_const()
+
+
+   .. py:method:: test_windat_copy()
+
+
+   .. py:method:: test_windat_nx_ny()
+
+
+   .. py:method:: test_windat_add_noise()
+
+      
+      Rather crude test this, but it should pick up disasters
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: test_windat_whdu()
+
+
+   .. py:method:: test_windat_rhdu()
+
+
+   .. py:method:: test_windat_min()
+
+
+   .. py:method:: test_windat_max()
+
+
+   .. py:method:: test_windat_mean()
+
+
+   .. py:method:: test_windat_std()
+
+
+   .. py:method:: test_windat_percentile()
+
+
+   .. py:method:: test_windat_iadd()
+
+
+   .. py:method:: test_windat_isub()
+
+
+   .. py:method:: test_windat_imul()
+
+
+   .. py:method:: test_windat_itruediv()
+
+
+   .. py:method:: test_windat_add()
+
+
+   .. py:method:: test_windat_sub()
+
+
+   .. py:method:: test_windat_mul()
+
+
+   .. py:method:: test_windat_truediv()
+
+
+   .. py:method:: test_windat_radd()
+
+
+   .. py:method:: test_windat_rsub()
+
+
+   .. py:method:: test_windat_rmul()
+
+
+   .. py:method:: test_windat_rtruediv()
+
+

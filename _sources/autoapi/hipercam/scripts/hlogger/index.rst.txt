@@ -1,0 +1,19 @@
+hipercam.scripts.hlogger
+========================
+
+.. py:module:: hipercam.scripts.hlogger
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   hipercam.scripts.hlogger.hlogger
+
+
+Module Contents
+---------------
+
+.. py:function:: hlogger(args=None)
+

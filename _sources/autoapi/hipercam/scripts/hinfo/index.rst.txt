@@ -1,0 +1,50 @@
+hipercam.scripts.hinfo
+======================
+
+.. py:module:: hipercam.scripts.hinfo
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   hipercam.scripts.hinfo.hinfo
+
+
+Module Contents
+---------------
+
+.. py:function:: hinfo(args=None)
+
+   
+   ``hinfo input``
+
+   Prints out an hcm file along with its name and the number of CCDs. You
+   will get information CCD-by-CCD first followed by the top level header.
+   You will also get at least partial printouts of the data arrays. If
+   you want still more detail, I recommend the FITS viewer tool 'fv', or
+   'ds9' for examining images (also :hplot:).
+
+   Parameters:
+
+     input  : string
+        name of the MCCD file
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+

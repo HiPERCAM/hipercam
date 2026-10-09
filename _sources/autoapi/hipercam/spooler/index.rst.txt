@@ -1,0 +1,689 @@
+hipercam.spooler
+================
+
+.. py:module:: hipercam.spooler
+
+.. autoapi-nested-parse::
+
+   Classes and methods to support reading data in multiple formats and for
+   iterating through multiple images from a variety of sources in a standardised
+   manner.
+
+   For instance this piece of code::
+
+      with spooler.data_source(source, resource, first) as spool:
+          for mccd in spool:
+              ...
+
+   creates an object 'spool' that then acts a source of :class:`MCCD`
+   objects. The :meth:`data_source` method returns this for a variety of possible
+   sources of data such as raw HiPERCAM and ULTRACAM files and a list of hcm
+   files. Important methods are :meth:`data_source` and :meth:`get_ccd_pars`. You
+   may also want to look at classes such as :class:`HcamListSpool` if you are
+   interested in accessing data in a specific manner.
+
+   ..
+       !! processed by numpydoc !!
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   hipercam.spooler.SpoolerBase
+   hipercam.spooler.UcamDiskSpool
+   hipercam.spooler.UcamServSpool
+   hipercam.spooler.UcamTbytesSpool
+   hipercam.spooler.HcamDiskSpool
+   hipercam.spooler.HcamListSpool
+   hipercam.spooler.HcamServSpool
+   hipercam.spooler.HcamTbytesSpool
+   hipercam.spooler.PluginDiskSpool
+   hipercam.spooler.PluginServSpool
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   hipercam.spooler.rhcam
+   hipercam.spooler.data_source
+   hipercam.spooler.get_ccd_pars
+   hipercam.spooler.hang_about
+
+
+Module Contents
+---------------
+
+.. py:function:: rhcam(fname)
+
+   
+   Reads a HiPERCAM file containing either CCD or MCCD data and returns one or
+   the other.
+
+   Argument::
+
+      fname : (string)
+
+         Name of file. This should be a FITS file with a particular
+         arrangement of HDUs. The keyword HIPERCAM should be present in the
+         primary HDU's header and set to either CCD for single 'CCD' data or
+         'MCCD' for multiple CCDs. A ValueError will be raised if this is not
+         the case. See the docs on CCD and MCCD for more.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:class:: SpoolerBase
+
+   Bases: :py:obj:`abc.ABC`
+
+
+   
+   A common requirement is the need to loop through a stack of
+   images. With a variety of possible data sources, one requires handling of
+   multiple possible ways of accessing the data. The aim of this class is to
+   provide uniform access via an iterable context manager. It is written as
+   an abstract class.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:method:: __enter__()
+
+
+   .. py:method:: __exit__(*args)
+      :abstractmethod:
+
+
+
+   .. py:method:: __iter__()
+
+
+   .. py:method:: __next__()
+      :abstractmethod:
+
+
+
+.. py:class:: UcamDiskSpool(run, first=1)
+
+   Bases: :py:obj:`SpoolerBase`
+
+
+   
+   Provides an iterable context manager to loop through frames within
+   a raw ULTRACAM or ULTRASPEC disk file.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:attribute:: _iter
+
+
+   .. py:method:: __exit__(*args)
+
+
+   .. py:method:: __next__()
+
+
+.. py:class:: UcamServSpool(run, first=1)
+
+   Bases: :py:obj:`SpoolerBase`
+
+
+   
+   Provides an iterable context manager to loop through frames within
+   a raw ULTRACAM or ULTRASPEC raw file served from the ATC FileServer
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:attribute:: _iter
+
+
+   .. py:method:: __exit__(*args)
+
+
+   .. py:method:: __next__()
+
+
+.. py:class:: UcamTbytesSpool(run, first=1, old=False)
+
+   Bases: :py:obj:`SpoolerBase`
+
+
+   
+   Provides an iterable context manager to loop through frames within
+   a raw ULTRACAM or ULTRASPEC disk file returning the timing bytes.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:attribute:: _iter
+
+
+   .. py:attribute:: ntbytes
+
+
+   .. py:property:: head
+
+      
+      Need this to pass to utimer in "tbytes".
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __exit__(*args)
+
+
+   .. py:method:: __next__()
+
+
+.. py:class:: HcamDiskSpool(run, first=1, full=True)
+
+   Bases: :py:obj:`SpoolerBase`
+
+
+   
+   Provides an iterable context manager to loop through frames within
+   a raw HiPERCAM file.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:attribute:: _iter
+
+
+   .. py:method:: __exit__(*args)
+
+
+   .. py:method:: __next__()
+
+
+.. py:class:: HcamListSpool(lname, cnam=None)
+
+   Bases: :py:obj:`SpoolerBase`
+
+
+   
+   Provides an iterable context manager to loop through frames within
+   a list of HiPERCAM .hcm files, either a file listing the files, or
+   a Python list. Use as::
+
+       with spooler.HcamListSpool(flist) as spool:
+           for mccd in spool:
+               ...
+
+   to get :class:`MCCD`  objects or::
+
+       with spooler.HcamListSpool(flist,cnam) as spool:
+           for ccd in spool:
+               ...
+
+   to get :class:`CCD` objects.
+
+   The name of the file that each MCCD was read from is written to
+   .head as 'FILENAME'.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:attribute:: cnam
+      :value: None
+
+
+
+   .. py:method:: __exit__(*args)
+
+
+   .. py:method:: __next__()
+
+
+.. py:class:: HcamServSpool(run, first=1, full=True)
+
+   Bases: :py:obj:`SpoolerBase`
+
+
+   
+   Provides an iterable context manager to loop through frames within
+   a raw HiPERCAM file served from Stu's FileServer
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:attribute:: _iter
+
+
+   .. py:method:: __exit__(*args)
+
+
+   .. py:method:: __next__()
+
+
+.. py:class:: HcamTbytesSpool(run, first=1)
+
+   Bases: :py:obj:`SpoolerBase`
+
+
+   
+   Provides an iterable context manager to loop through frames within
+   a raw HiPERCAM file returning the timing bytes
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:attribute:: _iter
+
+
+   .. py:attribute:: ntbytes
+
+
+   .. py:method:: __exit__(*args)
+
+
+   .. py:method:: __next__()
+
+
+.. py:class:: PluginDiskSpool(instrument, run, first=1, **kwargs)
+
+   Bases: :py:obj:`SpoolerBase`
+
+
+   
+   Provides an iterable context manager to loop through frames within
+   a raw data file from a third-party instrument plugin, reading from
+   a local disk file.
+
+   The instrument is identified by name and must be registered under the
+   ``hipercam.instruments`` entry-point group.  Built-in names are
+   ``'hipercam'``, ``'ultracam'``, and ``'ultraspec'``.
+
+   Example::
+
+       with spooler.PluginDiskSpool('myinstrument', 'run003', first=1) as spool:
+           for mccd in spool:
+               ...
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:attribute:: _iter
+
+
+   .. py:method:: __exit__(*args)
+
+
+   .. py:method:: __next__()
+
+
+.. py:class:: PluginServSpool(instrument, run, first=1, **kwargs)
+
+   Bases: :py:obj:`SpoolerBase`
+
+
+   
+   Provides an iterable context manager to loop through frames within
+   a raw data file from a third-party instrument plugin, reading from
+   a server.
+
+   The instrument is identified by name and must be registered under the
+   ``hipercam.instruments`` entry-point group.  Built-in names are
+   ``'hipercam'``, ``'ultracam'``, and ``'ultraspec'``.
+
+   Example::
+
+       with spooler.PluginServSpool('myinstrument', 'run003', first=0) as spool:
+           for mccd in spool:
+               ...
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:attribute:: _iter
+
+
+   .. py:method:: __exit__(*args)
+
+
+   .. py:method:: __next__()
+
+
+.. py:function:: data_source(source, resource, first=1, **kwargs)
+
+   
+   Returns a context manager needed to run through a set of exposures.
+   This is basically a wrapper around the various context managers that
+   hook off the SpoolerBase class.
+
+   Arguments::
+
+      source : string
+         Data source. Options are 'hl', 'hs', 'ul', 'us', 'hf'. The leading
+         ('h' | 'u') indicates ULTRA(CAM|SPEC), or HiPERCAM. The trailing
+         ('l' | 's' | 'f') refers to access through a local file for 'l'
+         (.fits for HiPERCAM or .dat/.xml for ULTRA(CAM|SPEC), a server for
+         's' (either the ATC fileserver for ULTRA(CAM|SPEC) or Stu
+         Littlefair's HiPERCAM server), or from a list of fils in HiPERCAM's
+         FITS-based hcm format.
+
+         Third-party instrument plugins may be accessed using the format
+         ``'<instrument>:local'`` or ``'<instrument>:server'``, where
+         ``<instrument>`` is the name registered in the
+         ``hipercam.instruments`` entry-point group.
+         Examples: ``'hipercam:local'``, ``'ultracam:server'``,
+         ``'myinstrument:local'``.
+
+      resource : string
+         File name. A run number if source=('?l'|'?s') or a file list
+         for source='hl'.
+
+      first : int
+         If a raw disk file is being read, either locally or via a server,
+         this parameter sets where to start in the file. 0 to always try
+         to get the last. See also 'hang_about' in this case. This parameter
+         is ignored if source=='hf'.
+
+      kwargs : dictionary of keyword arguments
+         some of the spooler classes support extra arguments. e.g. HcamDiskSpool.
+         These are passed via kwargs
+
+   Returns::
+
+      A :class:`SpoolerBase` object that can appear inside a "with"
+      statement, e.g.
+
+        >> with data_source('us', 'run003') as dsource:
+        >>    for frame in dsource:
+        >>       ... do something with 'frame'
+
+      A possible return is None if no frame is found. See `hang_about` for
+      how to handle this.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: get_ccd_pars(source, resource)
+
+   
+   Returns a list of tuples of CCD labels, maximum dimensions, and padding
+   factors (label, nxmax, nymax, nxpad, nypad) for each CCD pointed at by the
+   input parameters.
+
+   Parameters:
+
+       source  : str
+          Data source. See 'data_source' for details. Plugin sources use the
+          ``'<instrument>:local'`` or ``'<instrument>:server'`` format.
+
+       resource : str
+         Either a run number, a file list or a list of names. Again, see
+         'data_source' for details.
+
+   Returns with a list of tuples with the information outlined above. In the
+   case of file lists these are extracted from the first file of the list only.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: hang_about(obj, twait, tmax, total_time, updaters=None, tupdate=None)
+
+   
+   Carries out some standard actions when we loop through frames which are
+   common to rtplot, reduce and grab. This is a case of seeing whether we
+   want to try again for a frame or a time that may have arrived while we
+   wait.
+
+   Arguments::
+
+        obj : object or None
+           something, e.g. an MCCD or a Time, it does not matter what,
+           because the only thing that is tested is whether it is 'None'. If
+           it is, that is a trigger to wait a bit before trying again
+
+        twait : float
+           how long to wait each time, seconds
+
+        tmax : float
+           maximum time to wait, seconds
+
+        total_time : float
+           total time waited. Should be initialised to zero
+
+        updaters : None | tuple of functions
+           update functions that will be run if twait
+           is longer than 2*tupdate. Designed for use by nrtplot.
+
+        tupdate : None | float
+           time period for triggering an update
+
+   Returns: (give_up, try_again, total_time)
+
+      give_up == True   ==> stop trying
+      try_again == True ==> have another go
+
+   If both are False, that indicates success and we carry on.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+

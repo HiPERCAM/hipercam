@@ -1,0 +1,71 @@
+hipercam.scripts.pfolder
+========================
+
+.. py:module:: hipercam.scripts.pfolder
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   hipercam.scripts.pfolder.pfolder
+
+
+Module Contents
+---------------
+
+.. py:function:: pfolder(args=None)
+
+   
+   ``pfolder log [device width height] ccd aper``
+
+   Folds data from reduce logs on user specified ephemeris (in MJD)
+   and plots the results. Rather specific routine to help with timing
+   tests where the LED switches on on the second and off on the half second.
+
+   Parameters:
+
+     log     : string
+         name of reduce log file (text file with loads of columns)
+
+     device  : string [hidden, defaults to 'term']
+        'term' for interactive plot, file name such as 'plot.pdf'
+        for a hardcopy.
+
+     width   : float [hidden]
+        plot width (inches). Set = 0 to let the program choose.
+
+     height  : float [hidden]
+        plot height (inches). Set = 0 to let the program choose. BOTH
+        width AND height must be non-zero to have any effect
+
+     ccd     : string
+        the CCD to consider, e.g. '1'
+
+     aper    : string
+        the aperture to consider
+
+     t0      : float
+        zero point of the ephemeris in MJD (i.e. no light travel correction)
+
+     period  : float
+        period to fold on [seconds]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+

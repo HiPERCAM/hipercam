@@ -1,0 +1,650 @@
+hipercam.fringe
+===============
+
+.. py:module:: hipercam.fringe
+
+.. autoapi-nested-parse::
+
+   Defines classes to specify pairs of points for fringe
+   measurements. See 'setfringe' for usage. Basic idea is
+   to measure peak-trough difference in two frames to measure
+   the ratio of fringes between them.  Median values are used
+   to eliminate discrepant points caused by objects.
+
+   ..
+       !! processed by numpydoc !!
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   hipercam.fringe.FringePair
+   hipercam.fringe.CcdFringePair
+   hipercam.fringe.MccdFringePair
+   hipercam.fringe._Encoder
+   hipercam.fringe._Decoder
+
+
+Module Contents
+---------------
+
+.. py:class:: FringePair(x1, y1, x2, y2)
+
+   
+   Class representing a pair of positions for fringe
+   measurement. The idea is that ratio of the difference
+   in intensity at the two positions compared between two
+   frames is used to scale a reference fringe image before
+   subtracting from data.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:attribute:: x1
+
+
+   .. py:attribute:: y1
+
+
+   .. py:attribute:: x2
+
+
+   .. py:attribute:: y2
+
+
+   .. py:attribute:: wnam
+      :value: None
+
+
+
+   .. py:method:: copy(memo=None)
+
+      
+      Returns with a copy of the Aperture
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: dist(x, y)
+
+      
+      Defines a distance of the FringePair from a point
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: inside(ccd, nhalf)
+
+
+   .. py:method:: diff(ccd, nhalf)
+
+      
+      Returns difference in intensity.
+
+      nhalf : int
+         will measure difference in the medians over regions
+         +/-nhalf binned pixels around nearest pixel of either
+         end of FringePair
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __repr__()
+
+
+.. py:class:: CcdFringePair(fpairs=Group(FringePair))
+
+   Bases: :py:obj:`hipercam.group.Group`
+
+
+   
+   Class representing all the :class:`FringePair`s for a single CCD.
+   Normal usage is to create an empty one and then add FringePairs
+   via the usual mechanism for updating dictionaries,
+   i.e. ccddef[label] = fpair
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:attribute:: diffrefs
+      :value: None
+
+
+
+   .. py:method:: __repr__()
+
+      
+      Return repr(self).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: write(fname)
+
+      
+      Dumps ccdAper in JSON format to a file called fname
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: copy(memo=None)
+
+      
+      Copy operation. The stored objects must have a `copy(self, memo)` method.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: crop(ccd, nhalf)
+
+      
+      Returns version of CcdFringePair with any
+      *not* in ccd removed.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: diff(ccd, nhalf)
+
+      
+      Returns array of differences for all FringePairs in the ccd "crop"
+      should have been run using ccd before running this.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: scale(ccd, ccdref, nhalf, rmin=None, rmax=None, reset=False, verbose=False)
+
+      
+      Measures scale factor needed to subtract the fringes in
+      a reference CCD `ccdref` from `ccd`. Measures median of
+      the FringePair amplitude ratios.
+
+      Parameters:
+
+        ccd : CCD
+          the CCD to remove fringes from
+
+        ccdref : CCD
+          the fringe map CCD
+
+        nhalf : int
+          fringe amplitude measurements are made from pairs
+          of points. A region of pixels extending +/-nhalf
+          binned pixels around the centre pixel of each point
+          will be used. nhalf can be 0, but a value >0 ensures
+          better stats.
+
+        rmin : float
+          Lowest ratio to allow. Values lower than
+          this from individual points will be ignored.
+
+        rmax : float
+          Highest ratio to allow. Values higher than
+          this from individual points will be ignored.
+
+        reset : bool
+          Re-computes reference differences (only computed
+          first time otherwise for speed)
+
+        verbose : bool
+          True to report details of the ratios (prior to any
+          rmin to rmax editing. The ratios are reported sorted
+          by size.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+.. py:class:: MccdFringePair(fpairs=Group(CcdFringePair))
+
+   Bases: :py:obj:`hipercam.group.Group`
+
+
+   
+   Class representing all the :class:FringePairs for multiple CCDs.
+   Normal usage is to create an empty one and then add apertures via
+   the usual mechanism for updating dictionaries, e.g.
+
+   >> mccddef = MccdFringePair()
+   >> mccddef['ccd1'] = CcdFringePair()
+   >> mccddef['ccd2'] = CcdFringePair()
+   >> mccddef['ccd1']['ap1'] = FringePair(100,200,10,15,125,False)
+
+   etc.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:method:: crop(mccd, nhalf)
+
+
+   .. py:method:: __repr__()
+
+      
+      Return repr(self).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: write(fname)
+
+      
+      Dumps a MccdFringePair in JSON format to a file called fname
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: toString()
+
+      
+      Returns MccdFringePair in JSON format as a string
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: read(fname)
+      :classmethod:
+
+
+      
+      Read from JSON-format file fname.
+
+        fp : a file-like object opened for reading of text
+
+      Returns an MccdFringePair object.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+.. py:class:: _Encoder(*, skipkeys=False, ensure_ascii=True, check_circular=True, allow_nan=True, sort_keys=False, indent=None, separators=None, default=None)
+
+   Bases: :py:obj:`json.JSONEncoder`
+
+
+   
+   Extensible JSON <http://json.org> encoder for Python data structures.
+
+   Supports the following objects and types by default:
+
+   +-------------------+---------------+
+   | Python            | JSON          |
+   +===================+===============+
+   | dict              | object        |
+   +-------------------+---------------+
+   | list, tuple       | array         |
+   +-------------------+---------------+
+   | str               | string        |
+   +-------------------+---------------+
+   | int, float        | number        |
+   +-------------------+---------------+
+   | True              | true          |
+   +-------------------+---------------+
+   | False             | false         |
+   +-------------------+---------------+
+   | None              | null          |
+   +-------------------+---------------+
+
+   To extend this to recognize other objects, subclass and implement a
+   ``.default()`` method with another method that returns a serializable
+   object for ``o`` if possible, otherwise it should call the superclass
+   implementation (to raise ``TypeError``).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:method:: default(obj)
+
+      
+      Implement this method in a subclass such that it returns
+      a serializable object for ``o``, or calls the base implementation
+      (to raise a ``TypeError``).
+
+      For example, to support arbitrary iterators, you could
+      implement default like this::
+
+          def default(self, o):
+              try:
+                  iterable = iter(o)
+              except TypeError:
+                  pass
+              else:
+                  return list(iterable)
+              # Let the base class default method raise the TypeError
+              return JSONEncoder.default(self, o)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+.. py:class:: _Decoder(*args, **kwargs)
+
+   Bases: :py:obj:`json.JSONDecoder`
+
+
+   
+   Simple JSON <http://json.org> decoder
+
+   Performs the following translations in decoding by default:
+
+   +---------------+-------------------+
+   | JSON          | Python            |
+   +===============+===================+
+   | object        | dict              |
+   +---------------+-------------------+
+   | array         | list              |
+   +---------------+-------------------+
+   | string        | str               |
+   +---------------+-------------------+
+   | number (int)  | int               |
+   +---------------+-------------------+
+   | number (real) | float             |
+   +---------------+-------------------+
+   | true          | True              |
+   +---------------+-------------------+
+   | false         | False             |
+   +---------------+-------------------+
+   | null          | None              |
+   +---------------+-------------------+
+
+   It also understands ``NaN``, ``Infinity``, and ``-Infinity`` as
+   their corresponding ``float`` values, which is outside the JSON spec.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:method:: object_hook(obj)
+
+

@@ -1,0 +1,53 @@
+hipercam.scripts.redanal
+========================
+
+.. py:module:: hipercam.scripts.redanal
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   hipercam.scripts.redanal.redanal
+
+
+Module Contents
+---------------
+
+.. py:function:: redanal(args=None)
+
+   
+   ``redanal aper log``
+
+   This provides some basic stats on a log file such as the fraction of duff
+   points for each aperture of each CCD, how much targets have moved and the
+   like. The aim is to help with setting parameters in the reduce file in
+   difficult cases and to diagnose problems. It will probably be added to with
+   time.
+
+   Parameters:
+
+     aper : string
+        the aperture file used for the reduction.
+
+     log : string
+        the log file.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+

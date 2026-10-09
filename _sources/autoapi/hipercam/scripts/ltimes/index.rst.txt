@@ -1,0 +1,107 @@
+hipercam.scripts.ltimes
+=======================
+
+.. py:module:: hipercam.scripts.ltimes
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   hipercam.scripts.ltimes.ltimes
+
+
+Module Contents
+---------------
+
+.. py:function:: ltimes(args=None)
+
+   
+   ``ltimes [source] run first last [twait tmax tdigit edigit]``
+
+   Lists timing information from a run in machine-readable space-separated
+   column style. Integer status flags are used, 1=OK, 0=not OK.
+
+   For HiPERCAM, the following items are listed: (1) the frame
+   number, (2) the raw GPS timestamp as an MJD, (3) the raw GPS
+   timestamp as a UTC string, (4) a status flag, 0 or 1, then for
+   each CCD: (i) the CCD number [1-5], (ii) the mid exposure time as
+   an MJD, (iii) the mid-exposure time as a UTC string, (iv) the
+   exposure length (seconds), (v) a status flag (0 or 1), determined
+   by the NSKIP parameters for each CCD.
+
+   For ULTRACAM, the following items are listed: (1) the frame
+   number, (2) the raw GPS timestamp as an MJD, (3) the raw GPS
+   timestamp as a UTC string, (4) the red & green mid exposure time
+   as an MJD, (5) the red & green mid-exposure time as a UTC string,
+   (6) a status flag to indicate whether the mid-exposure time is
+   considered to be good, (7) the exposure time in seconds, (8) the
+   blue mid-exposure time as an MJD, (9) the blue mid-exposure time
+   as a UTC string, (10) status flag of the blue data, which reflects
+   the "nblue" option where only some of the blue frames are valid
+   data.
+
+   For ULTRASPEC, the following items are listed: (1) the frame
+   number, (2) the raw GPS timestamp as an MJD, (3) the raw GPS
+   timestamp as a UTC string, (4) the mid-exposure time as an MJD,
+   (5) the mid-exposure time as a UTC string, (6) a status flag to
+   indicate whether the mid-exposure time is considered to be good,
+   (7) the exposure time in seconds.
+
+   Parameters:
+
+       source : string [hidden]
+          Data source, two options:
+
+             | 'hs' : HiPERCAM server
+             | 'hl' : local HiPERCAM FITS file
+             | 'us' : local ULTRA(CAM|SPEC) file
+             | 'ul' : ULTRA(CAM|SPEC) server
+
+       run : string
+          run number to access, e.g. 'run0034'
+
+       first : int
+          exposure number to start from. 1 = first frame; set = 0 to
+          always try to get the most recent frame (if it changes)
+
+       last : int
+          last exposure number, 0 for all.
+
+       twait : float [hidden]
+          time to wait between attempts to find a new exposure, seconds.
+
+       tmax : float [hidden]
+          maximum time to wait between attempts to find a new exposure,
+          seconds. Set to 0 to avoid waiting and extra output messages.
+
+       tdigit : int [hidden]
+          number of digits of precision for the seconds after the decimal
+          point when reporting the times.
+
+       edigit : int [hidden]
+          number of digits of precision after the decimal point when
+          reporting the exposure times
+
+   .. Warning::
+
+      This routine does not yet work with ULTRACAM data.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+

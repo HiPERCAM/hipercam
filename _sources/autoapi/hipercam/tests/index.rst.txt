@@ -1,0 +1,21 @@
+hipercam.tests
+==============
+
+.. py:module:: hipercam.tests
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/hipercam/tests/ccd_test/index
+   /autoapi/hipercam/tests/group_test/index
+   /autoapi/hipercam/tests/header_test/index
+   /autoapi/hipercam/tests/mccd_test/index
+   /autoapi/hipercam/tests/target_test/index
+   /autoapi/hipercam/tests/windat_test/index
+   /autoapi/hipercam/tests/window_test/index
+
+
