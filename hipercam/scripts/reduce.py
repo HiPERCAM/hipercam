@@ -482,7 +482,6 @@ def reduce(args=None):
                             update_plots(
                                 results,
                                 rfile,
-                                processor.store,
                                 implot,
                                 lplot,
                                 psfplot,
@@ -552,7 +551,6 @@ def reduce(args=None):
                         update_plots(
                             results,
                             rfile,
-                            processor.store,
                             implot,
                             lplot,
                             psfplot,
@@ -731,7 +729,6 @@ def reduce(args=None):
                     update_plots(
                         results,
                         rfile,
-                        processor.store,
                         implot,
                         lplot,
                         psfplot,
@@ -782,7 +779,6 @@ def reduce(args=None):
             update_plots(
                 results,
                 rfile,
-                processor.store,
                 implot,
                 lplot,
                 psfplot,

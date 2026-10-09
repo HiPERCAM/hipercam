@@ -880,7 +880,6 @@ def static_vars(**kwargs):
 def update_plots(
     results,
     rfile,
-    store,
     implot,
     lplot,
     psfplot,
@@ -1052,7 +1051,9 @@ def update_plots(
                 ix = (nc % nx) + 1
                 iy = nc // nx + 1
                 pgpanl(ix, iy)
-                psf_model, box_wnam, box_limits = store[cnam].get(
+                res = next(res for this_cnam, res in results if this_cnam == cnam)
+                psf_store = res[-1][1]
+                psf_model, box_wnam, box_limits = psf_store.get(
                     f"psf_model_{cnam}", None
                 )
 
