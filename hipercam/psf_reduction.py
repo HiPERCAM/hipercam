@@ -92,7 +92,8 @@ class MoffatPSF(Fittable2DModel):
     y_0 = Parameter(default=0)
     x_fwhm = Parameter(default=12, bounds=(FLOAT_EPSILON, None), fixed=False)
     y_fwhm = Parameter(default=12, bounds=(FLOAT_EPSILON, None), fixed=False)
-    beta = Parameter(default=2.5, bounds=(1.0, None), fixed=False)
+    # Moffat model has finite integrated flux only for beta > 1, so we set the lower bound to be just above 1
+    beta = Parameter(default=2.5, bounds=(np.nextafter(1.0, np.inf), None), fixed=False)
     theta = Parameter(default=0, bounds=(-90, 90), fixed=False)
 
     def __init__(
