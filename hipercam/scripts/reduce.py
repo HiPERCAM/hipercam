@@ -326,7 +326,7 @@ def reduce(args=None):
         lplot = cl.get_value("lplot", "do you want to plot light curves?", True)
 
         implot = cl.get_value("implot", "do you want to plot images?", True)
-        if rfile['psf_photom'].get('use_psf', 'no').lower().strip() != 'no':
+        if rfile["psf_photom"].get("use_psf", "no").lower().strip() != "no":
             psfplot = cl.get_value(
                 "psfplot", "do you want to plot residual of PSF model?", True
             )
@@ -412,7 +412,7 @@ def reduce(args=None):
     ################################################################
     #
     # all the inputs have now been obtained. Get on with doing stuff
-    if implot:
+    if implot or psfplot:
         plot_lims = (xlo, xhi, ylo, yhi)
     else:
         plot_lims = None
