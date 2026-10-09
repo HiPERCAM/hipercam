@@ -1,20 +1,32 @@
-import sys
 import os
+import sys
 import warnings
 from copy import deepcopy
 
-import numpy as np
 import matplotlib as mpl
+import numpy as np
+from astropy.stats import SigmaClip
+from astropy.table import Table
 
-from photutils.psf import DAOPhotPSFPhotometry, IntegratedGaussianPRF
-from photutils.background import MADStdBackgroundRMS, MMMBackground
-from astropy.stats import gaussian_fwhm_to_sigma, SigmaClip
-
+try:
+    from photutils.background import MADStdBackgroundRMS, MMMBackground
+    from photutils.detection import DAOStarFinder
+    from photutils.psf import (
+        GaussianPRF,
+        IterativePSFPhotometry,
+        PSFPhotometry,
+        SourceGrouper,
+    )
+except (ModuleNotFoundError, ImportError):
+    raise ValueError("'psf photometry requries photutils to be installed")
 from trm import cline
 from trm.cline import Cline
 
 import hipercam as hcam
-from hipercam.psf_reduction import MoffatPSF
+from hipercam.psf_reduction import MoffatPSF, create_psf_model
+
+# DEBUG writes  out stars to FITS table for debugging purposes. It is not needed for normal operation.
+DEBUG = False
 
 # re-configure the cursors: backend specific.
 # aim to get rid of irritating 'hand' icon in
@@ -216,7 +228,6 @@ def psfaper(args=None):
 
     # get input section
     with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
-
         # register parameters
         cl.register("mccd", Cline.LOCAL, Cline.PROMPT)
         cl.register("aper", Cline.LOCAL, Cline.PROMPT)
@@ -263,9 +274,7 @@ def psfaper(args=None):
         else:
             # create empty container
             mccdaper = hcam.MccdAper()
-            print(
-                "No file called {:s} exists; " "will create from scratch".format(aper)
-            )
+            print("No file called {:s} exists; will create from scratch".format(aper))
 
         # define the panel grid
         nxdef = cl.get_default("nx", 3)
@@ -342,7 +351,7 @@ def psfaper(args=None):
 
         iset = cl.get_value(
             "iset",
-            "set intensity a(utomatically)," " d(irectly) or with p(ercentiles)?",
+            "set intensity a(utomatically), d(irectly) or with p(ercentiles)?",
             "a",
             lvals=["a", "A", "d", "D", "p", "P"],
         )
@@ -371,21 +380,21 @@ def psfaper(args=None):
 
         shbox = cl.get_value(
             "shbox",
-            "half width of box for initial" " location of target [unbinned pixels]",
+            "half width of box for initial location of target [unbinned pixels]",
             11.0,
             2.0,
         )
         smooth = cl.get_value(
             "smooth",
-            "FWHM for smoothing for initial object" " detection [binned pixels]",
+            "FWHM for smoothing for initial object detection [binned pixels]",
             6.0,
         )
 
         fhbox = cl.get_value(
-            "fhbox", "half width of box for profile fit" " [unbinned pixels]", 21.0, 3.0
+            "fhbox", "half width of box for profile fit [unbinned pixels]", 21.0, 3.0
         )
-        read = cl.get_value("read", "readout noise, RMS ADU", 3.0)
-        gain = cl.get_value("gain", "gain, ADU/e-", 1.0)
+        read = cl.get_value("read", "readout noise, RMS ADU", 3.5)
+        gain = cl.get_value("gain", "gain, ADU/e-", 1.1)
         rejthresh = cl.get_value(
             "rejthresh", "RMS rejection threshold for sky fitting", 4.0
         )
@@ -465,14 +474,16 @@ def psfaper(args=None):
         if cnam in mccdaper:
             # plot any pre-existing apertures, keeping track of
             # the plot objects
-            pobjs[cnam] = hcam.mpl.pCcdAper(axes, mccdaper[cnam])
+            pobjs[cnam] = hcam.Group(list)
+            for key, value in hcam.mpl.pCcdAper(axes, mccdaper[cnam]).items():
+                pobjs[cnam][key] = value
 
         else:
             # add in an empty CcdApers for any CCD not already present
             mccdaper[cnam] = hcam.CcdAper()
 
             # and an empty container for any new plot objects
-            pobjs[cnam] = hcam.Group(tuple)
+            pobjs[cnam] = hcam.Group(list)
 
     print(
         """
@@ -530,7 +541,7 @@ close enough.
     )
 
     # squeeze space a bit
-    plt.subplots_adjust(wspace=0.1, hspace=0.1)
+    plt.tight_layout()
 
     # finally show stuff ....
     plt.show()
@@ -572,7 +583,6 @@ class PickRef:
         pobjs,
         apernam,
     ):
-
         # save the inputs, tack on event handlers.
         self.fig = fig
         self.fig.canvas.mpl_connect("key_press_event", self._keyPressEvent)
@@ -771,7 +781,7 @@ class PickRef:
             print('  deleted aperture "{:s}"'.format(apnam))
 
         else:
-            print("  found no aperture near enough " "the cursor position for deletion")
+            print("  found no aperture near enough the cursor position for deletion")
 
     def _find_aper(self):
         """Finds the nearest aperture to the currently selected position,
@@ -795,14 +805,22 @@ class PickRef:
 
     def _find_stars_and_quit(self):
         """
-        Runs the PSF photometry on each ROI, and writes the aperture file
+        Runs PSF photometry on the region of interest, finds the stars, adds them as apertures.
+
+        For each CCD the PSF shape parameters are estimated from the reference stars,
+        at which point the PSF shape parameters are held fixed and multiple iterations
+        of the FIND-FIT-SUBTRACT loop are run to find more stars.
+
+        The final apertures are then saved to the aperture file and the program exits.
         """
         for cnam, ccdaper in self.mccdaper.items():
             xlo, xhi = self.anams[cnam].get_xlim()
             ylo, yhi = self.anams[cnam].get_ylim()
 
             if cnam not in self.psf_data:
-                warnings.warn("no reference stars for CCD{} - skipping".format(cnam))
+                warnings.warn(
+                    "no (new) reference stars for CCD{} - skipping".format(cnam)
+                )
                 continue
 
             fwhm = -1
@@ -824,6 +842,7 @@ class PickRef:
             xlocs, ylocs = daophot(
                 cnam,
                 self.mccd[cnam],
+                ccdaper,
                 xlo,
                 xhi,
                 ylo,
@@ -835,6 +854,8 @@ class PickRef:
                 self.gfac,
                 self.thresh,
                 self.rejthresh,
+                self.read,
+                self.gain,
             )
 
             # let's find which of our positions best matches our reference apertures
@@ -868,12 +889,60 @@ class PickRef:
 
 
 def daophot(
-    cnam, ccd, xlo, xhi, ylo, yhi, niters, method, fwhm, beta, gfac, thresh, rejthresh
+    cnam,
+    ccd,
+    ccdaper,
+    xlo,
+    xhi,
+    ylo,
+    yhi,
+    niters,
+    method,
+    fwhm,
+    beta,
+    gfac,
+    thresh,
+    rejthresh,
+    read,
+    gain,
 ):
     """
-    Perform iterative PSF photometry and star finding on region of CCD
+    Perform PSF photometry on region of CCD.
+
+    The PSF shape parameters are determined from the reference stars, at which point
+    the PSF shape parameters are held fixed and multiple iterations of the FIND-FIT-SUBTRACT
+    loop are run to find more stars.
+
+    Parameters
+    ----------
+    cnam : str
+        name of CCD
+    ccd : hcam.Ccd
+        CCD to perform photometry on
+    ccdaper : hcam.CcdAper
+        reference apertures to use for determining PSF shape parameters
+    xlo, xhi, ylo, yhi : float
+        limits of region to perform photometry on, in device coordinates
+    niters : int
+        number of iterations of FIND-FIT-SUBTRACT to perform
+    method : str
+        PSF model to use, either 'm' for Moffat, 'g' for Gaussian
+    fwhm : float
+        initial FWHM to use for PSF model, in unbinned pixels
+    beta : float
+        initial beta to use for Moffat PSF model, ignored if method is 'g'
+    gfac : float
+        multiple of FWHM used to group stars for fitting.
+        Stars within gfac*FWHM of each other are fitted simultaneously in the FIND-FIT-SUBTRACT loop.
+    thresh : float
+        threshold for object detection in FIND-FIT-SUBTRACT, in multiples of the background RMS
+    rejthresh : float
+        RMS rejection threshold for sky fitting, in multiples of the background RMS.
+    read : float
+        readout noise, RMS ADU, for assigning uncertainties
+    gain : float
+        gain, ADU/count, for assigning uncertainties
     """
-    print(xlo, ylo, xhi, yhi)
     # first check we are within a single window
     wnam1 = ccd.inside(xlo, ylo, 2)
     wnam2 = ccd.inside(xhi, yhi, 2)
@@ -882,7 +951,7 @@ def daophot(
             "PSF photometry cannot currently be run across seperate windows"
         )
     wnam = wnam1
-    print(wnam)
+
     # background stats from whole windpw
     # estimate background RMS
     wind = ccd[wnam]
@@ -895,15 +964,22 @@ def daophot(
 
     # crop window to ROI
     wind = ccd[wnam].window(xlo, xhi, ylo, yhi)
+    # uncertainties
+    sigma = np.sqrt(read**2 + np.maximum(0, wind.data) / gain)
 
     # correct FWHM for binning
     fwhm /= wind.xbin
     if method == "m":
-        psf_model = MoffatPSF(fwhm, beta)
-        print("  FWHM = {:.1f}, BETA={:.1f}".format(fwhm, beta))
+        psf_model = MoffatPSF(beta=beta, x_fwhm=fwhm, y_fwhm=fwhm)
+        psf_model_name = "moffat"
+        # no need to set fixed and bound, they have sensible defaults.
     else:
-        psf_model = IntegratedGaussianPRF(sigma=fwhm * gaussian_fwhm_to_sigma)
-        print("  FWHM = {:.1f}".format(fwhm))
+        psf_model = GaussianPRF(x_fwhm=fwhm, y_fwhm=fwhm)
+        psf_model.x_fwhm.fixed = False
+        psf_model.y_fwhm.fixed = False
+        psf_model.theta.fixed = False
+        psf_model.theta.bounds = (-90, 90)
+        psf_model_name = "gaussian"
 
     # define region to extract around positions for fits
     fitshape = int(5 * fwhm)
@@ -911,31 +987,74 @@ def daophot(
     if fitshape % 2 == 0:
         fitshape += 1
 
-    photometry_task = DAOPhotPSFPhotometry(
-        gfac * fwhm,
-        thresh * bkg_rms,
-        fwhm,
-        psf_model,
-        fitshape,
-        niters=niters,
-        sigma=rejthresh,
+    # Step 1: fit the reference stars to determine the PSF parameters.
+    # get pixel positions of reference apertures inside window
+    xpos, ypos = list(
+        zip(
+            *[
+                (wind.x_pixel(aper.x), wind.y_pixel(aper.y))
+                for aper in ccdaper.values()
+                if aper.ref and wind.distance(aper.x, aper.y) > 0.0
+            ]
+        )
+    )
+    if len(xpos) == 0:
+        raise hcam.HipercamError(
+            f"No reference apertures found in CCD {cnam} for PSF fitting"
+        )
+    reference_positions = Table(names=["x_0", "y_0"], data=(xpos, ypos))
+
+    photometry_task = PSFPhotometry(
+        psf_model=psf_model,
+        aperture_radius=1.7 * fwhm,
+        fit_shape=fitshape,
+    )
+    # do the PSF photometry
+    photom_results = photometry_task(
+        wind.data - bkg, error=sigma, init_params=reference_positions
     )
 
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        results = photometry_task(wind.data - bkg)
+    # now create the PSF model from fitting the reference stars
+    psf_model = create_psf_model(photom_results, psf_model_name, fixed_positions=False)
+    output_params = ["x_fwhm", "y_fwhm", "theta"]
+    if method == "m":
+        output_params.append("beta")
+    print("Fitted PSF parameters:", end=" ")
+    for param in output_params:
+        value = getattr(psf_model, param).value
+        print(f"{param}: {value:.3f}", end=", ")
+    print()
+
+    # Step 2: run the FIND-FIT-SUBTRACT loop to find all stars in the region.
+    photometry_task = IterativePSFPhotometry(
+        psf_model=psf_model,
+        fit_shape=fitshape,
+        finder=DAOStarFinder(threshold=thresh * bkg_rms, fwhm=fwhm),
+        grouper=SourceGrouper(gfac * fwhm),
+        maxiters=niters,
+        mode="all",
+        aperture_radius=1.7 * fwhm,
+        localbkg_estimator=None,
+    )
+
+    results = photometry_task(wind.data - bkg, error=sigma)
 
     # filter out junk fits
+    results = results[results["flags"] == 0]
+
     tiny = 1e-30
     bad_errs = (
-        (results["flux_unc"] < tiny)
-        | (results["x_0_unc"] < tiny)
-        | (results["y_0_unc"] < tiny)
+        (results["flux_err"] < tiny)
+        | (results["x_err"] < tiny)
+        | (results["y_err"] < tiny)
     )
     results = results[~bad_errs]
 
-    results.write("table_{}.fits".format(cnam))
-    print("  found {} stars".format(len(results)))
+    if DEBUG:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            results.write("table_{}.fits".format(cnam), overwrite=True)
+    print(f"  found {len(results)} stars")
 
     xlocs, ylocs = results["x_fit"], results["y_fit"]
 
