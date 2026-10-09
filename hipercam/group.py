@@ -22,6 +22,13 @@ class Group(OrderedDict):
     objects associated with CCDs such as :class:`Window` (see :class:`CCD`),
     and :class:`Aperture` (see :class:`CcdAper`)
 
+    Keys can be any string, but common usage is for them to be increasing integers
+    starting from '1'.
+    If so, the method `next_label` will return the next largest integer-valued key
+    as a string, in order to make adding new items to the :class:`Group` easier.
+    For example, if there are keys '1', '2', '3', then `next_label` will return '4'.
+    If there are no integer-valued keys, it will return '1'.
+
     """
 
     def __init__(self, ftype, *args, **kwargs):
@@ -55,9 +62,7 @@ class Group(OrderedDict):
             raise HipercamError("an input object is not a {!s} object".format(ftype))
 
     def __setitem__(self, key, item):
-        """Adds an item `item` keyed by `key`
-        checking that its type matches 
-        """
+        """Adds an item `item` keyed by `key` checking that its type matches"""
         if not isinstance(key, str):
             raise KeyError("key must be an string")
 
@@ -70,6 +75,13 @@ class Group(OrderedDict):
 
         # checks passed, set the new item and add the key
         super().__setitem__(key, item)
+
+    def next_label(self):
+        """Returns one more than the largest integer-valued key, as a string.
+
+        Keys that are not plain integers are ignored; returns '1' if there are none.
+        """
+        return str(max((int(k) for k in self if k.isdecimal()), default=0) + 1)
 
     def copy(self, memo=None):
         """Copy operation. The stored objects must have a `copy(self, memo)` method.

@@ -423,16 +423,7 @@ as it is close enough (< 10 pixels)
                 # add a fringe pair
                 print(key)
 
-                # Try to calculate the largest number, label the new
-                # FringePair with one more
-                high = 0
-                for frng in self.mccd_fpair[self._cnam]:
-                    try:
-                        high = max(high, int(frng))
-                    except ValueError:
-                        pass
-
-                self._buffer = str(high + 1)
+                self._label = self.mccd_fpair[self._cnam].next_label()
                 self._mid_pair = True
                 self._pair_stage = 0
                 self._pair()
@@ -513,10 +504,10 @@ as it is close enough (< 10 pixels)
             else:
                 # add new pair
                 frng = fringe.FringePair(self._first_x, self._first_y, self._x, self._y)
-                self.mccd_fpair[self._cnam][self._buffer] = frng
+                self.mccd_fpair[self._cnam][self._label] = frng
 
                 # add fringe pair to the plot, store plot objects
-                self.pobjs[self._cnam][self._buffer] = hcam.mpl.pFringePair(
+                self.pobjs[self._cnam][self._label] = hcam.mpl.pFringePair(
                     self._axes, frng
                 )
 

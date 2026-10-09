@@ -1,8 +1,8 @@
-import sys
 import os
+import sys
 
-import numpy as np
 import matplotlib as mpl
+import numpy as np
 
 # re-configure the cursors: backend specific.
 # aim to get rid of irritating 'hand' icon in
@@ -29,7 +29,6 @@ if curs is not None:
         pass
 
 import matplotlib.pyplot as plt
-
 from trm import cline
 from trm.cline import Cline
 
@@ -713,7 +712,7 @@ class PickStar:
 
     @staticmethod
     def action_prompt(cr):
-        """Prompts user for an action. cr controls whether there is an intial
+        """Prompts user for an action. cr controls whether there is an initial
         carriage return or not.  It leaves the cursor at the end of the
         line. This appears in multiple places hence why it is a method.
 
@@ -844,23 +843,14 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                 print(key)
 
                 if self.linput == "n":
-                    # numerical sequence input. Try to calculate
-                    # the largest number, label the new aperture
-                    # with one more
-                    high = 0
-                    for aper in self.mccdaper[self._cnam]:
-                        try:
-                            high = max(high, int(aper))
-                        except ValueError:
-                            pass
-                    self._buffer = str(high + 1)
+                    self._label = self.mccdaper[self._cnam].next_label()
                     self._add()
                     self._add_mode = False
 
                 else:
                     # switch to add mode, initialise buffer for label input
                     self._add_mode = True
-                    self._buffer = ""
+                    self._label = ""
                     print(PickStar.ADD_PROMPT, end="", flush=True)
 
             elif key == "b":
@@ -1081,7 +1071,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
 
                 print(
                     "  CCD {}, aperture {}: {}".format(
-                        self._cnam, self._buffer, message
+                        self._cnam, self._label, message
                     )
                 )
                 self._x = x
@@ -1097,11 +1087,11 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
         aper = hcam.Aperture(
             self._x, self._y, self.rtarg, self.rsky1, self.rsky2, False
         )
-        self.mccdaper[self._cnam][self._buffer] = aper
+        self.mccdaper[self._cnam][self._label] = aper
 
         # add aperture to the plot, store plot objects
-        self.pobjs[self._cnam][self._buffer] = hcam.mpl.pAper(
-            self._axes, aper, self._buffer
+        self.pobjs[self._cnam][self._label] = hcam.mpl.pAper(
+            self._axes, aper, self._label
         )
 
         # make sure it appears
@@ -1109,7 +1099,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
 
         print(
             "  added aperture {:s} to CCD {:s} at x,y = {:.2f},{:.2f}".format(
-                self._buffer, self._cnam, self._x, self._y
+                self._label, self._cnam, self._x, self._y
             )
         )
         PickStar.action_prompt(True)
@@ -1669,17 +1659,17 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
             # trap 'enter'
             print()
 
-            if self._buffer in self.mccdaper[self._cnam]:
+            if self._label in self.mccdaper[self._cnam]:
                 print(
-                    "label={:s} already in use; please try again".format(self._buffer),
+                    "label={:s} already in use; please try again".format(self._label),
                     file=sys.stderr,
                 )
                 print(PickStar.ADD_PROMPT, end="", flush=True)
-                self._buffer = ""
+                self._label = ""
 
-            elif self._buffer == "":
+            elif self._label == "":
                 print(
-                    "label blank; please try again".format(self._buffer),
+                    "label blank; please try again".format(self._label),
                     file=sys.stderr,
                 )
                 print(PickStar.ADD_PROMPT, end="", flush=True)
@@ -1689,7 +1679,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                 self._add_aperture()
                 self._add_mode = False
 
-        elif key == "!" and self._buffer == "":
+        elif key == "!" and self._label == "":
             # terminate accumulation mode without bothering to wait for an 'enter'
             print("\n*** no aperture added")
             PickStar.action_prompt(True)
@@ -1697,12 +1687,12 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
 
         elif key == "backspace" or key == "delete":
             # remove a character
-            self._buffer = self._buffer[:-1]
-            print("{:s}{:s} ".format(PickStar.ADD_PROMPT, self._buffer))
+            self._label = self._label[:-1]
+            print("{:s}{:s} ".format(PickStar.ADD_PROMPT, self._label))
 
         elif key in "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ":
             # accumulate input and add to the buffer
-            self._buffer += key
+            self._label += key
 
             if self.linput == "s":
                 # single character input. bail out immediately (inside _add_aperture)
@@ -1711,21 +1701,21 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                 if key == "0":
                     print("Apertures cannot be labelled just '0'")
                     print(PickStar.ADD_PROMPT, end="", flush=True)
-                    self._buffer = ""
+                    self._label = ""
 
-                elif self._buffer in self.mccdaper[self._cnam]:
+                elif self._label in self.mccdaper[self._cnam]:
                     print(
                         "label={:s} already in use; please try again".format(
-                            self._buffer
+                            self._label
                         ),
                         file=sys.stderr,
                     )
                     print(PickStar.ADD_PROMPT, end="", flush=True)
-                    self._buffer = ""
+                    self._label = ""
 
-                elif self._buffer == "":
+                elif self._label == "":
                     print(
-                        "label blank; please try again".format(self._buffer),
+                        "label blank; please try again".format(self._label),
                         file=sys.stderr,
                     )
                     print(PickStar.ADD_PROMPT, end="", flush=True)

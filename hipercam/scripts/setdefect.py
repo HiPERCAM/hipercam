@@ -1,8 +1,8 @@
-import sys
 import os
+import sys
 
-import numpy as np
 import matplotlib as mpl
+import numpy as np
 
 # re-configure the cursors: backend specific.
 # aim to get rid of irritating 'hand' icon in
@@ -29,7 +29,6 @@ if curs is not None:
         pass
 
 import matplotlib.pyplot as plt
-
 from trm import cline
 from trm.cline import Cline
 
@@ -381,13 +380,7 @@ def setdefect(args=None):
 
             # Calculate the largest number, label the new Defect
             # with one more
-            high = 0
-            for ndfct in cdfct:
-                try:
-                    high = max(high, int(ndfct))
-                except ValueError:
-                    pass
-            high += 1
+            high = int(mccd_dfct[cnam].next_label())
 
             dexpose = mccd.head["EXPTIME"]
             clo = hlo*dexpose
@@ -560,16 +553,7 @@ close enough (< 10 pixels)
                 # add a point defect
                 print(key)
 
-                # Try to calculate the largest number, label the new Defect
-                # with one more
-                high = 0
-                for dfct in self.mccd_dfct[self._cnam]:
-                    try:
-                        high = max(high, int(dfct))
-                    except ValueError:
-                        pass
-
-                self._buffer = str(high + 1)
+                self._label = self.mccd_dfct[self._cnam].next_label()
 
                 if key == "m":
                     self._severity = defect.Severity.MODERATE
@@ -583,16 +567,7 @@ close enough (< 10 pixels)
                 self._line_stage = 0
                 self._line_mode = True
 
-                # Try to calculate the largest number, label the new Defect
-                # with one more
-                high = 0
-                for dfct in self.mccd_dfct[self._cnam]:
-                    try:
-                        high = max(high, int(dfct))
-                    except ValueError:
-                        pass
-
-                self._buffer = str(high + 1)
+                self._label = self.mccd_dfct[self._cnam].next_label()
 
                 self._line()
 
@@ -695,10 +670,10 @@ close enough (< 10 pixels)
                 dfct = defect.Hot(self._severity, self._x, self._y, wind.data[yp,xp]/dexpose)
                 name = 'hot pixel'
 
-            self.mccd_dfct[self._cnam][self._buffer] = dfct
+            self.mccd_dfct[self._cnam][self._label] = dfct
 
             # add defect to the plot, store plot objects
-            self.pobjs[self._cnam][self._buffer] = hcam.mpl.pDefect(self._axes, dfct)
+            self.pobjs[self._cnam][self._label] = hcam.mpl.pDefect(self._axes, dfct)
 
             # make sure it appears
             plt.draw()
@@ -709,7 +684,7 @@ close enough (< 10 pixels)
             )
 
             print(
-                f"added {level} level {name} {self._buffer} to CCD {self._cnam}"
+                f"added {level} level {name} {self._label} to CCD {self._cnam}"
                 f" at x,y = {self._x:.2f},{self._y:.2f}"
             )
 
@@ -774,10 +749,10 @@ close enough (< 10 pixels)
                 self._line_x2,
                 self._line_y2,
             )
-            self.mccd_dfct[self._cnam][self._buffer] = dfct
+            self.mccd_dfct[self._cnam][self._label] = dfct
 
             # add defect to the plot, store plot objects
-            self.pobjs[self._cnam][self._buffer] = \
+            self.pobjs[self._cnam][self._label] = \
                 hcam.mpl.pDefect(self._axes, dfct)
 
             # make sure it appears
@@ -796,7 +771,7 @@ close enough (< 10 pixels)
                     " to x2,y2 = {:.2f},{:.2f}"
                 ).format(
                     level,
-                    self._buffer,
+                    self._label,
                     self._cnam,
                     self._line_x1,
                     self._line_y1,

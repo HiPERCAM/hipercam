@@ -647,16 +647,7 @@ class PickRef:
         """
         Add a star to be used as a reference aperture for PSF fitting
         """
-        # numerical sequence input. Try to calculate
-        # the largest number, label the new aperture
-        # with one more
-        high = 0
-        for aper in self.mccdaper[self._cnam]:
-            try:
-                high = max(high, int(aper))
-            except ValueError:
-                pass
-        self._buffer = str(high + 1)
+        self._label = self.mccdaper[self._cnam].next_label()
 
         # fitting
         ccd = self.mccd[self._cnam]
@@ -714,7 +705,7 @@ class PickRef:
                 self.rejthresh,
             )
 
-            print("Aperture {:s}: {:s}".format(self._buffer, message))
+            print("Aperture {:s}: {:s}".format(self._label, message))
             self._x = x
             self._y = y
 
@@ -725,7 +716,7 @@ class PickRef:
 
         # create and add reference aperture
         aper = hcam.Aperture(self._x, self._y, 5, 10, 12, True)
-        self.mccdaper[self._cnam][self._buffer] = aper
+        self.mccdaper[self._cnam][self._label] = aper
 
         # add fit params to object
         wf = 1.0 / efwhm**2 if efwhm > 0 else 0
@@ -741,8 +732,8 @@ class PickRef:
             self.psf_data[self._cnam]["wbsum"] += wb
 
         # add aperture to the plot, store plot objects
-        self.pobjs[self._cnam][self._buffer] = hcam.mpl.pAper(
-            self._axes, aper, self._buffer
+        self.pobjs[self._cnam][self._label] = hcam.mpl.pAper(
+            self._axes, aper, self._label
         )
 
         # make sure it appears
@@ -750,7 +741,7 @@ class PickRef:
 
         print(
             "added aperture {:s} to CCD {:s} at x,y = {:.2f},{:.2f}".format(
-                self._buffer, self._cnam, self._x, self._y
+                self._label, self._cnam, self._x, self._y
             )
         )
 
