@@ -363,6 +363,9 @@ class MoffatPSF(Fittable2DModel):
 
 
 def create_psf_model(photom_results, method, fixed_positions=False):
+    """
+    Creates a PSF model with fixed FWHM and beta from the photometry results of the reference stars.
+    """
     if method == "moffat":
         psf_model = MoffatPSF(flux=1)
         for param in ["x_fwhm", "y_fwhm", "theta", "beta"]:
