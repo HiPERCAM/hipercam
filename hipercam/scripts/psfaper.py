@@ -7,19 +7,26 @@ import matplotlib as mpl
 import numpy as np
 from astropy.stats import SigmaClip
 from astropy.table import Table
-from photutils.background import MADStdBackgroundRMS, MMMBackground
-from photutils.detection import DAOStarFinder
-from photutils.psf import (
-    GaussianPRF,
-    IterativePSFPhotometry,
-    PSFPhotometry,
-    SourceGrouper,
-)
+
+try:
+    from photutils.background import MADStdBackgroundRMS, MMMBackground
+    from photutils.detection import DAOStarFinder
+    from photutils.psf import (
+        GaussianPRF,
+        IterativePSFPhotometry,
+        PSFPhotometry,
+        SourceGrouper,
+    )
+except (ModuleNotFoundError, ImportError):
+    raise ValueError("'psf photometry requries photutils to be installed")
 from trm import cline
 from trm.cline import Cline
 
 import hipercam as hcam
 from hipercam.psf_reduction import MoffatPSF, create_psf_model
+
+# DEBUG writes  out stars to FITS table for debugging purposes. It is not needed for normal operation.
+DEBUG = False
 
 # re-configure the cursors: backend specific.
 # aim to get rid of irritating 'hand' icon in
@@ -948,7 +955,6 @@ def daophot(
     # background stats from whole windpw
     # estimate background RMS
     wind = ccd[wnam]
-    warnings.simplefilter("ignore")
 
     rms_func = MADStdBackgroundRMS(sigma_clip=SigmaClip(sigma=rejthresh))
     bkg_rms = rms_func(wind.data)
@@ -965,15 +971,14 @@ def daophot(
     fwhm /= wind.xbin
     if method == "m":
         psf_model = MoffatPSF(beta=beta, x_fwhm=fwhm, y_fwhm=fwhm)
-        print("  FWHM = {:.1f}, BETA={:.1f}".format(fwhm, beta))
         psf_model_name = "moffat"
+        # no need to set fixed and bound, they have sensible defaults.
     else:
         psf_model = GaussianPRF(x_fwhm=fwhm, y_fwhm=fwhm)
         psf_model.x_fwhm.fixed = False
         psf_model.y_fwhm.fixed = False
         psf_model.theta.fixed = False
         psf_model.theta.bounds = (-90, 90)
-        print("  FWHM = {:.1f}".format(fwhm))
         psf_model_name = "gaussian"
 
     # define region to extract around positions for fits
@@ -983,16 +988,20 @@ def daophot(
         fitshape += 1
 
     # Step 1: fit the reference stars to determine the PSF parameters.
-    # get pixel positions of reference apertures
+    # get pixel positions of reference apertures inside window
     xpos, ypos = list(
         zip(
             *[
                 (wind.x_pixel(aper.x), wind.y_pixel(aper.y))
                 for aper in ccdaper.values()
-                if aper.ref
+                if aper.ref and wind.distance(aper.x, aper.y) > 0.0
             ]
         )
     )
+    if len(xpos) == 0:
+        raise hcam.HipercamError(
+            f"No reference apertures found in CCD {cnam} for PSF fitting"
+        )
     reference_positions = Table(names=["x_0", "y_0"], data=(xpos, ypos))
 
     photometry_task = PSFPhotometry(
@@ -1004,12 +1013,18 @@ def daophot(
     photom_results = photometry_task(
         wind.data - bkg, error=sigma, init_params=reference_positions
     )
-    colnames = [col for col in photom_results.colnames if "init" not in col]
-    print(photom_results[colnames])
 
     # now create the PSF model from fitting the reference stars
     psf_model = create_psf_model(photom_results, psf_model_name, fixed_positions=False)
-    print(psf_model)
+    output_params = ["x_fwhm", "y_fwhm", "theta"]
+    if method == "m":
+        output_params.append("beta")
+    print("Fitted PSF parameters:", end=" ")
+    for param in output_params:
+        value = getattr(psf_model, param).value
+        print(f"{param}: {value:.3f}", end=", ")
+    print()
+
     # Step 2: run the FIND-FIT-SUBTRACT loop to find all stars in the region.
     photometry_task = IterativePSFPhotometry(
         psf_model=psf_model,
@@ -1024,8 +1039,6 @@ def daophot(
 
     results = photometry_task(wind.data - bkg, error=sigma)
 
-    colnames = [col for col in results.colnames if "fit" in col]
-    print(results[colnames])
     # filter out junk fits
     results = results[results["flags"] == 0]
 
@@ -1037,8 +1050,11 @@ def daophot(
     )
     results = results[~bad_errs]
 
-    results.write("table_{}.fits".format(cnam), overwrite=True)
-    print("  found {} stars".format(len(results)))
+    if DEBUG:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            results.write("table_{}.fits".format(cnam), overwrite=True)
+    print(f"  found {len(results)} stars")
 
     xlocs, ylocs = results["x_fit"], results["y_fit"]
 
