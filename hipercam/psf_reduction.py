@@ -564,7 +564,7 @@ def extractFluxPSF(cnam, ccd, bccd, rccd, read, gain, ccdwin, rfile, store):
                 "flag": flag,
                 "cmax": 0,
             }
-            return results
+        return results
 
     wnam = wnames.pop()
 
