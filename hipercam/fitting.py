@@ -484,13 +484,14 @@ def moffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv):
 
     Parameters:
 
-      x : 2D numpy array
+      x  : numpy array
          the X ordinates over which you want to compute the
          profile. They should be measured in term of unbinned pixels.
 
-      y : 2D numpy array
+      y  : numpy array
          the Y ordinates over which you want to compute the
          profile. They should be measured in term of unbinned pixels.
+         Must have the same shape as `x`.
 
       sky : float
          sky background.
@@ -527,8 +528,8 @@ def moffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv):
          obviously will slow things. To simply evaluate the profile once at
          the centre of each pixel, set ndiv = 0.
 
-    Returns:: 2D numpy array containing the Moffat profile plus constant evaluated
-    on the ordinate grids in xy.
+    Returns:: a numpy array with the same shape as `x` and `y`, containing the
+    Moffat profile plus constant evaluated at each coordinate pair.
 
     """
     return _fitting_cpp.moffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv)
@@ -545,13 +546,14 @@ def dmoffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv, comp_df
 
     Parameters:
 
-      x  : 2D numpy array
+      x  : numpy array
          the X ordinates over which you want to compute the
          profile. They should be measured in term of unbinned pixels.
 
-      y  : 2D numpy array
+      y  : numpy array
          the Y ordinates over which you want to compute the
          profile. They should be measured in term of unbinned pixels.
+         Must have the same shape as `x`.
 
       sky : float or None
          sky background. If `None` it will be ignored.
@@ -1190,13 +1192,14 @@ def gaussian(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv):
 
     Arguments::
 
-      x  : 2D numpy array
+      x  : numpy array
          the X ordinates over which you want to compute the
          profile. They should be measured in term of unbinned pixels.
 
-      y  : 2D numpy array
+      y  : numpy array
          the Y ordinates over which you want to compute the
          profile. They should be measured in term of unbinned pixels.
+         Must have the same shape as `x`.
 
       sky : float
          sky background
@@ -1230,8 +1233,8 @@ def gaussian(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv):
          obviously will slow things. To simply evaluate the profile once at
          the centre of each pixel, set ndiv = 0.
 
-    Returns:: 2D numpy array containing the Gaussian plus constant evaluated
-    on the ordinate grids in xy.
+    Returns:: a numpy array with the same shape as `x` and `y`, containing the
+    Gaussian profile plus constant evaluated at each coordinate pair.
 
     """
     return _fitting_cpp.gaussian(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv)
@@ -1246,13 +1249,14 @@ def dgaussian(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv, comp_dfwhm)
 
     Arguments::
 
-      x  : 2D numpy array
+      x  : numpy array
          the X ordinates over which you want to compute the
          profile. They should be measured in term of unbinned pixels.
 
-      y  : 2D numpy array
+      y  : numpy array
          the Y ordinates over which you want to compute the
          profile. They should be measured in term of unbinned pixels.
+         Must have the same shape as `x`.
 
       sky : float
          sky background
@@ -1290,10 +1294,9 @@ def dgaussian(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv, comp_dfwhm)
          compute derivative wrt FWHM (or not). If False, derivative with respect
          to FWHM will not be computed
 
-    Returns:: a list of five 2D numpy arrays containing the partial
-    derivatives of a symmetric 2D Gaussian plus constant evaluated on
-    the ordinate grids in xy. They come in the same order as they
-    appear in the function call.
+    Returns:: a list of five numpy arrays with the same shape as `x` and `y`,
+    containing the partial derivatives of a symmetric 2D Gaussian plus constant.
+    They come in the same order as they appear in the function call.
 
     """
     return _fitting_cpp.dgaussian(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv, comp_dfwhm)
