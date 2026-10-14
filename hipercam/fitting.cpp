@@ -302,29 +302,23 @@ void gaussian_derivs_at(double x_val, double y_val, double height, double xcen,
   }
 }
 
-// Shared shape validation for the selected-pixel residual/Jacobian entry
-// points, which all require a set of same-shaped 2D input arrays.
+// Shared shape validation for profile, residual, and Jacobian entry points.
 // py::buffer_info is move-only, so callers pass pointers rather than values.
-void check_matching_2d_shapes(
+void check_matching_shapes(
     std::initializer_list<const py::buffer_info *> infos) {
   const py::buffer_info &first = **infos.begin();
-  bool ok = first.ndim == 2;
   for (const py::buffer_info *info : infos) {
-    ok = ok && info->ndim == 2 && info->shape[0] == first.shape[0] &&
-         info->shape[1] == first.shape[1];
-  }
-  if (!ok) {
-    throw std::runtime_error(
-        "Input arrays have invalid dimensions or mismatched shapes");
+    if (info->ndim != first.ndim || info->shape != first.shape) {
+      throw std::runtime_error("Input arrays must have the same shape");
+    }
   }
 }
 
-// Companion check for the 1D ok_indices array passed alongside the 2D
-// inputs validated by check_matching_2d_shapes.
+// Companion check for the 1D ok_indices array passed with shaped inputs.
 void check_ok_indices_1d(const py::buffer_info &ok_info) {
   if (ok_info.ndim != 1) {
     throw std::runtime_error(
-        "Input arrays have invalid dimensions or mismatched shapes");
+        "ok_indices must be a 1D array");
   }
 }
 
@@ -358,7 +352,7 @@ py::array_t<double> moffat_resid(py::array_t<double> x, py::array_t<double> y,
   py::buffer_info sigma_info = sigma.request();
   py::buffer_info ok_info = ok_indices.request();
 
-  check_matching_2d_shapes({&x_info, &y_info, &data_info, &sigma_info});
+  check_matching_shapes({&x_info, &y_info, &data_info, &sigma_info});
   check_ok_indices_1d(ok_info);
 
   const double *x_ptr = static_cast<double *>(x_info.ptr);
@@ -367,7 +361,7 @@ py::array_t<double> moffat_resid(py::array_t<double> x, py::array_t<double> y,
   const double *sigma_ptr = static_cast<double *>(sigma_info.ptr);
   const std::int64_t *ok_ptr = static_cast<std::int64_t *>(ok_info.ptr);
 
-  std::size_t n_pixels = x_info.shape[0] * x_info.shape[1];
+  std::size_t n_pixels = static_cast<std::size_t>(x_info.size);
   std::size_t n_ok = ok_info.shape[0];
 
   double tbeta = std::max(0.01, beta);
@@ -417,7 +411,7 @@ py::array_t<double> dmoffat_jac(py::array_t<double> x, py::array_t<double> y,
   py::buffer_info sigma_info = sigma.request();
   py::buffer_info ok_info = ok_indices.request();
 
-  check_matching_2d_shapes({&x_info, &y_info, &sigma_info});
+  check_matching_shapes({&x_info, &y_info, &sigma_info});
   check_ok_indices_1d(ok_info);
 
   const double *x_ptr = static_cast<double *>(x_info.ptr);
@@ -425,7 +419,7 @@ py::array_t<double> dmoffat_jac(py::array_t<double> x, py::array_t<double> y,
   const double *sigma_ptr = static_cast<double *>(sigma_info.ptr);
   const std::int64_t *ok_ptr = static_cast<std::int64_t *>(ok_info.ptr);
 
-  std::size_t n_pixels = x_info.shape[0] * x_info.shape[1];
+  std::size_t n_pixels = static_cast<std::size_t>(x_info.size);
   std::size_t n_ok = ok_info.shape[0];
   std::size_t n_par = inds.size();
 
@@ -510,7 +504,7 @@ py::array_t<double> gaussian_resid(py::array_t<double> x, py::array_t<double> y,
   py::buffer_info sigma_info = sigma.request();
   py::buffer_info ok_info = ok_indices.request();
 
-  check_matching_2d_shapes({&x_info, &y_info, &data_info, &sigma_info});
+  check_matching_shapes({&x_info, &y_info, &data_info, &sigma_info});
   check_ok_indices_1d(ok_info);
 
   const double *x_ptr = static_cast<double *>(x_info.ptr);
@@ -519,7 +513,7 @@ py::array_t<double> gaussian_resid(py::array_t<double> x, py::array_t<double> y,
   const double *sigma_ptr = static_cast<double *>(sigma_info.ptr);
   const std::int64_t *ok_ptr = static_cast<std::int64_t *>(ok_info.ptr);
 
-  std::size_t n_pixels = x_info.shape[0] * x_info.shape[1];
+  std::size_t n_pixels = static_cast<std::size_t>(x_info.size);
   std::size_t n_ok = ok_info.shape[0];
 
   double alpha = 4.0 * std::log(2.0) / (fwhm * fwhm);
@@ -564,7 +558,7 @@ py::array_t<double> dgaussian_jac(py::array_t<double> x, py::array_t<double> y,
   py::buffer_info sigma_info = sigma.request();
   py::buffer_info ok_info = ok_indices.request();
 
-  check_matching_2d_shapes({&x_info, &y_info, &sigma_info});
+  check_matching_shapes({&x_info, &y_info, &sigma_info});
   check_ok_indices_1d(ok_info);
 
   const double *x_ptr = static_cast<double *>(x_info.ptr);
@@ -572,7 +566,7 @@ py::array_t<double> dgaussian_jac(py::array_t<double> x, py::array_t<double> y,
   const double *sigma_ptr = static_cast<double *>(sigma_info.ptr);
   const std::int64_t *ok_ptr = static_cast<std::int64_t *>(ok_info.ptr);
 
-  std::size_t n_pixels = x_info.shape[0] * x_info.shape[1];
+  std::size_t n_pixels = static_cast<std::size_t>(x_info.size);
   std::size_t n_ok = ok_info.shape[0];
   std::size_t n_par = inds.size();
 
@@ -631,11 +625,7 @@ py::array_t<double> moffat(py::array_t<double> x, py::array_t<double> y,
   py::buffer_info x_info = x.request();
   py::buffer_info y_info = y.request();
 
-  if (x_info.ndim != 2 || y_info.ndim != 2 ||
-      x_info.shape[0] != y_info.shape[0] ||
-      x_info.shape[1] != y_info.shape[1]) {
-    throw std::runtime_error("Input arrays must be 2D and have the same shape");
-  }
+  check_matching_shapes({&x_info, &y_info});
 
   const double *x_ptr = static_cast<double *>(x_info.ptr);
   const double *y_ptr = static_cast<double *>(y_info.ptr);
@@ -649,7 +639,7 @@ py::array_t<double> moffat(py::array_t<double> x, py::array_t<double> y,
   double tbeta = std::max(0.01, beta);
   double alpha = calc_moffat_alpha(fwhm, beta);
 
-  std::size_t n_pixels = x_info.shape[0] * x_info.shape[1];
+  std::size_t n_pixels = static_cast<std::size_t>(x_info.size);
 
   // Release the GIL now the Python operations are complete.
   py::gil_scoped_release release;
@@ -710,11 +700,7 @@ dmoffat(py::array_t<double> x, py::array_t<double> y, double sky, double height,
   py::buffer_info x_info = x.request();
   py::buffer_info y_info = y.request();
 
-  if (x_info.ndim != 2 || y_info.ndim != 2 ||
-      x_info.shape[0] != y_info.shape[0] ||
-      x_info.shape[1] != y_info.shape[1]) {
-    throw std::runtime_error("Input arrays must be 2D and have the same shape");
-  }
+  check_matching_shapes({&x_info, &y_info});
 
   const double *x_ptr = static_cast<double *>(x_info.ptr);
   const double *y_ptr = static_cast<double *>(y_info.ptr);
@@ -775,7 +761,7 @@ dmoffat(py::array_t<double> x, py::array_t<double> y, double sky, double height,
   double dbeta_coeff =
       4.0 * std::log(2.0) * std::pow(2.0, 1.0 / tbeta) / tbeta / (fwhm * fwhm);
 
-  std::size_t n_pixels = x_info.shape[0] * x_info.shape[1];
+  std::size_t n_pixels = static_cast<std::size_t>(x_info.size);
 
   // Release the GIL now the Python operations are complete.
   py::gil_scoped_release release;
@@ -908,11 +894,7 @@ py::array_t<double> gaussian(py::array_t<double> x, py::array_t<double> y,
   py::buffer_info x_info = x.request();
   py::buffer_info y_info = y.request();
 
-  if (x_info.ndim != 2 || y_info.ndim != 2 ||
-      x_info.shape[0] != y_info.shape[0] ||
-      x_info.shape[1] != y_info.shape[1]) {
-    throw std::runtime_error("Input arrays must be 2D and have the same shape");
-  }
+  check_matching_shapes({&x_info, &y_info});
 
   const double *x_ptr = static_cast<double *>(x_info.ptr);
   const double *y_ptr = static_cast<double *>(y_info.ptr);
@@ -925,7 +907,7 @@ py::array_t<double> gaussian(py::array_t<double> x, py::array_t<double> y,
   // Calculate Gaussian profile parameter
   double alpha = 4.0 * std::log(2.0) / (fwhm * fwhm);
 
-  std::size_t n_pixels = x_info.shape[0] * x_info.shape[1];
+  std::size_t n_pixels = static_cast<std::size_t>(x_info.size);
 
   // Release the GIL now the Python operations are complete.
   py::gil_scoped_release release;
@@ -986,11 +968,7 @@ dgaussian(py::array_t<double> x, py::array_t<double> y, double sky,
   py::buffer_info x_info = x.request();
   py::buffer_info y_info = y.request();
 
-  if (x_info.ndim != 2 || y_info.ndim != 2 ||
-      x_info.shape[0] != y_info.shape[0] ||
-      x_info.shape[1] != y_info.shape[1]) {
-    throw std::runtime_error("Input arrays must be 2D and have the same shape");
-  }
+  check_matching_shapes({&x_info, &y_info});
 
   const double *x_ptr = static_cast<double *>(x_info.ptr);
   const double *y_ptr = static_cast<double *>(y_info.ptr);
@@ -1036,7 +1014,7 @@ dgaussian(py::array_t<double> x, py::array_t<double> y, double sky,
   double two_alpha_height = 2.0 * alpha * height;
   double dfwhm_coeff = two_alpha_height / fwhm;
 
-  std::size_t n_pixels = x_info.shape[0] * x_info.shape[1];
+  std::size_t n_pixels = static_cast<std::size_t>(x_info.size);
 
   // Release the GIL now the Python operations are complete.
   py::gil_scoped_release release;
