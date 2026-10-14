@@ -21,7 +21,6 @@ from trm.cline import Cline
 import hipercam as hcam
 from hipercam.ccd import crop_calib_frame_to
 from hipercam import defect, fringe, mpl, spooler
-from hipercam.mpl import Params
 from hipercam.instruments import available_instruments
 
 try:
@@ -110,7 +109,7 @@ def nrtplot(args=None):
            unspecified, it defaults to 'hl'.
 
            Any instruments installed via plugins can be used as a source by
-           specifying either ``<instrument>:local`` or ``<instrument>:server``. 
+           specifying either ``<instrument>:local`` or ``<instrument>:server``.
 
         run : str [if source is not 'hf']
            run number to access, e.g. 'run034'
@@ -635,15 +634,15 @@ def nrtplot(args=None):
             rmax = cl.get_value("rmax", "maximum fringe pair ratio", 1.0)
 
         # defect file (if any)
-        dfct = cl.get_value(
+        defect_file = cl.get_value(
             "defect",
             "defect file ['none' to ignore]",
             cline.Fname("defect", hcam.DFCT),
             ignore="none",
         )
-        if dfct is not None:
+        if defect_file is not None:
             # read the defect frame
-            dfct = defect.MccdDefect.read(dfct)
+            defects = defect.MccdDefect.read(defect_file)
 
         # Get windows from hdriver
         setup = cl.get_value("setup", "display current hdriver window settings", False)
@@ -1040,11 +1039,6 @@ def nrtplot(args=None):
                     else:
                         content.append(None)
 
-                    if dfct is not None and cnam in dfct:
-                        content.append(dfct[cnam])
-                    else:
-                        content.append(None)
-
                     # Save the content to send to the plot updater
                     img_accum[nc] = content
 
@@ -1067,9 +1061,9 @@ def nrtplot(args=None):
             # at this point "img_accum" contains a list of lists, each of
             # which consists of:
             #
-            # [ccd, vmin, vmax, swindows, dfct]
+            # [ccd, vmin, vmax, swindows]
             #
-            # i.e. the CCD, intensity range, setup windows and defects, or
+            # i.e. the CCD, intensity range and setup windows, or
             # "None" if the CCD has yet to be initialised due to nskip
 
             if profit and not_selected and plotted.all():
@@ -1090,7 +1084,7 @@ def nrtplot(args=None):
                     imheight,
                 )
                 for ax, cnam, content in zip(img_axs, ccds, img_accum):
-                    disp_ccd(ax, cnam, cmap, content, False)
+                    disp_ccd(ax, cnam, cmap, defects[cnam], content, False)
 
                 # Cursor selection routine. Comes back with a set of targets
                 cselect = ProfitCursorSelect(
@@ -1185,6 +1179,7 @@ def nrtplot(args=None):
                         ylo,
                         yhi,
                         cmap,
+                        defects,
                         img_accum,
                         targ_accum,
                         shbox,
@@ -1379,6 +1374,7 @@ class ImageManager:
         ylo,
         yhi,
         cmap,
+        defects,
         img_accum,
         targ_accum,
         shbox,
@@ -1422,16 +1418,17 @@ class ImageManager:
           cmap : str  | None
              Matplotlib colour map. None gives default
 
+          defects : MccdDefect | None
+             Group of defects to plot on each frame, if any.
 
           img_accum : list of lists
              one list per CCD being displayed. Contains the information
              required for the image plot. Per CCD the list should be:
-             [ccd, vmin, vmax, swindows, dfcts] or None if the CCD is
+             [ccd, vmin, vmax, swindows] or None if the CCD is
              being skipped. swindows -- setup windows -- can be None.
-             dfcts -- defects -- can also be None. A reference to this
-             is stored internally so that changes to it outside the object
-             are reflected internally. This allows update to work without
-             arguments.
+             A reference to this is stored internally so that changes to
+             it outside the object are reflected internally.
+             This allows update to work without arguments.
 
           targ_accum : list of Fpars
              one tuple per target being profile fitted, containg all
@@ -1460,13 +1457,14 @@ class ImageManager:
         self.img_accum = img_accum
         self.targ_accum = targ_accum
 
-        # nrtplot inputs
+        # plot inputs
         self.cnams = cnams
         self.xlo = xlo
         self.xhi = xhi
         self.ylo = ylo
         self.yhi = yhi
         self.cmap = cmap
+        self.defects = defects
 
         # list of dictionaries of artists for each image panel
         self.img_artists = []
@@ -1591,7 +1589,7 @@ class ImageManager:
         if artists is None:
 
             # in this case we are setting up for the first time
-            artists = disp_ccd(ax, cnam, self.cmap, content, True)
+            artists = disp_ccd(ax, cnam, self.cmap, self.defects[cnam], content, True)
 
             # need to re-draw to avoid irritating distorted image
             self.cnv.draw()
@@ -1599,7 +1597,7 @@ class ImageManager:
         else:
 
             # unpack the new content
-            ccd, vmin, vmax, swindows, dfct = content
+            ccd, vmin, vmax, swindows = content
 
             # this is the "usual" post-setup case where we just update
             # the artists
@@ -1707,12 +1705,31 @@ class ImageManager:
         return artists
 
 
-def disp_ccd(ax, cnam, cmap, content, animated):
-    """Displays a CCD ccd, name cnam, in Axes ax.
 
-    If used for movie-style display, set animated=True.
+def disp_ccd(ax, cnam, cmap, defects, content, animated):
+    """Displays a CCD on the given axes.
 
-    Returns dictionary of artists with keys:
+    Arguments::
+        ax: matplotlib.pyplot.Axes
+            Axes object to plot onto
+
+        cnam: str
+            name of the CCD, used for setting the axis title
+
+        cmap: str or None
+            matplotlib colormap to use for the image plot
+
+        defects: CcdDefect or None,
+            group of defects to plot on the frame
+
+        content: list
+            containing [ccd, vmin, vmax, swindows]
+
+        animated: bool
+            whether to use animated artists or not.
+            If used for movie-style display, set animated=True.
+
+    Returns a dictionary of all artists plotted, with keys:
 
       'ccd' : dictionary as returned by pCcd
       'defects' : dictionary as returned by pCcdDefect. Can be just {}
@@ -1721,7 +1738,7 @@ def disp_ccd(ax, cnam, cmap, content, animated):
     """
 
     # unpack the new content
-    ccd, vmin, vmax, swindows, dfct = content
+    ccd, vmin, vmax, swindows = content
 
     artists = {}
 
@@ -1737,9 +1754,13 @@ def disp_ccd(ax, cnam, cmap, content, animated):
         animated=animated,
     )[2]
 
-    artists["defects"] = mpl.pCcdDefect(ax, dfct, animated)
+    # plot the defects, if any
+    if defects is not None:
+        artists["defects"] = mpl.pCcdDefect(ax, defects, animated)
+    else:
+        artists["defects"] = {}
 
-    # plot setup windows
+    # plot setup windows, if any
     if swindows is None:
         swins = []
     else:
