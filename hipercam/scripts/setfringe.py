@@ -1,33 +1,4 @@
 import os
-import sys
-import warnings
-
-import matplotlib as mpl
-import numpy as np
-
-# re-configure the cursors: backend specific.
-# aim to get rid of irritating 'hand' icon in
-# favour of something pointier.
-
-backend = mpl.get_backend()
-
-if backend == "Qt4Agg" or "Qt5Agg":
-    from matplotlib.backends.backend_qt5 import cursord as curs
-elif backend == "GTK3agg":
-    from matplotlib.backends.backend_gtk3 import cursord as curs
-else:
-    curs = None
-
-if curs is not None:
-    from matplotlib.backend_bases import cursors
-
-    try:
-        curs[cursors.HAND] = curs[cursors.POINTER]
-        curs[cursors.WAIT] = curs[cursors.POINTER]
-        curs[cursors.SELECT_REGION] = curs[cursors.POINTER]
-        curs[cursors.MOVE] = curs[cursors.POINTER]
-    except AttributeError:
-        pass
 
 import matplotlib.pyplot as plt
 from trm import cline
@@ -48,7 +19,7 @@ __all__ = [
 
 
 def setfringe(args=None):
-    """``setfringe fmap fringe ccd [width height] nx [cmap nhalf] iset (ilo ihi
+    """``setfringe fmap fringe ccd [width height] nx msub [cmap nhalf] iset (ilo ihi
     | plo phi)``
 
     Interactive definition of CCD fringe pairs. The idea is to place a large
@@ -88,6 +59,9 @@ def setfringe(args=None):
       nx : int
          number of panels across to display, prompted if more than one CCD is
          to be plotted.
+
+      msub : bool
+         True/False to subtract median from each window before scaling
 
       cmap : str [hidden]
          The colour map to use. "Greys" is the usual; "Greys_r" reverses it.
@@ -132,6 +106,7 @@ def setfringe(args=None):
         cl.register("width", Cline.LOCAL, Cline.HIDE)
         cl.register("height", Cline.LOCAL, Cline.HIDE)
         cl.register("nx", Cline.LOCAL, Cline.PROMPT)
+        cl.register("msub", Cline.GLOBAL, Cline.PROMPT)
         cl.register("cmap", Cline.LOCAL, Cline.HIDE)
         cl.register("nhalf", Cline.GLOBAL, Cline.HIDE)
         cl.register("iset", Cline.GLOBAL, Cline.PROMPT)
@@ -182,6 +157,9 @@ def setfringe(args=None):
         else:
             nx = 1
 
+        # define the display intensities
+        msub = cl.get_value("msub", "subtract median from each window?", True)
+
         cmap = cl.get_value(
             "cmap", "colour map to use ['none' for mpl default]", "Greys"
         )
@@ -218,117 +196,59 @@ def setfringe(args=None):
         # might be worth trying to improve this at some point
         xlo, xhi, ylo, yhi = 0, nxmax + 1, 0, nymax + 1
 
-    # Inputs obtained.
-
-    # re-configure keyboard shortcuts to avoid otherwise confusing behaviour
-    # quit_all does not seem to be universal, hence the try/except
-    try:
-        mpl.rcParams["keymap.back"] = ""
-        mpl.rcParams["keymap.forward"] = ""
-        mpl.rcParams["keymap.fullscreen"] = ""
-        mpl.rcParams["keymap.grid"] = ""
-        mpl.rcParams["keymap.home"] = ""
-        mpl.rcParams["keymap.pan"] = ""
-        mpl.rcParams["keymap.quit"] = ""
-        mpl.rcParams["keymap.save"] = ""
-        mpl.rcParams["keymap.pan"] = ""
-        mpl.rcParams["keymap.save"] = ""
-        mpl.rcParams["keymap.xscale"] = ""
-        mpl.rcParams["keymap.yscale"] = ""
-        mpl.rcParams["keymap.zoom"] = ""
-        mpl.rcParams["keymap.all_axes"] = ""
-    except KeyError:
-        pass
-
     # start plot
+    fig = plt.figure()
     if width > 0 and height > 0:
-        fig = plt.figure(figsize=(width, height))
-    else:
-        fig = plt.figure()
+        fig.set_size_inches(width, height)
 
-    # get the navigation toolbar. Go straight into pan mode
-    # where we want to stay.
-    toolbar = fig.canvas.manager.toolbar
-    toolbar.pan()
+    # plot the CCDs on the figure
+    caxes = hcam.mpl.plot_frame(
+        fig=fig,
+        mccd=mccd,
+        cnams=ccds,
+        ncols=nx,
+        msub=msub,
+        cmap=cmap,
+        iset=iset,
+        ilim=(plo, phi) if iset == "p" else (ilo, ihi),
+        region=(xlo, xhi, ylo, yhi),
+    )
+    plt.tight_layout()
 
-    nccd = len(ccds)
-    ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
-
-    # we need to store some stuff
-    ax = None
-    cnams = {}
-    anams = {}
-
-    # this is a container for all the objects used to plot FringePairs to
-    # allow deletion.
+    # add any existing fringe pairs to the CCDs, storing a reference to the plot objects
     pobjs = {}
-
-    for n, cnam in enumerate(ccds):
-        if ax is None:
-            axes = ax = fig.add_subplot(ny, nx, n + 1)
-            axes.set_aspect("equal", adjustable="box")
-            axes.set_xlim(xlo, xhi)
-            axes.set_ylim(ylo, yhi)
-        else:
-            axes = fig.add_subplot(ny, nx, n + 1, sharex=ax, sharey=ax)
-            axes.set_aspect("equal", adjustable="box")
-
-        hcam.mpl.pCcd(
-            axes, mccd[cnam], iset, plo, phi, ilo, ihi, f"CCD {cnam}", cmap=cmap
-        )
-
-        # keep track of the CCDs associated with each axes
-        cnams[axes] = cnam
-
-        # and axes associated with each CCD
-        anams[cnam] = axes
-
+    for cnam, axes in caxes.items():
         if cnam in mccd_fpair:
-            # plot any pre-existing FringePairs, keeping track of
-            # the plot objects
             pobjs[cnam] = hcam.mpl.pCcdFringePair(axes, mccd_fpair[cnam])
-
         else:
-            # add in an empty CcdFringePair for any CCD not already present
+            # add in an empty group for any CCD not already present
             mccd_fpair[cnam] = fringe.CcdFringePair()
-
-            # and an empty container for any new plot objects
             pobjs[cnam] = {}
 
-    # create the FringePair picker (see below for class def)
+    # create the picker class
     picker = PickFringePair(
-        mccd, cnams, anams, toolbar, fig, mccd_fpair, fpair, nhalf, pobjs
+        mccd, caxes, fig, mccd_fpair, fpair, nhalf, pobjs
     )
-
     picker.action_prompt(False)
 
-    # squeeze space a bit
-    plt.subplots_adjust(wspace=0.1, hspace=0.1)
-
-    # finally show stuff ....
+    # finally set up the plot for interactive mode and display
+    hcam.mpl.setup_plot(fig)
     plt.show()
-
-
-# the next class is where all the action occurs. A rather complicated matter
-# of handling events. note that standard terminal input with 'input' becomes
-# impossible, explaining some of the weirdness. Effectively the class is used
-# here to define a scope for variables that would otherwise be treated as globals
 
 
 class PickFringePair:
     """Class to pick fringe pairs"""
 
     def __init__(
-        self, mccd, cnams, anams, toolbar, fig, mccd_fpair, fringenam, nhalf, pobjs
+        self, mccd, caxes, fig, mccd_fpair, fringenam, nhalf, pobjs
     ):
 
         # save the inputs, tack on event handlers.
         self.fig = fig
         self.fig.canvas.mpl_connect("key_press_event", self._keyPressEvent)
         self.mccd = mccd
-        self.cnams = cnams
-        self.anams = anams
-        self.toolbar = toolbar
+        self.caxes = caxes
+        self.cnams = {axes: cnam for cnam, axes in caxes.items()}  # reverse for events
         self.mccd_fpair = mccd_fpair
         self.fringenam = fringenam
         self.nhalf = nhalf
@@ -369,11 +289,10 @@ class PickFringePair:
                 self.action_prompt(True)
                 return
 
-            axes = event.inaxes
-            if axes is not None:
-                self._cnam = self.cnams[axes]
+            if event.inaxes is not None:
+                self._cnam = self.cnams[event.inaxes]
                 self._key = event.key
-                self._axes = axes
+                self._axes = event.inaxes
                 self._x = event.xdata
                 self._y = event.ydata
                 self._pair()

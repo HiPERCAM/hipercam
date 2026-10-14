@@ -201,18 +201,10 @@ def pbands(args=None):
             "badtime", "plot points marked as bad time in the log file?", False
         )
 
+    # start plot
+    fig, axs = plt.subplots(len(ccds), 2 if pgram else 1, sharex="col", squeeze=False)
     if width > 0 and height > 0:
-        fig, axs = plt.subplots(
-            len(ccds),
-            2 if pgram else 1,
-            figsize=(width, height),
-            sharex="col",
-            squeeze=False,
-        )
-    else:
-        fig, axs = plt.subplots(
-            len(ccds), 2 if pgram else 1, sharex="col", squeeze=False
-        )
+        fig.set_size_inches(width, height)
 
     # light curves
     bitmask = hcam.JUNK

@@ -156,10 +156,11 @@ def plog(args=None):
     # load the reduce log
     hlog = hcam.hlog.Hlog.rascii(log)
 
+    # start plot
+    fig = plt.figure()
     if width > 0 and height > 0:
-        fig = plt.figure(figsize=(width, height))
-    else:
-        fig = plt.figure()
+        fig.set_size_inches(width, height)
+    axes = fig.add_subplot(1, 1, 1)
 
     dat1 = hlog.tseries(ccd1, aper1, pname1)
 
@@ -168,48 +169,48 @@ def plog(args=None):
     if not badtime:
         bitmask |= hcam.BAD_TIME
 
-    if ccd2 != "!":
+    if ccd2 == "!":
+        # just one
+        dat1.mplot(axes, bitmask=bitmask)
+        axes.set_xlabel("Time [MJD]")
+        axes.set_ylabel(lab1)
+
+    else:
+        # two apertures
         dat2 = hlog.tseries(ccd2, aper2, pname2)
         if scheme == "b":
-            # plots both together
-            dat1.mplot(plt, "b", bitmask=bitmask)
-            dat2.mplot(plt, "r", bitmask=bitmask)
-            xlabel = "Time [MJD]"
-            ylabel = "{:s} & {:s}".format(lab1, lab2)
+            # plot both together
+            dat1.mplot(axes, "b", bitmask=bitmask)
+            dat2.mplot(axes, "r", bitmask=bitmask)
+            axes.set_xlabel("Time [MJD]")
+            axes.set_ylabel(f"{lab1} & {lab2}")
 
         elif scheme == "r":
             # ratio
             ratio = dat1 / dat2
-            ratio.mplot(plt, "b", bitmask=bitmask)
-            xlabel = "Time [MJD]"
-            ylabel = "{:s} / {:s}".format(lab1, lab2)
+            ratio.mplot(axes, "b", bitmask=bitmask)
+            axes.set_xlabel("Time [MJD]")
+            axes.set_ylabel(f"{lab1} / {lab2}")
 
         elif scheme == "d":
             # difference
             diff = dat1 - dat2
-            diff.mplot(plt, "b", bitmask=bitmask)
-            xlabel = "Time [MJD]"
-            ylabel = "{:s} - {:s}".format(lab1, lab2)
+            diff.mplot(axes, "b", bitmask=bitmask)
+            axes.set_xlabel("Time [MJD]")
+            axes.set_ylabel(f"{lab1} - {lab2}")
 
         elif scheme == "s":
+            # scatter plot
             mask1 = dat1.get_mask(bitmask=bitmask, invert=True)
             mask2 = dat1.get_mask(bitmask=bitmask, invert=True)
             ok = ~mask1 & ~mask2
-            plt.errorbar(
+            axes.errorbar(
                 dat1.y[ok], dat2.y[ok], dat2.ye[ok], dat1.ye[ok], ".", capsize=0
             )
-            xlabel = lab1
-            ylabel = lab2
+            axes.set_xlabel(lab1)
+            axes.set_ylabel(lab2)
 
-    else:
-        # just one
-        dat1.mplot(plt, bitmask=bitmask)
-        xlabel = "Time [MJD]"
-        ylabel = lab1
-
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
-    plt.title(title)
+    axes.set_title(title)
 
     if device == "term":
         plt.show()

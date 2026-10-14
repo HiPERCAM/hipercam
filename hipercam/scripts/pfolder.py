@@ -86,21 +86,22 @@ def pfolder(args=None):
     # load the reduce log
     hlog = hcam.hlog.Hlog.fromLog(log)
 
+    # start plot
+    fig = plt.figure()
     if width > 0 and height > 0:
-        fig = plt.figure(figsize=(width, height))
-    else:
-        fig = plt.figure()
+        fig.set_size_inches(width, height)
+    axes = fig.add_subplot(1, 1, 1)
 
     # load counts data, fold, plot two cycles
     data = hlog.tseries(ccd, aper, "counts")
     data.t = np.mod(86400.0 * (data.t - t0) / period, 1)
-    xlabel = "Phase [cycles]"
-    ylabel = "Counts"
-    data.mplot(plt, mask=hcam.ALL_OK)
+    data.mplot(axes, mask=hcam.ALL_OK)
     data.t += 1
-    data.mplot(plt, mask=hcam.ALL_OK)
+    data.mplot(axes, mask=hcam.ALL_OK)
 
-    plt.title("{:s}, CCD {:s}, Aperture {:s}".format(log, ccd, aper))
+    axes.set_xlabel("Phase [cycles]")
+    axes.set_ylabel("Counts")
+    axes.set_title("{:s}, CCD {:s}, Aperture {:s}".format(log, ccd, aper))
 
     if device == "term":
         plt.show()

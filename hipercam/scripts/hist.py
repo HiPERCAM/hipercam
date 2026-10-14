@@ -1,10 +1,5 @@
-import sys
-import os
-
-import numpy as np
-import matplotlib as mpl
 import matplotlib.pyplot as plt
-
+import numpy as np
 from trm import cline
 from trm.cline import Cline
 
@@ -153,16 +148,13 @@ def hist(args=None):
         width = cl.get_value("width", "plot width (inches)", 0.0)
         height = cl.get_value("height", "plot height (inches)", 0.0)
 
-    mpl.rcParams["xtick.labelsize"] = hcam.mpl.Params["axis.number.fs"]
-    mpl.rcParams["ytick.labelsize"] = hcam.mpl.Params["axis.number.fs"]
-
     nccd = len(ccds)
     ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
 
+    # start plot
+    fig, axs = plt.subplots(ny, nx, sharex=True, squeeze=False)
     if width > 0 and height > 0:
-        fig,axs = plt.subplots(ny,nx,sharex=True,figsize=(width, height),squeeze=False)
-    else:
-        fig,axs = plt.subplots(ny,nx,sharex=True, squeeze=False)
+        fig.set_size_inches(width, height)
 
     for n, (cnam,ax) in enumerate(zip(ccds,axs.flat)):
         ccd = mccd[cnam]
@@ -209,6 +201,7 @@ def hist(args=None):
             ax.set_ylim(0,ymax)
         ax.set_ylabel("Number of pixels")
         ax.set_xlabel("Counts")
+        ax.tick_params(labelsize=hcam.mpl.Params["axis.number.fs"])
 
     plt.tight_layout()
     if device == "term":

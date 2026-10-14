@@ -8,6 +8,7 @@ from __future__ import annotations
 import os
 from typing import TYPE_CHECKING
 
+import matplotlib as mpl
 from matplotlib.patches import Circle
 
 from . import defect, utils
@@ -315,6 +316,8 @@ def pCcd(
             color=Params["ccd.box.col"],
             animated=animated,
         )
+
+        axes.tick_params(labelsize=Params["axis.number.fs"])
 
         artists["labels"] = []
         if tlabel != "":
@@ -903,7 +906,7 @@ def plot_frame(
     iset: str = "p",
     ilim: tuple[float, float] | None = None,
     region: tuple[int, int, int, int] | None = None,
-) -> None:
+) -> dict[str, plt.Axes]:
     """Plots an :class:`Mccd` object on a given figure.
 
     Each CCD is added to a subplot in a grid.
@@ -950,6 +953,10 @@ def plot_frame(
             If iset='p', only this region is used to compute the percentiles for
             intensity scaling.
 
+    Returns:
+        dict[str, :class:`matplotlib.axes.Axes`]
+            A dictionary mapping CCD names to their corresponding Axes objects.
+
     """
     if ilim is None and iset == "p":
         ilim = 5.0, 95.0
@@ -967,10 +974,13 @@ def plot_frame(
     nrows = len(cnams) // ncols if len(cnams) % ncols == 0 else len(cnams) // ncols + 1
 
     # set up the axes and plot each CCD
+    caxes = {}
     for n, cnam in enumerate(cnams):
         if n == 0:
             axes = first_axes = fig.add_subplot(nrows, ncols, n + 1)
             axes.set_aspect("equal", adjustable="box")
+            axes.set_xlim(*xlim)
+            axes.set_ylim(*ylim)
         else:
             # subsequent axes share the same x and y as the first
             axes = fig.add_subplot(
@@ -999,6 +1009,44 @@ def plot_frame(
             cmap=cmap,
         )
 
-        # set the limits for the axes
-        axes.set_xlim(*xlim)
-        axes.set_ylim(*ylim)
+        # store the axes for each CCD in a dictionary for later reference
+        caxes[cnam] = axes
+
+    return caxes
+
+
+def setup_plot(fig, disable_shortcuts=True):
+    """Set up the plot for interactive use.
+
+    These are various tweaks to make interactive plotting more user-friendly.
+    """
+    backend = mpl.get_backend().lower()
+
+    # Start the interactive plot in pan mode, if not using the Tk backend
+    # (commit 11a9b65 added the skip "to help target selection when using TkAgg",
+    #  not sure why or if it's still necessary?)
+    if backend != "tkagg":
+        fig.canvas.manager.toolbar.pan()
+
+    # Disable the default key shortcuts as we often use them for other things
+    if disable_shortcuts:
+        for key in [k for k in mpl.rcParams.keys() if k.startswith("keymap.")]:
+            mpl.rcParams[key] = ""
+
+    # Replace the default matplotlib cursors with a more precise pointer.
+    from matplotlib.backend_bases import cursors
+
+    if backend.startswith("qt"):
+        from matplotlib.backends.backend_qt import cursord
+    elif backend.startswith("gtk3"):
+        from matplotlib.backends.backend_gtk3 import cursord
+    else:
+        return
+
+    try:
+        # Pan mode
+        cursord[cursors.MOVE] = cursord[cursors.POINTER]
+        # Zoom mode
+        cursord[cursors.SELECT_REGION] = cursord[cursors.POINTER]
+    except KeyError:
+        pass

@@ -1,32 +1,4 @@
-import sys
-import os
-
 import numpy as np
-import matplotlib as mpl
-
-# re-configure the cursors: backend specific.
-# aim to get rid of irritating 'hand' icon in
-# favour of something pointier.
-
-backend = mpl.get_backend()
-
-if backend == "Qt4Agg" or "Qt5Agg":
-    from matplotlib.backends.backend_qt5 import cursord as curs
-elif backend == "GTK3agg":
-    from matplotlib.backends.backend_gtk3 import cursord as curs
-else:
-    curs = None
-
-if curs is not None:
-    from matplotlib.backend_bases import cursors
-
-    try:
-        curs[cursors.HAND] = curs[cursors.POINTER]
-        curs[cursors.WAIT] = curs[cursors.POINTER]
-        curs[cursors.SELECT_REGION] = curs[cursors.POINTER]
-        curs[cursors.MOVE] = curs[cursors.POINTER]
-    except AttributeError:
-        pass
 
 import matplotlib.pyplot as plt
 
@@ -180,37 +152,12 @@ def flagcloud(args=None):
     # Inputs obtained.
     print()
 
-    # re-configure keyboard shortcuts to avoid otherwise confusing behaviour
-    # quit_all does not seem to be universal, hence the try/except
-    try:
-        mpl.rcParams["keymap.back"] = ""
-        mpl.rcParams["keymap.forward"] = ""
-        mpl.rcParams["keymap.fullscreen"] = ""
-        mpl.rcParams["keymap.grid"] = ""
-        mpl.rcParams["keymap.home"] = ""
-        mpl.rcParams["keymap.pan"] = ""
-        mpl.rcParams["keymap.quit"] = ""
-        mpl.rcParams["keymap.save"] = ""
-        mpl.rcParams["keymap.pan"] = ""
-        mpl.rcParams["keymap.save"] = ""
-        mpl.rcParams["keymap.xscale"] = ""
-        mpl.rcParams["keymap.yscale"] = ""
-        mpl.rcParams["keymap.zoom"] = ""
-    except KeyError:
-        pass
-
     cnams, anams, plots = {}, {}, {}
     ax = None
 
     fig,axs = plt.subplots(len(ccds),1,sharex=True)
     if len(ccds) == 1:
         axs = [axs]
-
-    # get the navigation toolbar. Go straight into pan mode where we
-    # want to stay.
-    toolbar = fig.canvas.manager.toolbar
-    if backend != "TkAgg":
-        toolbar.pan()
 
     ny = len(ccds)
     T0 = None
@@ -262,22 +209,14 @@ def flagcloud(args=None):
         ax.set_ylabel("CCD {:s}".format(cnam))
 
     ax.set_xlabel(f'Time [MJD - {T0}]')
+    plt.tight_layout()
 
-    # create the picker
+    # create the picker class
     picker = PickPoints(fig, hlog, cnams, anams, plots, T0, output)
+    picker.action_prompt(False)
 
-    try:
-        plt.tight_layout()
-    except:
-        pass
-
-    PickPoints.action_prompt(False)
-
-    # squeeze space a bit
-    plt.subplots_adjust(hspace=0.1)
-
-    # finally show stuff ....
-    plt.xlabel("Time [MJD - {:.7f}]".format(T0))
+    # finally set up the plot for interactive mode and display
+    hcam.mpl.setup_plot(fig)
     plt.show()
 
 
@@ -374,7 +313,7 @@ class PickPoints:
 
     @staticmethod
     def action_prompt(cr):
-        """Prompts user for an action. cr controls whether there is an intial
+        """Prompts user for an action. cr controls whether there is an initial
         carriage return or not.  It leaves the cursor at the end of the
         line. This appears in multiple places hence why it is a method.
 
@@ -632,4 +571,3 @@ require setting 2 points which should be from the same window.
 
                 plt.draw()
                 PickPoints.action_prompt(True)
-

@@ -167,8 +167,6 @@ def hplot(args=None):
 
     """
 
-    global fig, mccd, caxes, hsbox
-
     command, args = cline.script_args(args)
 
     # get input section
@@ -330,20 +328,13 @@ def hplot(args=None):
         gain = cl.get_value("gain", "gain, ADU/e-", 1.0)
         thresh = cl.get_value("thresh", "number of RMS to reject at", 4.0)
 
-    # all inputs obtained, plot
+    # start plot
+    fig = plt.figure()
     if width > 0 and height > 0:
-        fig = plt.figure(figsize=(width, height))
-    else:
-        fig = plt.figure()
-
-    # set plot label sizes
-    mpl.rcParams["xtick.labelsize"] = hcam.mpl.Params["axis.number.fs"]
-    mpl.rcParams["ytick.labelsize"] = hcam.mpl.Params["axis.number.fs"]
-    # disable 'r' key as shortcut for reset zoom
-    mpl.rcParams["keymap.home"].remove("r")
+        fig.set_size_inches(width, height)
 
     # plot the CCDs on the figure
-    hcam.mpl.plot_frame(
+    caxes = hcam.mpl.plot_frame(
         fig=fig,
         mccd=mccd,
         cnams=ccds,
@@ -354,26 +345,24 @@ def hplot(args=None):
         ilim=(plo, phi) if iset == "p" else (ilo, ihi),
         region=(xlo, xhi, ylo, yhi),
     )
+    plt.tight_layout()
 
-    # store the CCD associated with these axes for the cursor callback
-    caxes = {axes: axes.get_title().split()[-1] for axes in fig.axes}
-    for axes in caxes:
-        cnam = caxes[axes]
-        imgs = axes.get_images()
-        vmin, vmax = imgs[0].get_clim()
-        print("CCD =", cnam, "plot range =", vmin, "to", vmax)
-
-    try:
-        plt.tight_layout()
-    except:
-        pass
+    # print the plot ranges for each CCD
+    for cnam in caxes:
+        imgs = caxes[cnam].get_images()
+        vmin, vmax = imgs[0].get_clim()  # the first window, but should all be the same
+        print(f"CCD = {cnam}, plot range = {vmin} to {vmax}")
 
     if device == "term":
-        # add in the callback
-        fig.canvas.mpl_connect("button_press_event", buttonPressEvent)
+        box_size = 2 * hsbox + 1
         print(
-            f"\nClick points in windows for stats in a {2 * hsbox + 1:d}x{2 * hsbox + 1:d} box"
+            f"\nClick points in windows for stats in a {box_size:d}x{box_size:d} box"
+            f"\nPress space bar to fit a profile at the cursor position"
+            f"\nPress 'r' to plot a radial profile of the fit in a new window"
         )
+
+        # disable 'r' key as shortcut for reset zoom
+        mpl.rcParams["keymap.home"].remove("r")
 
         # add the keypress callback
         fitter = OnDemandFit(
@@ -391,13 +380,17 @@ def hplot(args=None):
             read,
             gain,
             thresh,
+            hsbox,
         )
         fig.canvas.mpl_connect("key_press_event", fitter._keyPressEvent)
+        fig.canvas.mpl_connect("button_press_event", fitter._buttonPressEvent)
 
-        plt.subplots_adjust(wspace=0.1, hspace=0.1)
+        # finally set up the plot for interactive mode and display
+        hcam.mpl.setup_plot(fig, disable_shortcuts=False)
         plt.show()
 
     else:
+        # save plot to file
         if device.endswith(".png"):
             plt.savefig(device, dpi=dpi, bbox_inches="tight", pad_inches=0)
         else:
@@ -425,10 +418,13 @@ class OnDemandFit:
         read=-1.0,
         gain=1.0,
         thresh=4.0,
+        hsbox=2,
     ):
         self.fig = fig
+        self.hsbox = hsbox
         self.mccd = mccd
         self.caxes = caxes
+        self.cnams = {axes: cnam for cnam, axes in caxes.items()}  # reverse for events
         self.shbox = shbox
         self.fwhm = fwhm
         self.beta = beta
@@ -441,90 +437,104 @@ class OnDemandFit:
         self.gain = gain
         self.thresh = thresh
 
+        self.artists = None
+
     def _keyPressEvent(self, event):
+        """Fit a profile at the position of the cursor when the key is pressed."""
         # matplotlib 3.11 changes callback order so for "q" there is no
         # canvas manager any more
         if event.key == "q":
             return
 
-        pzoom = self.fig.canvas.manager.toolbar.mode == "pan/zoom"
-        # only when not in pan/zoom mode
-        if not pzoom and event.key in [" ", "r"] and event.inaxes is not None:
-            cnam = self.caxes[event.inaxes]
-            ccd = self.mccd[cnam]
-            x, y = event.xdata, event.ydata
-            # check that the position is inside a window
-            wnam = ccd.inside(x, y, 2)
-            if wnam is not None:
-                # store the position, Window label, target number,
-                # box size fwhm, beta
-                fpar = Fpar(cnam, wnam, x, y, self.shbox, self.fwhm, self.beta)
-                results, message = fpar.fit(
-                    ccd,
-                    self.method,
-                    self.smooth,
-                    self.fhbox,
-                    self.hmin,
-                    self.fwhm_min,
-                    self.read,
-                    self.gain,
-                    self.thresh,
-                )
-                if results is not None:
-                    # fitted OK
-                    print(
-                        f"profile fit with initial x,y = "
-                        f"{x:.2f}, {y:.2f} in CCD {cnam}, window {wnam}, [applies to previous frame]:"
-                    )
-                    print(f"   {message}\n")
-                    if event.key == "r":
-                        # plot the radial fit
-                        (
-                            _,
-                            radius,
-                            pixel_value,
-                            _,
-                            vmin,
-                            vmax,
-                            radius_fit,
-                            fit,
-                        ) = results
+        # only when curser is within the axes and not in pan/zoom mode
+        if self.fig.canvas.manager.toolbar.mode == "pan/zoom":
+            return
+        if event.inaxes is None:
+            return
 
-                        # needed to avoid error messages about event loop
-                        plt.ion()
+        # valid keys are space bar for fitting and 'r' for radial profile plot
+        if not event.key in [" ", "r"]:
+            return
 
-                        # open new figure (if not already open)
-                        radial_fig = plt.figure("radial profile")
-                        # clear in case already open
-                        radial_fig.clf()
+        # check that the position is inside a window
+        cnam = self.cnams[event.inaxes]
+        ccd = self.mccd[cnam]
+        x, y = event.xdata, event.ydata
+        wnam = ccd.inside(x, y, 2)
+        if wnam is None:
+            return
 
-                        # make plot
-                        ax = radial_fig.add_subplot(111)
-                        ax.plot(radius, pixel_value, "k.")
-                        ax.plot(radius_fit, fit, "k-")
-                        ax.set_ylim(vmin, vmax)
-                        ax.set_xlabel("Radius (pixels)")
-                        ax.set_ylabel("Pixel value")
+        # profile fit at the position of the cursor
+        fpar = Fpar(cnam, wnam, x, y, self.shbox, self.fwhm, self.beta)
+        results, message = fpar.fit(
+            ccd,
+            self.method,
+            self.smooth,
+            self.fhbox,
+            self.hmin,
+            self.fwhm_min,
+            self.read,
+            self.gain,
+            self.thresh,
+        )
+        if self.artists is not None:
+            for artist in self.artists:
+                artist.remove()
+        self.artists = fpar.plot(event.inaxes)
+        self.fig.canvas.draw_idle()
 
-                else:
-                    print(
-                        f"\n   ** fit failed at position x,y = {x:.2f}, {y:.2f} in CCD {cnam}, window {wnam}"
-                    )
-                    print(f"   ** fit message = {message}\n")
+        print(
+            f"\nProfile fit at x,y = {x:.2f},{y:.2f} in CCD {cnam}, window {wnam}"
+            " [applies to previous frame]\n",
+            message,
+        )
 
+        if results is None:
+            # fit failed
+            self.artists[0].set_color("red")
+            self.artists[1].set_color("red")
+            self.fig.canvas.draw_idle()
+            return
 
-def buttonPressEvent(event):
-    """
-    callback
-    """
-    global fig, mccd, caxes, hsbox
+        # fitted OK
+        if event.key == "r":
+            # plot the radial fit
+            (
+                _,
+                radius,
+                pixel_value,
+                _,
+                vmin,
+                vmax,
+                radius_fit,
+                fit,
+            ) = results
 
-    pzoom = fig.canvas.manager.toolbar.mode == "pan/zoom"
+            # needed to avoid error messages about event loop
+            plt.ion()
 
-    if not pzoom:
-        # only when not in pan/zoom mode
-        if event.inaxes is not None:
-            cnam = caxes[event.inaxes]
-            ccd = mccd[cnam]
-            x, y = event.xdata, event.ydata
-            utils.print_stats(ccd, cnam, x, y, hsbox)
+            # open new figure (if not already open)
+            radial_fig = plt.figure("radial profile")
+            # clear in case already open
+            radial_fig.clf()
+
+            # make plot
+            ax = radial_fig.add_subplot(111)
+            ax.plot(radius, pixel_value, "k.")
+            ax.plot(radius_fit, fit, "k-")
+            ax.set_ylim(vmin, vmax)
+            ax.set_xlabel("Radius (pixels)")
+            ax.set_ylabel("Pixel value")
+
+    def _buttonPressEvent(self, event):
+        """Print statistics when the window is clicked."""
+        # only when curser is within the axes and not in pan/zoom mode
+        if self.fig.canvas.manager.toolbar.mode == "pan/zoom":
+            return
+        if event.inaxes is None:
+            return
+
+        cnam = self.cnams[event.inaxes]
+        utils.print_stats(
+            self.mccd[cnam], cnam, event.xdata, event.ydata, self.hsbox
+        )

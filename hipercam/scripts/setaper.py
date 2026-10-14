@@ -1,32 +1,7 @@
 import os
 import sys
 
-import matplotlib as mpl
 import numpy as np
-
-# re-configure the cursors: backend specific.
-# aim to get rid of irritating 'hand' icon in
-# favour of something pointier.
-
-backend = mpl.get_backend()
-
-if backend == "Qt4Agg" or "Qt5Agg":
-    from matplotlib.backends.backend_qt5 import cursord as curs
-elif backend == "GTK3agg":
-    from matplotlib.backends.backend_gtk3 import cursord as curs
-else:
-    curs = None
-
-if curs is not None:
-    from matplotlib.backend_bases import cursors
-
-    try:
-        curs[cursors.HAND] = curs[cursors.POINTER]
-        curs[cursors.WAIT] = curs[cursors.POINTER]
-        curs[cursors.SELECT_REGION] = curs[cursors.POINTER]
-        curs[cursors.MOVE] = curs[cursors.POINTER]
-    except AttributeError:
-        pass
 
 import matplotlib.pyplot as plt
 from trm import cline
@@ -233,13 +208,6 @@ def setaper(args=None):
 
     Various standard keyboard shortcuts (e.g. 's' to save) are disabled as
     they just confuse things and are of limited use in setaper in any case.
-
-    Some aspects of the usage of matplotlib in setaper are tricky. It is
-    possible that particular 'backends' will cause problems. I have tested
-    this with Qt4Agg, Qt5agg and GTK3Agg. One aspect is the cursor icon in pan
-    mode is a rather indistinct hand where one can't tell what is being
-    pointed at. I have therefore suppressed this, but only for the tested
-    backends. Others would need require further investigation.
 
     When in `setaper`, help is always available by hitting 'h'. Most of the
     options are self-evident. A few which may not be are:
@@ -489,108 +457,39 @@ def setaper(args=None):
         thresh = cl.get_value("thresh", "RMS rejection threshold for fitting", 4.0)
         ndiv = cl.get_value("ndiv", "pixel sub-division factor", 0, 0)
 
-    # Inputs obtained.
-
-    # re-configure keyboard shortcuts to avoid otherwise confusing behaviour
-    # quit_all does not seem to be universal, hence the try/except
-    try:
-        mpl.rcParams["keymap.back"] = ""
-        mpl.rcParams["keymap.forward"] = ""
-        mpl.rcParams["keymap.fullscreen"] = ""
-        mpl.rcParams["keymap.grid"] = ""
-        mpl.rcParams["keymap.home"] = ""
-        mpl.rcParams["keymap.pan"] = ""
-        mpl.rcParams["keymap.quit"] = ""
-        mpl.rcParams["keymap.save"] = ""
-        mpl.rcParams["keymap.pan"] = ""
-        mpl.rcParams["keymap.save"] = ""
-        mpl.rcParams["keymap.xscale"] = ""
-        mpl.rcParams["keymap.yscale"] = ""
-        mpl.rcParams["keymap.zoom"] = ""
-    except KeyError:
-        pass
-
     # start plot
+    fig = plt.figure()
     if width > 0 and height > 0:
-        fig = plt.figure(figsize=(width, height))
-    else:
-        fig = plt.figure()
+        fig.set_size_inches(width, height)
 
-    # get the navigation toolbar. Go straight into pan mode where we
-    # want to stay.
-    toolbar = fig.canvas.manager.toolbar
-    if backend != "TkAgg":
-        toolbar.pan()
+    # plot the CCDs on the figure
+    caxes = hcam.mpl.plot_frame(
+        fig=fig,
+        mccd=mccd,
+        cnams=ccds,
+        ncols=nx,
+        msub=msub,
+        cmap=cmap,
+        iset=iset,
+        ilim=(plo, phi) if iset == "p" else (ilo, ihi),
+        region=(xlo, xhi, ylo, yhi),
+    )
+    plt.tight_layout()
 
-    nccd = len(ccds)
-    ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
-
-    # we need to store some stuff
-    ax = None
-    cnams = {}
-    anams = {}
-
-    # this is a container for all the objects used to plot apertures
-    # to allow deletion. The idea is that pobjs[cnam][anam] returns
-    # the objects used to plot aperture anam of CCD cnam. It is
-    # initially empty
+    # add any existing apertures to the CCDs, storing a reference to the plot objects
     pobjs = {}
-
-    for n, cnam in enumerate(ccds):
-        if ax is None:
-            axes = ax = fig.add_subplot(ny, nx, n + 1)
-            axes.set_aspect("equal", adjustable="box")
-            axes.set_xlim(xlo, xhi)
-            axes.set_ylim(ylo, yhi)
-        else:
-            axes = fig.add_subplot(ny, nx, n + 1, sharex=ax, sharey=ax)
-            axes.set_aspect("equal")
-
-        if msub:
-            # subtract median from each window
-            for wind in mccd[cnam].values():
-                wind -= wind.median()
-
-        hcam.mpl.pCcd(
-            axes,
-            mccd[cnam],
-            iset,
-            plo,
-            phi,
-            ilo,
-            ihi,
-            f"CCD {cnam}",
-            xlo=xlo,
-            xhi=xhi,
-            ylo=ylo,
-            yhi=yhi,
-            cmap=cmap,
-        )
-
-        # keep track of the CCDs associated with each Axes
-        cnams[axes] = cnam
-
-        # and the Axes associated with each CCD
-        anams[cnam] = axes
-
+    for cnam, axes in caxes.items():
         if cnam in mccdaper:
-            # plot any pre-existing apertures, keeping a reference to
-            # the plot objects
             pobjs[cnam] = hcam.mpl.pCcdAper(axes, mccdaper[cnam])
-
         else:
-            # add in an empty CcdApers for any CCD not already present
+            # add in an empty group for any CCD not already present
             mccdaper[cnam] = hcam.CcdAper()
-
-            # and an empty container for any new plot objects
             pobjs[cnam] = {}
 
-    # create the aperture picker (see below for class def)
+    # create the picker class
     picker = PickStar(
         mccd,
-        cnams,
-        anams,
-        toolbar,
+        caxes,
         fig,
         mccdaper,
         linput,
@@ -615,25 +514,11 @@ def setaper(args=None):
         aper,
         pobjs,
     )
+    picker.action_prompt(False)
 
-    try:
-        plt.tight_layout()
-    except:
-        pass
-
-    PickStar.action_prompt(False)
-
-    # squeeze space a bit
-    plt.subplots_adjust(wspace=0.1, hspace=0.1)
-
-    # finally show stuff ....
+    # finally set up the plot for interactive mode and display
+    hcam.mpl.setup_plot(fig)
     plt.show()
-
-
-# the next class is where all the action occurs. A rather complicated matter
-# of handling events. note that standard terminal input with 'input' becomes
-# impossible, explaining some of the weirdness. Effectively the class is used
-# here to define a scope for variables that would otherwise be treated as globals
 
 
 class PickStar:
@@ -644,9 +529,7 @@ class PickStar:
     def __init__(
         self,
         mccd,
-        cnams,
-        anams,
-        toolbar,
+        caxes,
         fig,
         mccdaper,
         linput,
@@ -675,14 +558,12 @@ class PickStar:
         self.fig = fig
         self.fig.canvas.mpl_connect("key_press_event", self._keyPressEvent)
         self.mccd = mccd
-        self.cnams = cnams
-        self.anams = anams
-        self.toolbar = toolbar
+        self.caxes = caxes
+        self.cnams = {axes: cnam for cnam, axes in caxes.items()}  # reverse for events
         self.mccdaper = mccdaper
         self.linput = linput
         self.rtarg = rtarg
         self.rsky1 = rsky1
-        self.rsky2 = rsky2
         self.rsky2 = rsky2
         self.profit = profit
         self.method = method
@@ -937,7 +818,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                 if len(self.mccdaper[self._cnam]):
                     # only if there are some to clone ...
                     for cnam in self.mccdaper:
-                        if cnam != self._cnam and cnam in self.anams:
+                        if cnam != self._cnam and cnam in self.caxes:
                             # ... it is not the CCD to be cloned and it
                             # is being displayed.
 
@@ -952,7 +833,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
 
                             # plot them, storing the plot objects
                             self.pobjs[cnam] = hcam.mpl.pCcdAper(
-                                self.anams[cnam], self.mccdaper[cnam]
+                                self.caxes[cnam], self.mccdaper[cnam]
                             )
 
                             plt.draw()
