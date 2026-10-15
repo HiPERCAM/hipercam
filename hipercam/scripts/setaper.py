@@ -1504,8 +1504,9 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
             ):
                 print(
                     "  *** found no aperture near to the"
-                    " cursor position to mask; nothing done"
+                    " cursor position to add mask to; nothing done"
                 )
+                self._mask_mode = False
                 PickStar.action_prompt(True)
 
             else:
