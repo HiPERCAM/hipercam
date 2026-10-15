@@ -718,6 +718,8 @@ class PickStar:
         line. This appears in multiple places hence why it is a method.
 
         """
+        # TODO: clear any modes we might still be in (add, link etc)
+        #       it will mean this can't be a static method any more
         if cr:
             print()
 
@@ -748,7 +750,7 @@ class PickStar:
             if event.key == "q":
                 # trap 'q' for quit during linking
                 self._link_mode = False
-                print("no extra aperture added")
+                print("no link added")
                 PickStar.action_prompt(True)
 
             elif event.key == "l":
@@ -764,6 +766,7 @@ class PickStar:
             # add an extra aperture
             if event.key == "q":
                 self._extra_mode = False
+                print("no extra aperture added")
                 PickStar.action_prompt(True)
 
             elif event.key == "e":
@@ -777,6 +780,7 @@ class PickStar:
         elif self._mask_mode:
             if event.key == "q":
                 self._mask_mode = False
+                print("no mask added")
                 PickStar.action_prompt(True)
 
             elif event.key == "m":
@@ -1355,6 +1359,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                     "  *** found no aperture near to the"
                     " cursor position to add extra pixels; nothing done"
                 )
+                self._extra_mode = False
                 PickStar.action_prompt(True)
 
             else:
@@ -1420,10 +1425,11 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
             if self._link_stage == 1:
                 print(
                     " 'l' to select the aperture to link"
-                    " aperture {:s} from ['q' to quit]".format(apnam)
+                    " aperture {:s} from ['q' to quit]".format(self._link_apnam)
                 )
             else:
                 print("  *** no link made.")
+                # note we stay in link mode so the user can try again
                 PickStar.action_prompt(True)
 
         else:
@@ -1434,6 +1440,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                 if aper.ref:
                     print("  *** cannot link a reference aperture")
                     self._link_mode = False
+                    PickStar.action_prompt(True)
 
                 else:
                     # first time through, store the CCD, aperture label and
@@ -1457,7 +1464,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                 if self._cnam != self._link_cnam:
                     print("  *** cannot link across CCDs; no link made")
                 elif apnam == self._link_apnam:
-                    print("  *** cannot link an aperture to itself; " "no link made")
+                    print("  *** cannot link an aperture to itself; no link made")
                 elif self._link_aper.linked:
                     print(
                         "  *** cannot link an aperture to an aperture"
@@ -1484,7 +1491,8 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                         "  linked aperture {:s} to aperture {:s}"
                         " in CCD {:s}".format(self._link_apnam, apnam, self._link_cnam)
                     )
-                    PickStar.action_prompt(True)
+
+                PickStar.action_prompt(True)
 
     def _mask(self):
         """
@@ -1523,6 +1531,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
             if self._cnam != self._mask_cnam:
                 print("  *** cannot add sky mask across CCDs; no mask added")
                 self._mask_mode = False
+                PickStar.action_prompt(True)
             else:
                 # store mask centre
                 self._mask_xcen = self._x
@@ -1568,7 +1577,8 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                         self._mask_apnam, self._mask_cnam
                     )
                 )
-                PickStar.action_prompt(True)
+
+            PickStar.action_prompt(True)
 
     def _compo(self):
         """
