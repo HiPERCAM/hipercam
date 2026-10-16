@@ -1,0 +1,42 @@
+hipercam.scripts.uls
+====================
+
+.. py:module:: hipercam.scripts.uls
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   hipercam.scripts.uls.uls
+
+
+Module Contents
+---------------
+
+.. py:function:: uls(args=None)
+
+   
+   Gives an 'ls'-like listing of the runs available on the ULTRACAM file
+   server. Just invoke as 'uls' with no arguments.
+
+   See |hls| for the |hiper| equivalent.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+

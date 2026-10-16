@@ -1,0 +1,146 @@
+hipercam.scripts.makestuff
+==========================
+
+.. py:module:: hipercam.scripts.makestuff
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   hipercam.scripts.makestuff.makemccd
+   hipercam.scripts.makestuff.makefield
+
+
+Module Contents
+---------------
+
+.. py:function:: makemccd(args=None)
+
+   
+   Script to generate multi-CCD test data given a set of parameters
+   defined in a config file (parsed using configparser). This allows
+   things such as a bias frame, flat field variations offsets, scale
+   factor and rotations between CCDs, and temporal variations.
+
+   Arguments::
+
+      config : string
+         file defining the parameters.
+
+      parallel : bool
+         True / yes etc to run in parallel. Be warned: it does not
+         always make things faster, which I assume is the result of
+         overheads when parallelising. It will simply use whatever
+         CPUs are available.
+
+   Depending upon the setting in the config file, this could generate a large
+   number of different files and so the first time you run it, you may want
+   to do so in a clean directory.
+
+   Config file format: see the documentation of configparser for the general
+   format of the config files expected by this routine. Essentially there are
+   a series of sections, e.g.:
+
+   [ccd 1]
+   nxtot = 2048
+   nytot = 1048
+   .
+   .
+   .
+
+   which define all the parameters needed. There are many others to simulate
+   a bias offset, a flat field; see the example file ??? for a fully-documented
+   version.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: makefield(args=None)
+
+   
+   Script to generate an artificial star field which is saved to a disk
+   file, a first step in generating fake data. The resulting files are needed
+   by makedata if you want to add in artificial star fields. If the name
+   supplied corresponds to an existing file, an attempt will be made to read
+   it in first and then add to it. In this way a complex field can be
+   generated. The targets are distributed at random, with random peak heights
+   based on constant luminosity objects distributed throughout 3D space, and
+   random angles uniform over the input range. All targets otherwise have the
+   same shape thus multiple calls are needed to generate a field of objects
+   of multiple shapes. Ellipsoidal "Moffat" functions [1/(1+r^2)^beta] are
+   used.
+
+   Arguments::
+
+      fname : (string)
+         file to add to. Will be created if it does not exist. [input, optional / output]
+
+      ntarg : (int)
+         The number of targets to add to the field.
+
+      x1 : (float)
+         The left-hand limit of the field [unbinned pixels]
+
+      x2 : (float)
+         The right-hand limit of the field [unbinned pixels]
+
+      y1 : (float)
+         The lowest limit of the field [unbinned pixels]
+
+      y2 : (float)
+         The highest limit of the field [unbinned pixels]
+
+      h1 : (float)
+         Minimum peak height [counts per unbinned pixel]
+
+      h2 : (float)
+         Maximum peak height [counts per unbinned pixel]
+
+      angle1 : (float)
+         Lower limit on axis 1, anti-clockwise from X-axis [degrees]
+
+      angle2 : (float)
+         Upper limit on axis 1, anti-clockwise from X-axis [degrees]
+
+      fwhm1 : (float)
+         FWHM along axis 1 [unbinned pixels]
+
+      fwhm2 : (float)
+         FWHM along axis 2 [unbinned pixels]
+
+      beta : (float)
+         Moffat function exponent
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+

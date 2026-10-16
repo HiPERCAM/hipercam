@@ -1,0 +1,5773 @@
+[
+  "hipercam.MccdDefect",
+  [
+    "1",
+    [
+      "hipercam.CcdDefect",
+      [
+        "1",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 90.72485335799189,
+          "y": 994.6648853108959
+        }
+      ],
+      [
+        "2",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 91.07208743263413,
+          "y": 995.1609339889562
+        }
+      ],
+      [
+        "3",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 76.90001956624585,
+          "y": 880.177589607476
+        }
+      ],
+      [
+        "4",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 77.37746641887892,
+          "y": 879.6567384955125
+        }
+      ],
+      [
+        "5",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 79.67789216338377,
+          "y": 879.7869512735034
+        }
+      ],
+      [
+        "6",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 80.15533901601687,
+          "y": 880.177589607476
+        }
+      ],
+      [
+        "7",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 77.89831753084229,
+          "y": 878.0073766409619
+        }
+      ],
+      [
+        "8",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 78.5493814207965,
+          "y": 878.0073766409619
+        }
+      ],
+      [
+        "9",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 78.9834240140993,
+          "y": 877.9639723816316
+        }
+      ],
+      [
+        "10",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 78.80980697677818,
+          "y": 878.3546107156042
+        }
+      ],
+      [
+        "11",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 78.24555160548454,
+          "y": 878.3546107156042
+        }
+      ],
+      [
+        "12",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 161.68832324044442,
+          "y": 880.312902098873
+        }
+      ],
+      [
+        "13",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 162.23811052529464,
+          "y": 879.8023853343692
+        }
+      ],
+      [
+        "14",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 467.8033917585373,
+          "y": 887.1594670961032
+        }
+      ],
+      [
+        "15",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 468.2333006128563,
+          "y": 886.7832968485741
+        }
+      ],
+      [
+        "16",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 498.7030906627131,
+          "y": 871.9514413745696
+        }
+      ],
+      [
+        "17",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 499.1329995170321,
+          "y": 871.9514413745696
+        }
+      ],
+      [
+        "18",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 499.8853400120903,
+          "y": 871.9514413745696
+        }
+      ],
+      [
+        "19",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 500.2615102596194,
+          "y": 871.8977027677798
+        }
+      ],
+      [
+        "20",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 500.69141911393837,
+          "y": 871.8977027677798
+        }
+      ],
+      [
+        "21",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 501.3362823954168,
+          "y": 872.1663958017292
+        }
+      ],
+      [
+        "22",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 499.56290837135106,
+          "y": 872.1663958017292
+        }
+      ],
+      [
+        "23",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 500.10029443924975,
+          "y": 871.1453622727216
+        }
+      ],
+      [
+        "24",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 499.77786279851057,
+          "y": 870.6617148116128
+        }
+      ],
+      [
+        "25",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 502.2498387108446,
+          "y": 870.8229306319824
+        }
+      ],
+      [
+        "26",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 501.87366846331554,
+          "y": 871.1991008795115
+        }
+      ],
+      [
+        "27",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 500.422726079989,
+          "y": 872.220134408519
+        }
+      ],
+      [
+        "28",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 717.7603658591402,
+          "y": 921.249236485335
+        }
+      ],
+      [
+        "29",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 718.16960601854,
+          "y": 920.8854674547574
+        }
+      ],
+      [
+        "30",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 713.7134081184225,
+          "y": 1002.2691268669442
+        }
+      ],
+      [
+        "31",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 714.2404598388616,
+          "y": 1002.2691268669442
+        }
+      ],
+      [
+        "32",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 713.9593655879607,
+          "y": 1001.9177590533182
+        }
+      ],
+      [
+        "33",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 713.7134081184225,
+          "y": 1001.496117676967
+        }
+      ],
+      [
+        "34",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 714.3107334015868,
+          "y": 1001.4609808956043
+        }
+      ],
+      [
+        "35",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 713.9242288065982,
+          "y": 1001.1798866447034
+        }
+      ],
+      [
+        "36",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 713.7134081184225,
+          "y": 1000.687971705627
+        }
+      ],
+      [
+        "37",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 714.1701862761364,
+          "y": 1000.687971705627
+        }
+      ],
+      [
+        "38",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 812.6990755153763,
+          "y": 982.1580656816104
+        }
+      ],
+      [
+        "39",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 813.2943339290488,
+          "y": 981.7612267391621
+        }
+      ],
+      [
+        "40",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 813.8895923427211,
+          "y": 981.7612267391621
+        }
+      ],
+      [
+        "41",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 814.2368264173634,
+          "y": 982.3564851528346
+        }
+      ],
+      [
+        "42",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 813.7407777393031,
+          "y": 982.3068802850285
+        }
+      ],
+      [
+        "43",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 813.1455193256306,
+          "y": 982.2076705494164
+        }
+      ],
+      [
+        "44",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 131.67230759887855,
+          "y": 863.288756908594
+        }
+      ],
+      [
+        "45",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 132.03400975996422,
+          "y": 862.8753830102104
+        }
+      ],
+      [
+        "46",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 288.90960029949616,
+          "y": 807.713595913202
+        }
+      ],
+      [
+        "47",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 289.28577054702527,
+          "y": 807.6867266098071
+        }
+      ],
+      [
+        "48",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 289.25890124363036,
+          "y": 808.3584591946804
+        }
+      ],
+      [
+        "49",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 288.8289923893114,
+          "y": 808.2509819811007
+        }
+      ],
+      [
+        "50",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 437.61532072185076,
+          "y": 966.6819823810896
+        }
+      ],
+      [
+        "51",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 438.26807024194017,
+          "y": 967.3188111811769
+        }
+      ],
+      [
+        "52",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 632.194337280856,
+          "y": 820.129479026147
+        }
+      ],
+      [
+        "53",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 631.7106898197471,
+          "y": 819.5920929582483
+        }
+      ],
+      [
+        "54",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 631.7644284265369,
+          "y": 818.3023663952914
+        }
+      ],
+      [
+        "55",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 632.194337280856,
+          "y": 817.9261961477623
+        }
+      ],
+      [
+        "56",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 631.6032126061673,
+          "y": 817.5500259002332
+        }
+      ],
+      [
+        "57",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 632.140598674066,
+          "y": 816.9589012255447
+        }
+      ],
+      [
+        "58",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 631.6032126061673,
+          "y": 816.797685405175
+        }
+      ],
+      [
+        "59",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 630.6896562907395,
+          "y": 813.1971987502536
+        }
+      ],
+      [
+        "60",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 631.1195651450585,
+          "y": 812.8210285027245
+        }
+      ],
+      [
+        "61",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 736.7548644504113,
+          "y": 1015.2059235070548
+        }
+      ],
+      [
+        "62",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 737.3129981467685,
+          "y": 1014.7275231958914
+        }
+      ],
+      [
+        "63",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 739.2664660840188,
+          "y": 1010.3023203176306
+        }
+      ],
+      [
+        "64",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 738.9076658506463,
+          "y": 1009.7840533138703
+        }
+      ],
+      [
+        "65",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 738.6684656950646,
+          "y": 1010.5813871658092
+        }
+      ],
+      [
+        "66",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 738.349532154289,
+          "y": 1009.9435200842581
+        }
+      ],
+      [
+        "67",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 737.2332647615747,
+          "y": 1011.3787210177481
+        }
+      ],
+      [
+        "68",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 736.9143312207991,
+          "y": 1010.7807206287939
+        }
+      ],
+      [
+        "69",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 730.7391075815082,
+          "y": 880.1940173924006
+        }
+      ],
+      [
+        "70",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 731.1855513917625,
+          "y": 879.6483638465343
+        }
+      ],
+      [
+        "71",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 731.1855513917625,
+          "y": 878.2594275479653
+        }
+      ],
+      [
+        "72",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 730.7887124493143,
+          "y": 877.961798341129
+        }
+      ],
+      [
+        "73",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 730.0942443000298,
+          "y": 876.7216766459782
+        }
+      ],
+      [
+        "74",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 729.7470102253875,
+          "y": 877.4657496630687
+        }
+      ],
+      [
+        "75",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 730.8879221849263,
+          "y": 878.5074518869955
+        }
+      ],
+      [
+        "76",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 727.9612349843703,
+          "y": 877.0689107206205
+        }
+      ],
+      [
+        "77",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 728.4076787946245,
+          "y": 876.7216766459782
+        }
+      ],
+      [
+        "78",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 729.1517518117151,
+          "y": 874.8862965371549
+        }
+      ],
+      [
+        "79",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 728.7549128692668,
+          "y": 875.2831354796032
+        }
+      ],
+      [
+        "80",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 726.9195327604435,
+          "y": 875.1839257439912
+        }
+      ],
+      [
+        "81",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 725.9274354043229,
+          "y": 873.1005212961377
+        }
+      ],
+      [
+        "82",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 726.3242743467712,
+          "y": 872.7036823536894
+        }
+      ],
+      [
+        "83",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 725.8778305365169,
+          "y": 870.2730438311937
+        }
+      ],
+      [
+        "84",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 726.274669478965,
+          "y": 869.8266000209394
+        }
+      ],
+      [
+        "85",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 727.71321064534,
+          "y": 869.8762048887454
+        }
+      ],
+      [
+        "86",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 727.8124203809522,
+          "y": 870.3226486989997
+        }
+      ],
+      [
+        "87",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 727.8620252487582,
+          "y": 871.9100044687929
+        }
+      ],
+      [
+        "88",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 728.2092593234005,
+          "y": 872.1084239400169
+        }
+      ],
+      [
+        "89",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 730.7391075815082,
+          "y": 871.8603996009867
+        }
+      ],
+      [
+        "90",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 731.0367367883445,
+          "y": 872.207633675629
+        }
+      ],
+      [
+        "91",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 731.0367367883445,
+          "y": 872.8028920893014
+        }
+      ],
+      [
+        "92",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 730.6895027137022,
+          "y": 873.1005212961377
+        }
+      ],
+      [
+        "93",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 730.7391075815082,
+          "y": 872.3564482790471
+        }
+      ],
+      [
+        "94",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 984.8283729543496,
+          "y": 829.0711267623025
+        }
+      ],
+      [
+        "95",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 985.1632058120404,
+          "y": 828.8479048571753
+        }
+      ],
+      [
+        "96",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 985.8886770037036,
+          "y": 827.8992117603849
+        }
+      ],
+      [
+        "97",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 986.2793153376762,
+          "y": 828.2340446180756
+        }
+      ],
+      [
+        "98",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 233.648979328434,
+          "y": 909.6224656449261
+        }
+      ],
+      [
+        "99",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 234.25955508802434,
+          "y": 910.2911914768583
+        }
+      ],
+      [
+        "100",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 234.00757144120928,
+          "y": 909.9616744002541
+        }
+      ],
+      [
+        "101",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 454.3407061811134,
+          "y": 947.6576023150004
+        }
+      ],
+      [
+        "102",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 453.77330988678085,
+          "y": 948.2917511145486
+        }
+      ],
+      [
+        "103",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 453.7065573815653,
+          "y": 949.2763505664785
+        }
+      ],
+      [
+        "104",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 454.27395367589776,
+          "y": 948.7256423984498
+        }
+      ],
+      [
+        "105",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 455.2418650015238,
+          "y": 949.3264149453902
+        }
+      ],
+      [
+        "106",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 454.6744687071913,
+          "y": 948.7757067773615
+        }
+      ],
+      [
+        "107",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 455.2585531278277,
+          "y": 948.692266145842
+        }
+      ],
+      [
+        "108",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 454.39077056002503,
+          "y": 949.192909934959
+        }
+      ],
+      [
+        "109",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 453.84006239199647,
+          "y": 948.7423305247538
+        }
+      ],
+      [
+        "110",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 453.73993363417304,
+          "y": 947.7911073254317
+        }
+      ],
+      [
+        "111",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 454.1738249180744,
+          "y": 948.1248698515095
+        }
+      ],
+      [
+        "112",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 788.7717466759027,
+          "y": 838.8460286052423
+        }
+      ],
+      [
+        "113",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 789.1478831428805,
+          "y": 839.22216507222
+        }
+      ],
+      [
+        "114",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 819.738858424373,
+          "y": 881.7214286055784
+        }
+      ],
+      [
+        "115",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 820.2512306323072,
+          "y": 882.2061050184891
+        }
+      ],
+      [
+        "116",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 895.7601299964192,
+          "y": 936.2320339395737
+        }
+      ],
+      [
+        "117",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 896.1305450440575,
+          "y": 935.7579026785967
+        }
+      ],
+      [
+        "118",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 932.8394978158763,
+          "y": 877.2192687764748
+        }
+      ],
+      [
+        "119",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 933.2781789428645,
+          "y": 876.82046775194
+        }
+      ],
+      [
+        "120",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 110.7442491398512,
+          "y": 768.7791320201352
+        }
+      ],
+      [
+        "121",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 111.11068250619621,
+          "y": 769.3026082577709
+        }
+      ],
+      [
+        "122",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 76.83143128616638,
+          "y": 706.3068166263666
+        }
+      ],
+      [
+        "123",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 77.25021227627495,
+          "y": 705.8880356362581
+        }
+      ],
+      [
+        "124",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 78.71594574165496,
+          "y": 705.8880356362581
+        }
+      ],
+      [
+        "125",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 79.08237910799996,
+          "y": 706.2544690026031
+        }
+      ],
+      [
+        "126",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 391.69679101685773,
+          "y": 762.2991281524594
+        }
+      ],
+      [
+        "127",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 392.229371189061,
+          "y": 761.8894510969184
+        }
+      ],
+      [
+        "128",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 392.8029190668184,
+          "y": 761.725580274702
+        }
+      ],
+      [
+        "129",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 393.1716284168053,
+          "y": 762.2991281524594
+        }
+      ],
+      [
+        "130",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 392.5161451279397,
+          "y": 762.3810635635675
+        }
+      ],
+      [
+        "131",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 392.8848544779266,
+          "y": 761.1930001024987
+        }
+      ],
+      [
+        "132",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 393.25356382791347,
+          "y": 760.7833230469577
+        }
+      ],
+      [
+        "133",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 224.92219944723666,
+          "y": 600.8455475543627
+        }
+      ],
+      [
+        "134",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 225.195317484264,
+          "y": 601.2552246099037
+        }
+      ],
+      [
+        "135",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 422.7029237140163,
+          "y": 667.7840783334271
+        }
+      ],
+      [
+        "136",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 423.2355038862196,
+          "y": 668.1983073562519
+        }
+      ],
+      [
+        "137",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 423.17632831153037,
+          "y": 668.7900631031445
+        }
+      ],
+      [
+        "138",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 422.67333592667165,
+          "y": 669.3226432753478
+        }
+      ],
+      [
+        "139",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 423.7680840584229,
+          "y": 671.8376051996411
+        }
+      ],
+      [
+        "140",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 424.1527252939031,
+          "y": 672.251834222466
+        }
+      ],
+      [
+        "141",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 311.7276750456188,
+          "y": 578.7785221365552
+        }
+      ],
+      [
+        "142",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 312.219287512268,
+          "y": 579.2428227995017
+        }
+      ],
+      [
+        "143",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 314.81390886402767,
+          "y": 580.8269074142603
+        }
+      ],
+      [
+        "144",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 315.19627411586595,
+          "y": 581.2365844698013
+        }
+      ],
+      [
+        "145",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 431.7903161636682,
+          "y": 579.0981629651369
+        }
+      ],
+      [
+        "146",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 432.23413297383763,
+          "y": 578.7567654188528
+        }
+      ],
+      [
+        "147",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 653.8051877431056,
+          "y": 576.0882465134923
+        }
+      ],
+      [
+        "148",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 654.2968002097549,
+          "y": 575.8424402801677
+        }
+      ],
+      [
+        "149",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 654.1329293875384,
+          "y": 575.3098601079644
+        }
+      ],
+      [
+        "150",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 653.7642200375516,
+          "y": 574.8182476413152
+        }
+      ],
+      [
+        "151",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 939.8455721102861,
+          "y": 653.2077997813142
+        }
+      ],
+      [
+        "152",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 940.2279373621243,
+          "y": 652.8254345294758
+        }
+      ],
+      [
+        "153",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 940.8652127818548,
+          "y": 653.2396635523007
+        }
+      ],
+      [
+        "154",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 941.1838504917199,
+          "y": 652.8891620714489
+        }
+      ],
+      [
+        "155",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 906.7843505206401,
+          "y": 587.1575029659591
+        }
+      ],
+      [
+        "156",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 907.1735437234041,
+          "y": 586.8115534523911
+        }
+      ],
+      [
+        "157",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 1016.2413572955135,
+          "y": 607.2318235706861
+        }
+      ],
+      [
+        "158",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 1015.8544400763914,
+          "y": 606.844906351564
+        }
+      ],
+      [
+        "159",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 1015.1192973600595,
+          "y": 606.1097636352321
+        }
+      ],
+      [
+        "160",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 1014.8097635847619,
+          "y": 605.8002298599345
+        }
+      ],
+      [
+        "161",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 175.78725345736976,
+          "y": 763.1902028692375
+        }
+      ],
+      [
+        "162",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 176.1696494017994,
+          "y": 762.7600074317542
+        }
+      ],
+      [
+        "163",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 428.74915955928253,
+          "y": 755.2145308421315
+        }
+      ],
+      [
+        "164",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 429.24999423225347,
+          "y": 754.7621640407383
+        }
+      ],
+      [
+        "165",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 617.7844939083749,
+          "y": 735.2779660148856
+        }
+      ],
+      [
+        "166",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 618.1648334371516,
+          "y": 734.7617909401172
+        }
+      ],
+      [
+        "167",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 791.2693090190246,
+          "y": 632.4095341757327
+        }
+      ],
+      [
+        "168",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 790.8274312223948,
+          "y": 631.8295695676561
+        }
+      ],
+      [
+        "169",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 139.77083788095712,
+          "y": 416.1186055806629
+        }
+      ],
+      [
+        "170",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 140.5067586121054,
+          "y": 415.7261145240505
+        }
+      ],
+      [
+        "171",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 142.07672283855499,
+          "y": 415.23550070328497
+        }
+      ],
+      [
+        "172",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 141.63517039986604,
+          "y": 415.0392551749788
+        }
+      ],
+      [
+        "173",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 543.8318577883705,
+          "y": 390.31804198203406
+        }
+      ],
+      [
+        "174",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 544.1478130889435,
+          "y": 389.776404323909
+        }
+      ],
+      [
+        "175",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 634.8958170680473,
+          "y": 422.385323575778
+        }
+      ],
+      [
+        "176",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 634.944878450124,
+          "y": 421.60034146255316
+        }
+      ],
+      [
+        "177",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 636.2695357661908,
+          "y": 420.86442073140495
+        }
+      ],
+      [
+        "178",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 635.7789219454253,
+          "y": 421.45315731632354
+        }
+      ],
+      [
+        "179",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 636.2695357661908,
+          "y": 424.2987174767635
+        }
+      ],
+      [
+        "180",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 635.8279833275018,
+          "y": 423.7590422739214
+        }
+      ],
+      [
+        "181",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 631.7068272330715,
+          "y": 424.34777885884
+        }
+      ],
+      [
+        "182",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 632.2955638179901,
+          "y": 423.9062264201511
+        }
+      ],
+      [
+        "183",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 632.4427479642198,
+          "y": 422.33626219370143
+        }
+      ],
+      [
+        "184",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 631.8049499972246,
+          "y": 421.9928325191656
+        }
+      ],
+      [
+        "185",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 665.7613257871365,
+          "y": 499.7811133776536
+        }
+      ],
+      [
+        "186",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 666.1145677380877,
+          "y": 500.2913517512497
+        }
+      ],
+      [
+        "187",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 823.7327888272284,
+          "y": 505.748728202667
+        }
+      ],
+      [
+        "188",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 824.1920033634649,
+          "y": 506.2334546575833
+        }
+      ],
+      [
+        "189",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 905.8434200430881,
+          "y": 534.3815495131122
+        }
+      ],
+      [
+        "190",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 906.4262692621576,
+          "y": 533.5867551234721
+        }
+      ],
+      [
+        "191",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 905.8964063357308,
+          "y": 533.109878489688
+        }
+      ],
+      [
+        "192",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 906.2143240915868,
+          "y": 532.8979333191173
+        }
+      ],
+      [
+        "193",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 907.1150910665124,
+          "y": 532.2091115147625
+        }
+      ],
+      [
+        "194",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 906.7971733106563,
+          "y": 531.7322348809785
+        }
+      ],
+      [
+        "195",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 907.6979402855818,
+          "y": 533.3218236602587
+        }
+      ],
+      [
+        "196",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 908.0688443340805,
+          "y": 533.0039059044027
+        }
+      ],
+      [
+        "197",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 395.66182080146865,
+          "y": 565.4074050333109
+        }
+      ],
+      [
+        "198",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 395.73580182492435,
+          "y": 565.1484714512159
+        }
+      ],
+      [
+        "199",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 395.71730656906044,
+          "y": 564.8340521015291
+        }
+      ],
+      [
+        "200",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 395.60633503387686,
+          "y": 564.6121090311619
+        }
+      ],
+      [
+        "201",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 396.34614526843404,
+          "y": 564.6860900546177
+        }
+      ],
+      [
+        "202",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 396.10570694220297,
+          "y": 564.852547357393
+        }
+      ],
+      [
+        "203",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 396.1426974539308,
+          "y": 565.2409477305355
+        }
+      ],
+      [
+        "204",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 396.29065950084225,
+          "y": 565.4259002891748
+        }
+      ],
+      [
+        "205",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 395.9207543835637,
+          "y": 565.370414521583
+        }
+      ],
+      [
+        "206",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 395.9947354070194,
+          "y": 564.6860900546177
+        }
+      ],
+      [
+        "207",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 396.3276500125701,
+          "y": 565.0744904277601
+        }
+      ],
+      [
+        "208",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 446.73945243813733,
+          "y": 545.3450739026755
+        }
+      ],
+      [
+        "209",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 446.8881258410435,
+          "y": 545.1017901524654
+        }
+      ],
+      [
+        "210",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 447.4287563970661,
+          "y": 545.4126527221783
+        }
+      ],
+      [
+        "211",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 447.2260199385576,
+          "y": 545.0612428607637
+        }
+      ],
+      [
+        "212",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 447.0503150078503,
+          "y": 545.4532000138801
+        }
+      ],
+      [
+        "213",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 446.67187361863455,
+          "y": 544.6017068881446
+        }
+      ],
+      [
+        "214",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 446.69890514643566,
+          "y": 544.9801482773603
+        }
+      ],
+      [
+        "215",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 446.92867313274525,
+          "y": 544.6152226520451
+        }
+      ],
+      [
+        "216",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 447.02328348004914,
+          "y": 544.8585064022552
+        }
+      ],
+      [
+        "217",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 447.29359875806045,
+          "y": 544.6017068881446
+        }
+      ],
+      [
+        "218",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 447.36117757756324,
+          "y": 544.8585064022552
+        }
+      ],
+      [
+        "219",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 599.8537043927446,
+          "y": 479.9030978903326
+        }
+      ],
+      [
+        "220",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 600.325049770955,
+          "y": 479.9292837446776
+        }
+      ],
+      [
+        "221",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 600.7702092948203,
+          "y": 480.0340271620577
+        }
+      ],
+      [
+        "222",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 601.3462980904109,
+          "y": 479.95546959902265
+        }
+      ],
+      [
+        "223",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 601.7914576142762,
+          "y": 480.0340271620577
+        }
+      ],
+      [
+        "224",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 602.1056878664165,
+          "y": 479.9816554533677
+        }
+      ],
+      [
+        "225",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 723.2143851312841,
+          "y": 435.3051747338682
+        }
+      ],
+      [
+        "226",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 722.7198463999524,
+          "y": 434.86558475046235
+        }
+      ],
+      [
+        "227",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 722.8846926437296,
+          "y": 433.8215585398733
+        }
+      ],
+      [
+        "228",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 723.2143851312841,
+          "y": 434.26114852327925
+        }
+      ],
+      [
+        "229",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 723.8188213584672,
+          "y": 434.15125102742775
+        }
+      ],
+      [
+        "230",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 724.0935650980958,
+          "y": 433.7666097919476
+        }
+      ],
+      [
+        "231",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 782.2199792357773,
+          "y": 457.28680943709946
+        }
+      ],
+      [
+        "232",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 781.8373004555801,
+          "y": 456.8452569984105
+        }
+      ],
+      [
+        "233",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 834.7562343414003,
+          "y": 406.84600436819477
+        }
+      ],
+      [
+        "234",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 835.1487253980126,
+          "y": 407.1894340427306
+        }
+      ],
+      [
+        "235",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 981.8347861561341,
+          "y": 418.75788488880164
+        }
+      ],
+      [
+        "236",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 982.1095298957628,
+          "y": 419.26812326239775
+        }
+      ],
+      [
+        "237",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 982.8945120089876,
+          "y": 417.9336536699156
+        }
+      ],
+      [
+        "238",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 983.2870030656,
+          "y": 418.2476465152055
+        }
+      ],
+      [
+        "239",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 975.8321941887565,
+          "y": 386.0266283550923
+        }
+      ],
+      [
+        "240",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 976.2737466274455,
+          "y": 386.35043347679755
+        }
+      ],
+      [
+        "241",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 1003.1516152795001,
+          "y": 377.26199929579394
+        }
+      ],
+      [
+        "242",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 1002.7812610809024,
+          "y": 376.743503417757
+        }
+      ],
+      [
+        "243",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 113.7629211870503,
+          "y": 357.22916511169825
+        }
+      ],
+      [
+        "244",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 114.1457678731091,
+          "y": 356.8463184256394
+        }
+      ],
+      [
+        "245",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 114.78384568320708,
+          "y": 355.22985464005785
+        }
+      ],
+      [
+        "246",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 115.12415384859268,
+          "y": 354.8895464746722
+        }
+      ],
+      [
+        "247",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 122.78108756976863,
+          "y": 343.2339918102155
+        }
+      ],
+      [
+        "248",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 123.29154981784703,
+          "y": 342.89368364482993
+        }
+      ],
+      [
+        "249",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 752.7218691730076,
+          "y": 340.2287179453923
+        }
+      ],
+      [
+        "250",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 753.2004275305811,
+          "y": 339.9096790403433
+        }
+      ],
+      [
+        "251",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 986.7960286903499,
+          "y": 348.3092041228002
+        }
+      ],
+      [
+        "252",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 987.1310195406513,
+          "y": 347.86254965573164
+        }
+      ],
+      [
+        "253",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 187.12879171670824,
+          "y": 320.2520316701707
+        }
+      ],
+      [
+        "254",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 186.81861500346616,
+          "y": 319.7646111207903
+        }
+      ],
+      [
+        "255",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 592.7517944472509,
+          "y": 347.91114277661285
+        }
+      ],
+      [
+        "256",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 593.0176602014583,
+          "y": 348.3099414079241
+        }
+      ],
+      [
+        "257",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 793.8264767966959,
+          "y": 358.098304263972
+        }
+      ],
+      [
+        "258",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 794.2749037021258,
+          "y": 357.5683451939184
+        }
+      ],
+      [
+        "259",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 794.3972019490614,
+          "y": 358.3021346755311
+        }
+      ],
+      [
+        "260",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 938.7699391034921,
+          "y": 296.1771823439171
+        }
+      ],
+      [
+        "261",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 939.1953243102241,
+          "y": 295.78015615096723
+        }
+      ],
+      [
+        "262",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 816.7064384444208,
+          "y": 280.9191344013491
+        }
+      ],
+      [
+        "263",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 817.1158717059003,
+          "y": 281.3285676628287
+        }
+      ],
+      [
+        "264",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 840.7618781429657,
+          "y": 194.80652201147288
+        }
+      ],
+      [
+        "265",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 841.1453808402288,
+          "y": 195.190024708736
+        }
+      ],
+      [
+        "266",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 833.7828456201403,
+          "y": 199.903245992878
+        }
+      ],
+      [
+        "267",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 834.1337884156942,
+          "y": 200.29318243238234
+        }
+      ],
+      [
+        "268",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 398.7967579916416,
+          "y": 326.7364078402643
+        }
+      ],
+      [
+        "269",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 399.20760809768734,
+          "y": 327.2646436908945
+        }
+      ],
+      [
+        "270",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 609.7749312696178,
+          "y": 341.2904214709143
+        }
+      ],
+      [
+        "271",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 610.220997099039,
+          "y": 340.7739241947425
+        }
+      ],
+      [
+        "272",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 643.7550617973486,
+          "y": 333.7740527758196
+        }
+      ],
+      [
+        "273",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 644.2074860212681,
+          "y": 334.2020216362839
+        }
+      ],
+      [
+        "274",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 142.27268671977282,
+          "y": 414.6190245930944
+        }
+      ],
+      [
+        "275",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 142.05433740489113,
+          "y": 414.94654856541695
+        }
+      ],
+      [
+        "276",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 141.64493243948792,
+          "y": 414.6736119218148
+        }
+      ],
+      [
+        "277",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 140.9762376626627,
+          "y": 414.75549291489546
+        }
+      ],
+      [
+        "278",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 140.59412636161971,
+          "y": 414.7281992505352
+        }
+      ],
+      [
+        "279",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 140.23930872493693,
+          "y": 414.74184608271537
+        }
+      ],
+      [
+        "280",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 139.62520127683214,
+          "y": 414.7281992505352
+        }
+      ],
+      [
+        "281",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 140.23930872493693,
+          "y": 416.1201761329061
+        }
+      ],
+      [
+        "282",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 140.60777319379983,
+          "y": 416.33852544778784
+        }
+      ],
+      [
+        "283",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 140.62142002597994,
+          "y": 415.92912048238463
+        }
+      ],
+      [
+        "284",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 139.734375934273,
+          "y": 415.6971243353228
+        }
+      ],
+      [
+        "285",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 140.10284040313587,
+          "y": 415.8062989927637
+        }
+      ],
+      [
+        "286",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 139.82990375953375,
+          "y": 415.31501303427984
+        }
+      ],
+      [
+        "287",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 140.25295555711705,
+          "y": 415.3832471951804
+        }
+      ],
+      [
+        "288",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 140.62142002597994,
+          "y": 415.3968940273605
+        }
+      ],
+      [
+        "289",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 141.45387678896643,
+          "y": 415.31501303427984
+        }
+      ],
+      [
+        "290",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 141.8086944256492,
+          "y": 415.35595353082016
+        }
+      ],
+      [
+        "291",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 141.29011480280516,
+          "y": 414.7281992505352
+        }
+      ],
+      [
+        "292",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 186.53489830869802,
+          "y": 320.21952205628327
+        }
+      ],
+      [
+        "293",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 186.84877544884046,
+          "y": 320.0284664057618
+        }
+      ],
+      [
+        "294",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 187.23088674988344,
+          "y": 319.66000193689894
+        }
+      ],
+      [
+        "295",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 543.6984963265998,
+          "y": 389.6142842916957
+        }
+      ],
+      [
+        "296",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 543.8249759285121,
+          "y": 390.00953304767194
+        }
+      ],
+      [
+        "297",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 544.3308943361617,
+          "y": 390.32573205245296
+        }
+      ],
+      [
+        "298",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 909.6831063827209,
+          "y": 231.6285765235303
+        }
+      ],
+      [
+        "299",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 909.9218771696645,
+          "y": 231.87991419399728
+        }
+      ],
+      [
+        "300",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 910.1355141895614,
+          "y": 232.16895251503428
+        }
+      ],
+      [
+        "301",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 910.3240174424117,
+          "y": 232.38258953493118
+        }
+      ],
+      [
+        "302",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 211.83371652692398,
+          "y": 108.79569879416256
+        }
+      ],
+      [
+        "303",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 212.1006104454204,
+          "y": 109.29612489134337
+        }
+      ],
+      [
+        "304",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 257.85111955839096,
+          "y": 160.8376674943411
+        }
+      ],
+      [
+        "305",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 258.1101636557552,
+          "y": 161.214458908689
+        }
+      ],
+      [
+        "306",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 437.85909822072665,
+          "y": 125.81661450217854
+        }
+      ],
+      [
+        "307",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 438.13972932620453,
+          "y": 126.30134095709485
+        }
+      ],
+      [
+        "308",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 585.8143159635172,
+          "y": 96.79280214145075
+        }
+      ],
+      [
+        "309",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 586.1322337193733,
+          "y": 97.18136828749704
+        }
+      ],
+      [
+        "310",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 585.7789917684221,
+          "y": 97.88785218939935
+        }
+      ],
+      [
+        "311",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 586.1675579144684,
+          "y": 98.38239092073098
+        }
+      ],
+      [
+        "312",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 214.73351904463394,
+          "y": 172.79347262172087
+        }
+      ],
+      [
+        "313",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 215.23010656240817,
+          "y": 173.26696304564513
+        }
+      ],
+      [
+        "314",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 24.69485112607252,
+          "y": 34.73248189325589
+        }
+      ],
+      [
+        "315",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 25.167417666242798,
+          "y": 35.21936863161314
+        }
+      ],
+      [
+        "316",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 25.783186188282855,
+          "y": 35.87809774821413
+        }
+      ],
+      [
+        "317",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 26.11255074658335,
+          "y": 36.23610270288858
+        }
+      ],
+      [
+        "318",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 25.783186188282855,
+          "y": 37.99748707988688
+        }
+      ],
+      [
+        "319",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 26.141191142957304,
+          "y": 38.3125314400004
+        }
+      ],
+      [
+        "320",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 222.7755390308236,
+          "y": 63.782758973880455
+        }
+      ],
+      [
+        "321",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 223.1002841703541,
+          "y": 64.26133075845172
+        }
+      ],
+      [
+        "322",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 223.6814070516192,
+          "y": 65.79959720885935
+        }
+      ],
+      [
+        "323",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 224.10870328784355,
+          "y": 66.24398529453268
+        }
+      ],
+      [
+        "324",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 519.7059754177287,
+          "y": 104.75779507383695
+        }
+      ],
+      [
+        "325",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 520.2270458549839,
+          "y": 105.26777890604417
+        }
+      ],
+      [
+        "326",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 572.7609622966397,
+          "y": 165.85318835654
+        }
+      ],
+      [
+        "327",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 573.190568242249,
+          "y": 166.26893604583935
+        }
+      ],
+      [
+        "328",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 758.728253111579,
+          "y": 114.72520509667531
+        }
+      ],
+      [
+        "329",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 759.1495441034024,
+          "y": 115.20793435813957
+        }
+      ],
+      [
+        "330",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 861.753449431978,
+          "y": 179.77022698422894
+        }
+      ],
+      [
+        "331",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 862.1802837263253,
+          "y": 180.19706127857629
+        }
+      ],
+      [
+        "332",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 890.7838418221259,
+          "y": 71.80954133379372
+        }
+      ],
+      [
+        "333",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 891.0647024833414,
+          "y": 72.14306336898721
+        }
+      ],
+      [
+        "334",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 890.7838418221259,
+          "y": 72.88032260467807
+        }
+      ],
+      [
+        "335",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 891.2051328139491,
+          "y": 73.28405980517546
+        }
+      ],
+      [
+        "336",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 1013.7945244157978,
+          "y": 148.82987493553347
+        }
+      ],
+      [
+        "337",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "MODERATE",
+          "x": 1014.1770122899533,
+          "y": 149.24562262483283
+        }
+      ],
+      [
+        "338",
+        {
+          "Comment": "hipercam.defect.Line",
+          "severity": "MODERATE",
+          "x1": 635.0104785667154,
+          "y1": 0.9593123392705377,
+          "x2": 634.9776724376345,
+          "y2": 1027.8958926014473
+        }
+      ],
+      [
+        "339",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 88.71461547085903,
+          "y": 995.1982749829137
+        }
+      ],
+      [
+        "340",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 89.47426838194822,
+          "y": 995.1982749829137
+        }
+      ],
+      [
+        "341",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 90.14455036232103,
+          "y": 995.1089040521973
+        }
+      ],
+      [
+        "342",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 88.84867186693359,
+          "y": 993.9917674182426
+        }
+      ],
+      [
+        "343",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 89.47426838194822,
+          "y": 994.0364528836009
+        }
+      ],
+      [
+        "344",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 90.09986489696284,
+          "y": 993.9470819528844
+        }
+      ],
+      [
+        "345",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 90.72546141197748,
+          "y": 994.0364528836009
+        }
+      ],
+      [
+        "346",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 91.21700153091753,
+          "y": 993.9917674182426
+        }
+      ],
+      [
+        "347",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 89.07209919372454,
+          "y": 994.5726784678991
+        }
+      ],
+      [
+        "348",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 89.78706663945553,
+          "y": 994.5279930025409
+        }
+      ],
+      [
+        "349",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 77.01860875651036,
+          "y": 879.0882176908138
+        }
+      ],
+      [
+        "350",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 77.52030466303182,
+          "y": 879.0496256980045
+        }
+      ],
+      [
+        "351",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 77.98340857674395,
+          "y": 879.0496256980045
+        }
+      ],
+      [
+        "352",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 78.44651249045609,
+          "y": 879.0496256980045
+        }
+      ],
+      [
+        "353",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 78.9096164041682,
+          "y": 879.0110337051952
+        }
+      ],
+      [
+        "354",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 79.06398437540558,
+          "y": 879.435545626098
+        }
+      ],
+      [
+        "355",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 79.06398437540558,
+          "y": 880.0916095038568
+        }
+      ],
+      [
+        "356",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 78.52369647607478,
+          "y": 880.0530175110475
+        }
+      ],
+      [
+        "357",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 78.0220005695533,
+          "y": 880.0916095038568
+        }
+      ],
+      [
+        "358",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 77.90622459112527,
+          "y": 879.5899135973353
+        }
+      ],
+      [
+        "359",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 78.5622884688841,
+          "y": 879.5899135973353
+        }
+      ],
+      [
+        "360",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 131.68732476839432,
+          "y": 862.0661105887752
+        }
+      ],
+      [
+        "361",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 132.1626156272041,
+          "y": 862.1026714240684
+        }
+      ],
+      [
+        "362",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 132.71102815660004,
+          "y": 862.0661105887752
+        }
+      ],
+      [
+        "363",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 133.18631901540988,
+          "y": 862.0661105887752
+        }
+      ],
+      [
+        "364",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 77.94550192374066,
+          "y": 706.2821808924218
+        }
+      ],
+      [
+        "365",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 77.91097224596388,
+          "y": 705.9023544368772
+        }
+      ],
+      [
+        "366",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 77.94550192374066,
+          "y": 705.5225279813327
+        }
+      ],
+      [
+        "367",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 77.91097224596388,
+          "y": 705.2117608813417
+        }
+      ],
+      [
+        "368",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 77.91097224596388,
+          "y": 704.831934425797
+        }
+      ],
+      [
+        "369",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 139.74250173572526,
+          "y": 415.073234387041
+        }
+      ],
+      [
+        "370",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 140.12232819126984,
+          "y": 415.0387047092642
+        }
+      ],
+      [
+        "371",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 140.43309529126088,
+          "y": 415.0387047092642
+        }
+      ],
+      [
+        "372",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 140.77839206902868,
+          "y": 415.0387047092642
+        }
+      ],
+      [
+        "373",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 141.08915916901972,
+          "y": 415.0387047092642
+        }
+      ],
+      [
+        "374",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 140.9855701356894,
+          "y": 416.31630278700516
+        }
+      ],
+      [
+        "375",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 141.02009981346617,
+          "y": 415.86741697590696
+        }
+      ],
+      [
+        "376",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 141.02009981346617,
+          "y": 415.4185311648088
+        }
+      ],
+      [
+        "377",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 186.00932738773813,
+          "y": 320.25123877623264
+        }
+      ],
+      [
+        "378",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 186.00932738773813,
+          "y": 319.9699649476775
+        }
+      ],
+      [
+        "379",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 186.03182929402251,
+          "y": 319.56493063455815
+        }
+      ],
+      [
+        "380",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 185.9980764345959,
+          "y": 319.17114727458096
+        }
+      ],
+      [
+        "381",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 186.03182929402251,
+          "y": 318.88987344602583
+        }
+      ],
+      [
+        "382",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 186.00932738773813,
+          "y": 318.68735628946615
+        }
+      ],
+      [
+        "383",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 24.78395380379751,
+          "y": 35.97230031428235
+        }
+      ],
+      [
+        "384",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 25.186122992021197,
+          "y": 36.329784037147846
+        }
+      ],
+      [
+        "385",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 25.767034041677633,
+          "y": 36.866009621446096
+        }
+      ],
+      [
+        "386",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 26.16920322990132,
+          "y": 37.22349334431159
+        }
+      ],
+      [
+        "387",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 221.93636998627528,
+          "y": 66.02858122632398
+        }
+      ],
+      [
+        "388",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 222.3994738999874,
+          "y": 65.91280524789596
+        }
+      ],
+      [
+        "389",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 222.90116980650888,
+          "y": 65.95139724070529
+        }
+      ],
+      [
+        "390",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 224.13611357640787,
+          "y": 65.10237339889974
+        }
+      ],
+      [
+        "391",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 223.7116016555051,
+          "y": 65.10237339889974
+        }
+      ],
+      [
+        "392",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 223.13272176336494,
+          "y": 65.17955738451843
+        }
+      ],
+      [
+        "393",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 222.51524987841543,
+          "y": 65.2567413701371
+        }
+      ],
+      [
+        "394",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 222.01355397189397,
+          "y": 65.17955738451843
+        }
+      ],
+      [
+        "395",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 221.97496197908464,
+          "y": 65.56547731261186
+        }
+      ],
+      [
+        "396",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 222.86257781369955,
+          "y": 65.6040693054212
+        }
+      ],
+      [
+        "397",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 288.68226498576274,
+          "y": 808.0440681421561
+        }
+      ],
+      [
+        "398",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 289.10271459163295,
+          "y": 808.0440681421561
+        }
+      ],
+      [
+        "399",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 391.77271785069235,
+          "y": 761.1094583398827
+        }
+      ],
+      [
+        "400",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 392.1992609291114,
+          "y": 760.9814954163571
+        }
+      ],
+      [
+        "401",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 438.8357822318286,
+          "y": 967.0157815462996
+        }
+      ],
+      [
+        "402",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 439.31107309063844,
+          "y": 967.0157815462996
+        }
+      ],
+      [
+        "403",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 431.81714314772336,
+          "y": 578.1257783290691
+        }
+      ],
+      [
+        "404",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 432.2375927535936,
+          "y": 578.1257783290691
+        }
+      ],
+      [
+        "405",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 432.75147560521276,
+          "y": 578.219211574818
+        }
+      ],
+      [
+        "406",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 433.31207507970635,
+          "y": 577.8921952146968
+        }
+      ],
+      [
+        "407",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 433.17192521108296,
+          "y": 578.9666775408095
+        }
+      ],
+      [
+        "408",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 432.75147560521276,
+          "y": 579.1535440323074
+        }
+      ],
+      [
+        "409",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 542.8404929493023,
+          "y": 389.024216616065
+        }
+      ],
+      [
+        "410",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 543.2954722329492,
+          "y": 388.959219575544
+        }
+      ],
+      [
+        "411",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 543.8479470773777,
+          "y": 388.959219575544
+        }
+      ],
+      [
+        "412",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 544.2054308002432,
+          "y": 388.9917180958045
+        }
+      ],
+      [
+        "413",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 572.016204104155,
+          "y": 164.71826280287308
+        }
+      ],
+      [
+        "414",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 571.9857367414107,
+          "y": 165.14480588129214
+        }
+      ],
+      [
+        "415",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 571.9857367414107,
+          "y": 165.6932184106881
+        }
+      ],
+      [
+        "416",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 571.9857367414107,
+          "y": 166.30256566557247
+        }
+      ],
+      [
+        "417",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 629.7925348022868,
+          "y": 822.0777610406205
+        }
+      ],
+      [
+        "418",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 630.162625767644,
+          "y": 822.008368984616
+        }
+      ],
+      [
+        "419",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 630.7408929010148,
+          "y": 821.9852382992811
+        }
+      ],
+      [
+        "420",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 631.1572452370418,
+          "y": 821.9621076139464
+        }
+      ],
+      [
+        "421",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 628.7747846475542,
+          "y": 820.921226773879
+        }
+      ],
+      [
+        "422",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 629.2605290395857,
+          "y": 820.9443574592137
+        }
+      ],
+      [
+        "423",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 629.9775802849655,
+          "y": 820.921226773879
+        }
+      ],
+      [
+        "424",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 630.4864553623318,
+          "y": 820.921226773879
+        }
+      ],
+      [
+        "425",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 631.1341145517071,
+          "y": 820.8518347178745
+        }
+      ],
+      [
+        "426",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 630.9490690690284,
+          "y": 821.4763632219149
+        }
+      ],
+      [
+        "427",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 630.4170633063272,
+          "y": 821.45323253658
+        }
+      ],
+      [
+        "428",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 629.8850575436261,
+          "y": 821.4763632219149
+        }
+      ],
+      [
+        "429",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 628.797915332889,
+          "y": 819.8572152484767
+        }
+      ],
+      [
+        "430",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 629.214267668916,
+          "y": 819.8340845631418
+        }
+      ],
+      [
+        "431",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 629.7925348022868,
+          "y": 819.8340845631418
+        }
+      ],
+      [
+        "432",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 630.2088871383138,
+          "y": 819.8340845631418
+        }
+      ],
+      [
+        "433",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 630.7408929010148,
+          "y": 819.7415618218025
+        }
+      ],
+      [
+        "434",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 631.1572452370418,
+          "y": 819.7878231924722
+        }
+      ],
+      [
+        "435",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 630.8334156423542,
+          "y": 820.2966982698384
+        }
+      ],
+      [
+        "436",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 630.2320178236486,
+          "y": 820.2966982698384
+        }
+      ],
+      [
+        "437",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 629.6074893196081,
+          "y": 820.2735675845037
+        }
+      ],
+      [
+        "438",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 629.0523528715722,
+          "y": 820.366090325843
+        }
+      ],
+      [
+        "439",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 628.7285232768845,
+          "y": 818.8163344084093
+        }
+      ],
+      [
+        "440",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 629.2373983542508,
+          "y": 818.8625957790789
+        }
+      ],
+      [
+        "441",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 629.7231427462823,
+          "y": 818.8857264644138
+        }
+      ],
+      [
+        "442",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 630.2320178236486,
+          "y": 818.8625957790789
+        }
+      ],
+      [
+        "443",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 630.8796770130239,
+          "y": 818.8394650937441
+        }
+      ],
+      [
+        "444",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 631.3422907197205,
+          "y": 818.8394650937441
+        }
+      ],
+      [
+        "445",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 631.7586430557475,
+          "y": 818.9319878350834
+        }
+      ],
+      [
+        "446",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 632.1981260771092,
+          "y": 818.9088571497487
+        }
+      ],
+      [
+        "447",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 630.995330439698,
+          "y": 819.1632946884317
+        }
+      ],
+      [
+        "448",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 630.4633246769969,
+          "y": 819.4408629124497
+        }
+      ],
+      [
+        "449",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 629.9313189142957,
+          "y": 819.3483401711104
+        }
+      ],
+      [
+        "450",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 629.6768813756127,
+          "y": 819.3252094857755
+        }
+      ],
+      [
+        "451",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 628.9598301302328,
+          "y": 819.255817429771
+        }
+      ],
+      [
+        "452",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 628.7285232768845,
+          "y": 818.0992831630296
+        }
+      ],
+      [
+        "453",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 629.353051780925,
+          "y": 818.0530217923598
+        }
+      ],
+      [
+        "454",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 629.8387961729564,
+          "y": 818.0761524776947
+        }
+      ],
+      [
+        "455",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 630.2782791943182,
+          "y": 818.0530217923598
+        }
+      ],
+      [
+        "456",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 630.8102849570193,
+          "y": 818.0530217923598
+        }
+      ],
+      [
+        "457",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 631.1572452370418,
+          "y": 818.0530217923598
+        }
+      ],
+      [
+        "458",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 630.4633246769969,
+          "y": 818.4231127577171
+        }
+      ],
+      [
+        "459",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 629.8156654876216,
+          "y": 818.4925048137217
+        }
+      ],
+      [
+        "460",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 629.2605290395857,
+          "y": 818.4231127577171
+        }
+      ],
+      [
+        "461",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 630.9721997543631,
+          "y": 818.3768513870475
+        }
+      ],
+      [
+        "462",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 628.65913122088,
+          "y": 817.3128398616452
+        }
+      ],
+      [
+        "463",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 629.2373983542508,
+          "y": 817.3591012323149
+        }
+      ],
+      [
+        "464",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 629.9313189142957,
+          "y": 817.2434478056407
+        }
+      ],
+      [
+        "465",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 630.4864553623318,
+          "y": 817.2897091763105
+        }
+      ],
+      [
+        "466",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 631.1109838663722,
+          "y": 817.3359705469801
+        }
+      ],
+      [
+        "467",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 630.578978103671,
+          "y": 817.6598001416677
+        }
+      ],
+      [
+        "468",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 630.1857564529789,
+          "y": 817.6598001416677
+        }
+      ],
+      [
+        "469",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 629.7462734316172,
+          "y": 817.5672774003284
+        }
+      ],
+      [
+        "470",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 628.9366994448981,
+          "y": 816.8502261549486
+        }
+      ],
+      [
+        "471",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 628.9366994448981,
+          "y": 817.6829308270026
+        }
+      ],
+      [
+        "472",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 629.6074893196081,
+          "y": 816.6883113576048
+        }
+      ],
+      [
+        "473",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 630.1394950823093,
+          "y": 816.7114420429397
+        }
+      ],
+      [
+        "474",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 630.6715008450104,
+          "y": 816.7114420429397
+        }
+      ],
+      [
+        "475",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 631.1109838663722,
+          "y": 816.6883113576048
+        }
+      ],
+      [
+        "476",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 632.2675181331138,
+          "y": 816.0869135388991
+        }
+      ],
+      [
+        "477",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 631.7586430557475,
+          "y": 816.1563055949036
+        }
+      ],
+      [
+        "478",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 631.1572452370418,
+          "y": 816.2025669655733
+        }
+      ],
+      [
+        "479",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 630.6021087890059,
+          "y": 816.0869135388991
+        }
+      ],
+      [
+        "480",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 630.0007109703002,
+          "y": 816.1794362802385
+        }
+      ],
+      [
+        "481",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 629.5843586342733,
+          "y": 816.2256976509082
+        }
+      ],
+      [
+        "482",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 629.0986142422419,
+          "y": 816.1331749095689
+        }
+      ],
+      [
+        "483",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 628.8210460182239,
+          "y": 816.4570045042565
+        }
+      ],
+      [
+        "484",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 629.2605290395857,
+          "y": 816.6420499869351
+        }
+      ],
+      [
+        "485",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 628.7053925915498,
+          "y": 815.6011691468677
+        }
+      ],
+      [
+        "486",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 629.214267668916,
+          "y": 815.4855157201936
+        }
+      ],
+      [
+        "487",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 629.6768813756127,
+          "y": 815.6011691468677
+        }
+      ],
+      [
+        "488",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 630.3708019356576,
+          "y": 815.5317770908632
+        }
+      ],
+      [
+        "489",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 630.9490690690284,
+          "y": 815.5086464055283
+        }
+      ],
+      [
+        "490",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 631.3885520903901,
+          "y": 815.5317770908632
+        }
+      ],
+      [
+        "491",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 631.8742964824216,
+          "y": 815.5780384615329
+        }
+      ],
+      [
+        "492",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 632.1287340211047,
+          "y": 815.27733955218
+        }
+      ],
+      [
+        "493",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 632.1981260771092,
+          "y": 814.9072485868228
+        }
+      ],
+      [
+        "494",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 631.7123816850778,
+          "y": 815.022902013497
+        }
+      ],
+      [
+        "495",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 631.1341145517071,
+          "y": 815.0460326988317
+        }
+      ],
+      [
+        "496",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 630.6715008450104,
+          "y": 814.9766406428273
+        }
+      ],
+      [
+        "497",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 630.0932337116396,
+          "y": 815.0922940695015
+        }
+      ],
+      [
+        "498",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 629.6768813756127,
+          "y": 815.0460326988317
+        }
+      ],
+      [
+        "499",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 628.9366994448981,
+          "y": 815.1616861255059
+        }
+      ],
+      [
+        "500",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 628.7516539622194,
+          "y": 814.4908962507958
+        }
+      ],
+      [
+        "501",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 629.2836597249205,
+          "y": 814.5140269361307
+        }
+      ],
+      [
+        "502",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 629.9544495996306,
+          "y": 814.6528110481396
+        }
+      ],
+      [
+        "503",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 630.4170633063272,
+          "y": 814.5834189921351
+        }
+      ],
+      [
+        "504",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 631.0415918103677,
+          "y": 814.60654967747
+        }
+      ],
+      [
+        "505",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 631.0878531810373,
+          "y": 814.1439359707733
+        }
+      ],
+      [
+        "506",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 630.7640235863497,
+          "y": 814.190197341443
+        }
+      ],
+      [
+        "507",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 630.2088871383138,
+          "y": 814.190197341443
+        }
+      ],
+      [
+        "508",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 629.6768813756127,
+          "y": 814.2595893974475
+        }
+      ],
+      [
+        "509",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 629.0523528715722,
+          "y": 814.051413229434
+        }
+      ],
+      [
+        "510",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 629.214267668916,
+          "y": 814.8378565308183
+        }
+      ],
+      [
+        "511",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 628.7516539622194,
+          "y": 813.7507143200812
+        }
+      ],
+      [
+        "512",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 629.2836597249205,
+          "y": 813.8201063760857
+        }
+      ],
+      [
+        "513",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 629.7462734316172,
+          "y": 813.7969756907509
+        }
+      ],
+      [
+        "514",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 630.1857564529789,
+          "y": 813.773845005416
+        }
+      ],
+      [
+        "515",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 630.6252394743407,
+          "y": 813.7275836347463
+        }
+      ],
+      [
+        "516",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 631.0184611250329,
+          "y": 813.7275836347463
+        }
+      ],
+      [
+        "517",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 630.0701030263048,
+          "y": 813.1724471867104
+        }
+      ],
+      [
+        "518",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 629.5149665782689,
+          "y": 813.3343619840542
+        }
+      ],
+      [
+        "519",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 629.0292221862373,
+          "y": 813.3343619840542
+        }
+      ],
+      [
+        "520",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 628.6822619062149,
+          "y": 812.9642710186969
+        }
+      ],
+      [
+        "521",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 629.214267668916,
+          "y": 813.0336630747014
+        }
+      ],
+      [
+        "522",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 629.7462734316172,
+          "y": 812.9411403333621
+        }
+      ],
+      [
+        "523",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 630.162625767644,
+          "y": 812.7560948506834
+        }
+      ],
+      [
+        "524",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 629.4455745222643,
+          "y": 812.7792255360183
+        }
+      ],
+      [
+        "525",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 628.9829608155677,
+          "y": 812.7792255360183
+        }
+      ],
+      [
+        "526",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 737.9488713061576,
+          "y": 1015.1133108371553
+        }
+      ],
+      [
+        "527",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 737.9488713061576,
+          "y": 1014.6745808136385
+        }
+      ],
+      [
+        "528",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 738.0951146473298,
+          "y": 1014.2358507901217
+        }
+      ],
+      [
+        "529",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 737.8026279649853,
+          "y": 1013.9433641077773
+        }
+      ],
+      [
+        "530",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 737.1201590395148,
+          "y": 1013.8946163273865
+        }
+      ],
+      [
+        "531",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 736.9251679179517,
+          "y": 1014.1383552293403
+        }
+      ],
+      [
+        "532",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 737.656384623813,
+          "y": 1014.2845985705126
+        }
+      ],
+      [
+        "533",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 738.9725746943633,
+          "y": 1012.1884440137103
+        }
+      ],
+      [
+        "534",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 738.9725746943633,
+          "y": 1011.7009662098028
+        }
+      ],
+      [
+        "535",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 739.021322474754,
+          "y": 1011.067245064723
+        }
+      ],
+      [
+        "536",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 738.4850968904558,
+          "y": 1011.2134884058953
+        }
+      ],
+      [
+        "537",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 737.851375745376,
+          "y": 1011.0184972843323
+        }
+      ],
+      [
+        "538",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 737.9001235257667,
+          "y": 1010.6285150412062
+        }
+      ],
+      [
+        "539",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 737.851375745376,
+          "y": 1010.092289456908
+        }
+      ],
+      [
+        "540",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 738.241357988502,
+          "y": 1010.8235061627693
+        }
+      ],
+      [
+        "541",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 632.0113470664455,
+          "y": 423.04497800345956
+        }
+      ],
+      [
+        "542",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 632.433827829832,
+          "y": 422.93935781261297
+        }
+      ],
+      [
+        "543",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 632.9091186886418,
+          "y": 424.04836981650254
+        }
+      ],
+      [
+        "544",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 633.3844095474516,
+          "y": 424.10117991192584
+        }
+      ],
+      [
+        "545",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 634.1765609788013,
+          "y": 423.9427496256559
+        }
+      ],
+      [
+        "546",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 634.9687124101509,
+          "y": 423.9955597210792
+        }
+      ],
+      [
+        "547",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 636.1305345094638,
+          "y": 422.93935781261297
+        }
+      ],
+      [
+        "548",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 635.2855729826908,
+          "y": 423.0977880988829
+        }
+      ],
+      [
+        "549",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 634.4406114559179,
+          "y": 423.04497800345956
+        }
+      ],
+      [
+        "550",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 633.4900297382983,
+          "y": 423.04497800345956
+        }
+      ],
+      [
+        "551",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 632.9619287840651,
+          "y": 422.99216790803627
+        }
+      ],
+      [
+        "552",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 632.9619287840651,
+          "y": 422.04158619041664
+        }
+      ],
+      [
+        "553",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 633.7540802154148,
+          "y": 422.04158619041664
+        }
+      ],
+      [
+        "554",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 634.123750883378,
+          "y": 422.04158619041664
+        }
+      ],
+      [
+        "555",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 632.6450682115252,
+          "y": 420.93257418652706
+        }
+      ],
+      [
+        "556",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 633.1731691657584,
+          "y": 421.14381456822036
+        }
+      ],
+      [
+        "557",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 633.8597004062615,
+          "y": 420.9853842819504
+        }
+      ],
+      [
+        "558",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 634.4406114559179,
+          "y": 420.9853842819504
+        }
+      ],
+      [
+        "559",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 635.0743326009976,
+          "y": 420.87976409110377
+        }
+      ],
+      [
+        "560",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 635.8664840323473,
+          "y": 421.7775357133001
+        }
+      ],
+      [
+        "561",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 635.813673936924,
+          "y": 422.2000164766866
+        }
+      ],
+      [
+        "562",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 793.7616158681242,
+          "y": 357.02927766524397
+        }
+      ],
+      [
+        "563",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 794.0967568583106,
+          "y": 356.96834293975553
+        }
+      ],
+      [
+        "564",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 794.431897848497,
+          "y": 356.96834293975553
+        }
+      ],
+      [
+        "565",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 794.706104113195,
+          "y": 356.99881030249975
+        }
+      ],
+      [
+        "566",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 795.1631145543582,
+          "y": 356.96834293975553
+        }
+      ],
+      [
+        "567",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 794.9498430151488,
+          "y": 357.36441865543037
+        }
+      ],
+      [
+        "568",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 795.0107777406372,
+          "y": 357.79096173384943
+        }
+      ],
+      [
+        "569",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 795.0107777406372,
+          "y": 358.278439537757
+        }
+      ],
+      [
+        "570",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 731.1020836044845,
+          "y": 879.0459122530824
+        }
+      ],
+      [
+        "571",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 730.5414841299909,
+          "y": 879.1393454988314
+        }
+      ],
+      [
+        "572",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 730.1210345241207,
+          "y": 879.1393454988314
+        }
+      ],
+      [
+        "573",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 730.0276012783717,
+          "y": 878.5787460243378
+        }
+      ],
+      [
+        "574",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 730.0276012783717,
+          "y": 878.0181465498441
+        }
+      ],
+      [
+        "575",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 729.3735685581291,
+          "y": 878.1115797955931
+        }
+      ],
+      [
+        "576",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 728.766252460761,
+          "y": 877.9247133040952
+        }
+      ],
+      [
+        "577",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 728.9531189522589,
+          "y": 877.0838140923547
+        }
+      ],
+      [
+        "578",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 728.9998355751334,
+          "y": 876.5232146178612
+        }
+      ],
+      [
+        "579",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 728.9531189522589,
+          "y": 875.8224652747441
+        }
+      ],
+      [
+        "580",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 728.3458028548908,
+          "y": 876.1494816348654
+        }
+      ],
+      [
+        "581",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 727.8786366261461,
+          "y": 875.9626151433675
+        }
+      ],
+      [
+        "582",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 728.0187864947695,
+          "y": 875.4020156688739
+        }
+      ],
+      [
+        "583",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 727.9253532490206,
+          "y": 874.9348494401293
+        }
+      ],
+      [
+        "584",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 728.065503117644,
+          "y": 874.2808167198866
+        }
+      ],
+      [
+        "585",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 727.9720698718951,
+          "y": 873.813650491142
+        }
+      ],
+      [
+        "586",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 727.4114703974014,
+          "y": 874.1873834741377
+        }
+      ],
+      [
+        "587",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 726.9910207915312,
+          "y": 873.9538003597654
+        }
+      ],
+      [
+        "588",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 727.0377374144057,
+          "y": 873.3464842623973
+        }
+      ],
+      [
+        "589",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 726.9443041686568,
+          "y": 872.6924515421547
+        }
+      ],
+      [
+        "590",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 726.8975875457822,
+          "y": 872.0851354447866
+        }
+      ],
+      [
+        "591",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 726.8975875457822,
+          "y": 871.4311027245441
+        }
+      ],
+      [
+        "592",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 726.8508709229078,
+          "y": 870.5902035128037
+        }
+      ],
+      [
+        "593",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 726.8975875457822,
+          "y": 870.0763206611845
+        }
+      ],
+      [
+        "594",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 726.1968382026653,
+          "y": 871.1975196101718
+        }
+      ],
+      [
+        "595",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 726.0099717111674,
+          "y": 872.0384188219122
+        }
+      ],
+      [
+        "596",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 726.477137939912,
+          "y": 871.6646858389164
+        }
+      ],
+      [
+        "597",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 727.5049036431503,
+          "y": 871.1508029872973
+        }
+      ],
+      [
+        "598",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 728.0187864947695,
+          "y": 871.0106531186739
+        }
+      ],
+      [
+        "599",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 728.9064023293844,
+          "y": 871.1975196101718
+        }
+      ],
+      [
+        "600",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 729.5137184267526,
+          "y": 870.9639364957994
+        }
+      ],
+      [
+        "601",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 729.9808846554972,
+          "y": 871.1040863644228
+        }
+      ],
+      [
+        "602",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 729.8874514097482,
+          "y": 871.8515523304143
+        }
+      ],
+      [
+        "603",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 730.0276012783717,
+          "y": 872.5990182964058
+        }
+      ],
+      [
+        "604",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 729.9808846554972,
+          "y": 873.2997676395228
+        }
+      ],
+      [
+        "605",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 729.1399854437568,
+          "y": 872.22528531341
+        }
+      ],
+      [
+        "606",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 728.8129690836355,
+          "y": 871.8982689532887
+        }
+      ],
+      [
+        "607",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 729.3735685581291,
+          "y": 871.5712525931675
+        }
+      ],
+      [
+        "608",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 729.7473015411249,
+          "y": 872.3187185591589
+        }
+      ],
+      [
+        "609",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 1009.7527279140788,
+          "y": 1017.3343251601666
+        }
+      ],
+      [
+        "610",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 1010.1995825676606,
+          "y": 1016.8874705065848
+        }
+      ],
+      [
+        "611",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 984.7580910032024,
+          "y": 828.2484630723075
+        }
+      ],
+      [
+        "612",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 985.2049456567843,
+          "y": 827.8462938840838
+        }
+      ],
+      [
+        "613",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 982.7330783862793,
+          "y": 419.22769908664424
+        }
+      ],
+      [
+        "614",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 983.2205561901868,
+          "y": 418.80521832325775
+        }
+      ],
+      [
+        "615",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 1013.7876592585523,
+          "y": 150.26408655569787
+        }
+      ],
+      [
+        "616",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 1014.212171179455,
+          "y": 149.87816662760443
+        }
+      ],
+      [
+        "617",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 906.9781168216057,
+          "y": 532.7139129554585
+        }
+      ],
+      [
+        "618",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 907.0215723957108,
+          "y": 533.2136520576671
+        }
+      ],
+      [
+        "619",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 906.9781168216057,
+          "y": 533.7568467339808
+        }
+      ],
+      [
+        "620",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 906.9781168216057,
+          "y": 534.1696746879792
+        }
+      ],
+      [
+        "621",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 909.8039144207941,
+          "y": 232.21836054520915
+        }
+      ],
+      [
+        "622",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 910.2579884808981,
+          "y": 231.8075316336864
+        }
+      ],
+      [
+        "623",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 592.0032866992944,
+          "y": 349.3010277483139
+        }
+      ],
+      [
+        "624",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 592.0349757861356,
+          "y": 348.8890696193786
+        }
+      ],
+      [
+        "625",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 592.0666648729767,
+          "y": 348.41373331676095
+        }
+      ],
+      [
+        "626",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 592.0349757861356,
+          "y": 347.9383970141433
+        }
+      ],
+      [
+        "627",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 840.7496311940662,
+          "y": 196.21600088982674
+        }
+      ],
+      [
+        "628",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 841.0975577081022,
+          "y": 195.7686668003519
+        }
+      ],
+      [
+        "629",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 1015.2895361525941,
+          "y": 606.7031690118633
+        }
+      ],
+      [
+        "630",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 1014.7079180111334,
+          "y": 607.2666115864034
+        }
+      ],
+      [
+        "631",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 113.76744331738955,
+          "y": 354.8932116174704
+        }
+      ],
+      [
+        "632",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 114.26974250233711,
+          "y": 355.2838887613185
+        }
+      ],
+      [
+        "633",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 114.17672413475422,
+          "y": 355.80479161978263
+        }
+      ],
+      [
+        "634",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 113.7302359703564,
+          "y": 356.3070908047302
+        }
+      ],
+      [
+        "635",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 113.74883964387297,
+          "y": 355.56294386406717
+        }
+      ],
+      [
+        "636",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 114.32555352288684,
+          "y": 356.3070908047302
+        }
+      ],
+      [
+        "637",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 114.73483434025151,
+          "y": 355.73037692571637
+        }
+      ],
+      [
+        "638",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 115.19992617816591,
+          "y": 356.3442981517634
+        }
+      ],
+      [
+        "639",
+        {
+          "Comment": "hipercam.defect.Point",
+          "severity": "SEVERE",
+          "x": 115.19992617816591,
+          "y": 355.80479161978263
+        }
+      ],
+      [
+        "640",
+        {
+          "Comment": "hipercam.defect.Line",
+          "severity": "SEVERE",
+          "x1": 924.9514459283198,
+          "y1": 1.030767331318188,
+          "x2": 925.0248677711716,
+          "y2": 1027.9699350971218
+        }
+      ]
+    ]
+  ]
+]

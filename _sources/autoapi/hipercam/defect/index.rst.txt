@@ -1,0 +1,230 @@
+hipercam.defect
+===============
+
+.. py:module:: hipercam.defect
+
+.. autoapi-nested-parse::
+
+   Defines classes to represent CCD defects. Base class Defect from
+   which others are inherited. The derived classes are :class:`Point`,
+   :class:`Line` and :class:`Hot` representing point, line and hot pixel
+   defects.
+
+   ..
+       !! processed by numpydoc !!
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   hipercam.defect.Severity
+   hipercam.defect.Defect
+
+
+Module Contents
+---------------
+
+.. py:class:: Severity
+
+   Bases: :py:obj:`enum.Enum`
+
+
+   
+   Enum class to define defect severity levels. There are
+   two: MODERATE and SEVERE
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:attribute:: MODERATE
+      :value: 1
+
+
+
+   .. py:attribute:: SEVERE
+      :value: 2
+
+
+
+.. py:class:: Defect(severity)
+
+   Bases: :py:obj:`abc.ABC`
+
+
+   
+   Abstract class representing a CCD defect.
+
+   Attributes::
+
+     severity   : Severity
+        severity of the Defect
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:attribute:: severity
+
+
+   .. py:method:: copy(memo=None)
+      :abstractmethod:
+
+
+      
+      Returns with a copy of the Aperture
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __repr__()
+      :abstractmethod:
+
+
+
+   .. py:method:: dist(x, y)
+      :abstractmethod:
+
+
+      
+      Returns the distance of a defect from a position x,y. This defines
+      what is meant by the distance from a defect
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: write(fname)
+
+      
+      Dumps Aperture in JSON format to a file called fname
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: toString()
+
+      
+      Returns Aperture as a JSON-type string
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: read(fname)
+      :classmethod:
+
+
+      
+      Read from JSON-format file fname
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+

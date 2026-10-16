@@ -1,0 +1,108 @@
+hipercam.scripts.setfringe
+==========================
+
+.. py:module:: hipercam.scripts.setfringe
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   hipercam.scripts.setfringe.setfringe
+
+
+Module Contents
+---------------
+
+.. py:function:: setfringe(args=None)
+
+   
+   ``setfringe fmap fringe ccd [width height] nx [cmap nhalf] iset (ilo ihi
+   | plo phi)``
+
+   Interactive definition of CCD fringe pairs. The idea is to place a large
+   number of such pairs at the peaks and valleys of a fringe map file. To
+   defringe a file, the differences of intensity for each pair will be evaluated
+   in the data and the fringe map and the ratio of these differences taken. The
+   median of these ratios will be used to scale the fringe map which will then be
+   subtracted. The use of a median allows the odd ratio to be ruined by stars,
+   as long as a large number of pairs are defined.
+
+   Parameters:
+
+     fmap : str
+        name of an MCCD file showing fringes with objects removed, e.g.
+        as produced by 'makefringe'
+
+     fringe : str
+        the name of a file of fringe pairs. If it exists it will be
+        read so that more fringe pairs can be added to it. If it does
+        not exist, it will be created on exiting the routine. The
+        files are in a fairly readable / editable text format
+
+     ccd : str
+        CCD(s) to plot, '0' for all. If not '0' then '1', '2' or even '3 4'
+        are possible inputs (without the quotes). '3 4' will plot CCD '3' and
+        CCD '4'. If you want to plot more than one CCD, then you will be
+        prompted for the number of panels in the X direction. This parameter
+        will not be prompted if there is only one CCD in the file.
+
+     width : float [hidden]
+        plot width (inches). Set = 0 to let the program choose.
+
+     height : float [hidden]
+        plot height (inches). Set = 0 to let the program choose. BOTH width
+        AND height must be non-zero to have any effect
+
+     nx : int
+        number of panels across to display, prompted if more than one CCD is
+        to be plotted.
+
+     cmap : str [hidden]
+        The colour map to use. "Greys" is the usual; "Greys_r" reverses it.
+        There are many others; typing an incorrect one will give a list. "none"
+        for matplotlib default.
+
+     nhalf : int [hidden]
+        half-width in binned pixels of stats box as offset from central pixel
+        nhalf = 1 gives a 3x3 box; hsbox = 2 gives 5x5 etc. This is used by
+        the "show" option when setting FringePair and when reporting FringePair
+        differences.
+
+     iset : str [single character]
+        determines how the intensities are determined. There are three
+        options: 'a' for automatic simply scales from the minimum to the
+        maximum value found on a per CCD basis. 'd' for direct just takes two
+        numbers from the user. 'p' for percentile dtermines levels based upon
+        percentiles determined from the entire CCD on a per CCD bais.
+
+     ilo : float [if iset=='d']
+        lower intensity level
+
+     ihi : float [if iset=='d']
+        upper intensity level
+
+     plo : float [if iset=='p']
+        lower percentile level
+
+     phi : float [if iset=='p']
+        upper percentile level
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+

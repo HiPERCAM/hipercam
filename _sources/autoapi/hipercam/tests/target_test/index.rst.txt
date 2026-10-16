@@ -1,0 +1,91 @@
+hipercam.tests.target_test
+==========================
+
+.. py:module:: hipercam.tests.target_test
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   hipercam.tests.target_test.TestTarget
+
+
+Module Contents
+---------------
+
+.. py:class:: TestTarget(methodName='runTest')
+
+   Bases: :py:obj:`unittest.TestCase`
+
+
+   
+   Provides unit tests of the Target class
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:method:: setUp()
+
+      
+      Hook method for setting up the test fixture before exercising it.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: test_target_xcen()
+
+
+   .. py:method:: test_target_ycen()
+
+
+   .. py:method:: test_target_fwhm1()
+
+
+   .. py:method:: test_target_fwhm2()
+
+
+   .. py:method:: test_target_angle()
+
+
+   .. py:method:: test_target_beta()
+
+
+   .. py:method:: test_target_fmin()
+
+
+   .. py:method:: test_target_copy()
+
+

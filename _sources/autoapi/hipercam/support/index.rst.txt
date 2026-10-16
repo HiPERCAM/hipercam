@@ -1,0 +1,61 @@
+hipercam.support
+================
+
+.. py:module:: hipercam.support
+
+.. autoapi-nested-parse::
+
+   Support routines for image combination and profile evaluation.
+
+   The implementation uses a pybind11-backed extension when available and falls
+   back to a pure-NumPy implementation otherwise.
+
+   ..
+       !! processed by numpydoc !!
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   hipercam.support.avgstd
+
+
+Module Contents
+---------------
+
+.. py:function:: avgstd(cube, sigma)
+
+   
+   Compute clipped mean, standard deviation and accepted-frame counts.
+
+
+   :Parameters:
+
+       **cube** : numpy.ndarray
+           Three-dimensional array of shape ``(nf, ny, nx)`` with ``float32`` data.
+
+       **sigma** : float
+           Rejection threshold for the iterative clipped-mean routine.
+
+
+
+   :Returns:
+
+       tuple
+           ``(avg, std, num)`` arrays with shapes ``(ny, nx)``.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+

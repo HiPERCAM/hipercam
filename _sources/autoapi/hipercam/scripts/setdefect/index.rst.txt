@@ -1,0 +1,165 @@
+hipercam.scripts.setdefect
+==========================
+
+.. py:module:: hipercam.scripts.setdefect
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   hipercam.scripts.setdefect.setdefect
+
+
+Module Contents
+---------------
+
+.. py:function:: setdefect(args=None)
+
+   
+   ``setdefect mccd defect ccd [width height] nx msub [cmap] ffield
+   (auto (hlo hhi severity)) hsbox iset (ilo ihi | plo phi)``
+
+   Interactive definition of CCD defects. This is a matplotlib-based routine
+   allowing you to define defects using the cursor. Various routines allow
+   you to overplot defects, above all |rtplot| / |nrtplot|. Point-like and
+   line-like defects of two different colours (orange for moderate, red for
+   severe can be marked). Hot pixels can be marked by their count rate as
+   measured in dark frames.
+
+   You should apply this in stages using bias frames and flat fields
+   to set the point and line defects, and a darkframe from |makedark|
+   to set hot pixels. The latter can be set semi-automatically by
+   flagging pixels between pre-set rate values.
+
+   Parameters:
+
+     mccd : str
+        name of an MCCD file, as produced by e.g. 'grab'
+
+     defect : str
+        the name of a defect file. If it exists it will be read so that
+        defects can be added to it. If it does not exist, it will be
+        created on exiting the routine. The defect files are in a fairly
+        readable / editiable text format
+
+     ccd : str
+        CCD(s) to plot, '0' for all. If not '0' then '1', '2' or even '3 4'
+        are possible inputs (without the quotes). '3 4' will plot CCD '3' and
+        CCD '4'. If you want to plot more than one CCD, then you will be
+        prompted for the number of panels in the X direction. This parameter
+        will not be prompted if there is only one CCD in the file.
+
+     width : float [hidden]
+        plot width (inches). Set = 0 to let the program choose.
+
+     height : float [hidden]
+        plot height (inches). Set = 0 to let the program choose. BOTH width
+        AND height must be non-zero to have any effect
+
+     nx : int
+        number of panels across to display, prompted if more than one CCD is
+        to be plotted.
+
+     msub : bool
+        True/False to subtract median from each window before scaling
+
+     cmap : str [hidden]
+        The colour map to use. "Greys" is the usual; "Greys_r" reverses it.
+        There are many others; typing an incorrect one will give a list. "none"
+        for matplotlib default.
+
+     ffield : bool
+        If True, all defects will be assumed to be flat-field or poor
+        charge transfer defects as opposed to hot pixels. The latter
+        should be set from dark frames, and have a different impact
+        than the first two types in that they are worst for faint
+        targets. Hot pixels and flat-field defects are shown with the
+        same colours for moderate and severe, but different symbols
+        (filled circles for flat-field defects, stars for hot
+        pixels). If you say "no" in order to add hot pixels, the line
+        defect option is not available.
+
+     auto : bool [if ffield==False]
+        Hot pixels can be set automatically if wanted. If so then a
+        few extra parameters are needed. This only makes sense if you
+        are feeding setdefect with a dark frame produced by
+        |makedark| so that the intensity levels mean something.
+
+     hlo : float [if auto]
+        lower limit to flag as a hot pixel as a count rate per second
+
+     hhi : float [if auto]
+        upper limit to flag as a hot pixel as a count rate per second
+
+     severity : str [if auto]
+        'm' for moderate, 'n' for nasty. Controls colour used to plot
+        the hot pixel; it will be labelled with a rate as well.
+
+     hsbox : int
+        half-width in binned pixels of stats box as offset from central pixel
+        hsbox = 1 gives a 3x3 box; hsbox = 2 gives 5x5 etc. This is used by
+        the "show" option when setting defects.
+
+     iset : str [single character]
+        determines how the intensities are determined. There are three
+        options: 'a' for automatic simply scales from the minimum to the
+        maximum value found on a per CCD basis. 'd' for direct just takes two
+        numbers from the user. 'p' for percentile dtermines levels based upon
+        percentiles determined from the entire CCD on a per CCD bais.
+
+     ilo : float [if iset=='d']
+        lower intensity level
+
+     ihi : float [if iset=='d']
+        upper intensity level
+
+     plo : float [if iset=='p']
+        lower percentile level
+
+     phi : float [if iset=='p']
+        upper percentile level
+
+   There are a few conveniences to make setdefect easier:
+
+     1. The plot is initialised in pan mode whereby you can move around and
+        scale using the left and right mouse buttons.
+
+     2. All input is accomplished with the keyboard; the mouse buttons are
+        only for navigating the image.
+
+     3. The label input can be switched between sequential numerical,
+        single- and multi-character input ('linput').
+
+   Various standard keyboard shortcuts (e.g. 's' to save) are disabled as
+   they just confuse things and are of limited use in setdefect in any case.
+
+   Some aspects of the usage of matplotlib in setdefect are tricky. It is
+   possible that particular 'backends' will cause problems. I have tested
+   this with Qt4Agg, Qt5agg and GTK3Agg. One aspect is the cursor icon in pan
+   mode is a rather indistinct hand where one can't tell what is being
+   pointed at. I have therefore suppressed this, but only for the tested
+   backends. Others would need require further investigation.
+
+   NB At the end of this routine, it re-orders the defects so that the severe
+   ones follows the moderates. This helps emphasize the severe ones over the
+   moderates when running rtplot.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
