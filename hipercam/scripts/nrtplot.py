@@ -1,26 +1,23 @@
-import sys
 import os
-import time
-from signal import signal, SIGINT
-import requests
 import socket
+import sys
+import time
 import warnings
-
-import numpy as np
+from signal import SIGINT, signal
 
 import matplotlib.pylab as plt
-from matplotlib.patches import Circle
-
-from astropy.time import Time
-from astropy.coordinates import Angle
+import numpy as np
+import requests
 from astropy import units as u
-
+from astropy.coordinates import Angle
+from astropy.time import Time
+from matplotlib.patches import Circle
 from trm import cline
 from trm.cline import Cline
 
 import hipercam as hcam
-from hipercam.ccd import crop_calib_frame_to
 from hipercam import defect, fringe, mpl, spooler
+from hipercam.ccd import crop_calib_frame_to
 from hipercam.instruments import available_instruments
 
 try:
@@ -800,10 +797,20 @@ def nrtplot(args=None):
 
     # Phew. We finally have all the inputs and now can now display stuff.
 
-    # img_accum and (later) fit_accum and targ_accum are long-lived
+    # ccd_data, targ_data and fwhm_data are long-lived
     # objects passed and stored by reference to plot updating classes
-    img_accum = len(ccds) * [None]
-    targ_accum = None
+    #   `ccd_data`: dict of {cnam: `CCD` | None}
+    #       essentially a cut down MCCD class, but needed as skipped frames
+    #       will be given as None so the previous image is still shown
+    #   `targ_data`: dict of {ntarg: `Pfit` | None}
+    #       a filtered version of the `pfit_targets` list of `Pfit` classes,
+    #       but if a CCD has no data or a fit fails it is replaced with None
+    #       to skip plotting
+    #   `fwhm_data`: dict of {ntarg: [(nframe, fwhm), ...]} for each target,
+    #       used for the FWHM plot when profile fitting
+    ccd_data = {cnam: None for cnam in ccds}
+    targ_data = {}
+    fwhm_data = {}
 
     # we also keep track of any profit targets and setup windows,
     # but we start with neither
@@ -841,13 +848,6 @@ def nrtplot(args=None):
                 elif try_again:
                     continue
 
-            # Trim the frames: ULTRACAM windowed data has bad columns
-            # and rows on the sides of windows closest to the readout
-            # which can badly affect reduction. This option strips
-            # them.
-            if trim:
-                hcam.ccd.trim_ultracam(mccd, ncol, nrow)
-
             # indicate progress
             tstamp = Time(mccd.head["TIMSTAMP"], format="isot", precision=3)
             nfrm = mccd.head.get("NFRAME", nframe + 1)
@@ -856,54 +856,45 @@ def nrtplot(args=None):
                 end="",
             )
 
-            # accumulate errors
+            # accumulate errors from here on to print later
             emessages = []
+
+            # Trim the frames: ULTRACAM windowed data has bad columns
+            # and rows on the sides of windows closest to the readout
+            # which can badly affect reduction. This option strips
+            # them.
+            if trim:
+                hcam.ccd.trim_ultracam(mccd, ncol, nrow)
 
             # bias level checks
             if lowlevel != 0.0:
                 median = mccd.get_num(0).get_num(0).median()
                 if median < lowlevel:
                     emessages.append(
-                        "** low bias level, median vs limit: {:.1f} vs {:.1f}".format(
-                            median, lowlevel
-                        )
+                        "** low bias level, median vs limit: "
+                        f"{median:.1f} vs {lowlevel:.1f}"
                     )
-
             if highlevel != 0.0:
                 try:
                     median = mccd.get_num(0).get_num(1).median()
                 except:
                     median = mccd.get_num(0).get_num(0).median()
-
                 if median > highlevel:
                     emessages.append(
-                        "** high bias level, median vs limit: {:.1f} vs {:.1f}".format(
-                            median, lowlevel
-                        )
+                        "** high bias level, median vs limit: "
+                        f"{median:.1f} vs {highlevel:.1f}"
                     )
 
+            # first time setup
             if nframe == 0:
-
-                # get the bias, dark, flat, fringe map and fringe pair files
-                # into shape first time through
-
+                # crop the calibration frames on the first frame only
                 if bias is not None:
-                    # crop the bias on the first frame only
                     bias = crop_calib_frame_to(mccd, bias, 'bias')
-                    bexpose = bias.head.get("EXPTIME", 0.0)
-                else:
-                    bexpose = 0.0
-
                 if dark is not None:
-                    # crop the dark on the first frame only
                     dark = crop_calib_frame_to(mccd, dark, 'dark')
-
                 if flat is not None:
-                    # crop the flat on the first frame only
                     flat = crop_calib_frame_to(mccd, flat, 'flat')
-
                 if fmap is not None:
-                    # crop the fringe map and pair file
                     fmap = crop_calib_frame_to(mccd, fmap, 'fmap')
                     fpair = fpair.crop(mccd, nhalf)
 
@@ -931,20 +922,19 @@ def nrtplot(args=None):
                         for line in lines[1 : nwinh + 1]:
                             llxh, llyh, nxh, nyh = line.split()
                             swindows.append((int(llxh), int(llyh), int(nxh), int(nyh)))
-
+                        # check the number of windows is correct
                         if nwinh != len(swindows):
                             emessages.append(
                                 f"** expected {nwinh} windows from"
                                 f" (u/h)driver but got {len(swindows)}"
                             )
                             swindows = None
-
                 except (
                     requests.exceptions.ConnectionError,
                     socket.timeout,
                     requests.exceptions.Timeout,
                 ) as err:
-                    emessages.append(" ** hdriver error: {!r}".format(err))
+                    emessages.append(f" ** hdriver error: {err!r}")
                     swindows = None
 
             # wind through the CCDs to display, accumulating stuff
@@ -955,94 +945,100 @@ def nrtplot(args=None):
             for nc, cnam in enumerate(ccds):
                 ccd = mccd[cnam]
 
-                if plotall or ccd.is_data():
-                    # "is_data" indicates genuine data as opposed to junk
-                    # that results from nskip > 0.
+                if not ccd.is_data() and not plotall:
+                    # this is a junk frame from nskip > 0
+                    # skip it, unless plotall is True
+                    ccd_data[cnam] = None
+                    continue
 
-                    if fcosmic:
-                        # save a copy for later in order to mask
-                        # saturated stars.
-                        raw = ccd.copy()
+                # lots of frame processing and calibration to do
+                if fcosmic:
+                    # save a copy for later in order to mask saturated stars
+                    raw = ccd.copy()
 
-                    # subtract the bias
-                    if bias is not None:
-                        ccd -= bias[cnam]
+                # subtract the bias
+                if bias is not None:
+                    ccd -= bias[cnam]
+                    bexpose = bias.head.get("EXPTIME", 0.0)
+                else:
+                    bexpose = 0.0
 
-                    if dark is not None:
-                        dexpose = dark.head["EXPTIME"]
-                        cexpose = ccd.head["EXPTIME"]
-                        scale = (cexpose - bexpose) / dexpose
-                        ccd -= scale * dark[cnam]
+                # subtract the dark, scaling by exposure time
+                if dark is not None:
+                    dexpose = dark.head["EXPTIME"]
+                    cexpose = ccd.head["EXPTIME"]
+                    scale = (cexpose - bexpose) / dexpose
+                    ccd -= scale * dark[cnam]
 
-                    # divide out the flat
-                    if flat is not None:
-                        ccd /= flat[cnam]
+                # divide out the flat
+                if flat is not None:
+                    ccd /= flat[cnam]
 
-                    # Remove fringes
-                    if fmap is not None and cnam in fmap and cnam in fpair:
-                        fscale = fpair[cnam].scale(ccd, fmap[cnam], nhalf, rmin, rmax)
-                        ccd -= fscale * fmap[cnam]
+                # remove fringes
+                if fmap is not None and cnam in fmap and cnam in fpair:
+                    fscale = fpair[cnam].scale(ccd, fmap[cnam], nhalf, rmin, rmax)
+                    ccd -= fscale * fmap[cnam]
 
-                    # cosmic ray detection
-                    if fcosmic:
-                        ncosmic = 0
-                        for wind, rwind in zip(ccd.values(), raw.valued()):
-                            data = wind.data
-                            smask = rwind.data >= sathresh
-                            cleaned, crmask = lacosmic.lacosmic(
-                                wind.data,
-                                crthresh,
-                                nbthresh,
-                                mask=smask,
-                                effective_gain=gain,
-                                readnoise=readout * gain,
-                            )
-                            ncosmic += len(crmask[crmask])
+                # cosmic ray detection
+                if fcosmic:
+                    ncosmic = 0
+                    for wind, rwind in zip(ccd.values(), raw.values()):
+                        smask = rwind.data >= sathresh
+                        _, crmask = lacosmic.lacosmic(
+                            wind.data,
+                            crthresh,
+                            nbthresh,
+                            mask=smask,
+                            effective_gain=gain,
+                            readnoise=readout * gain,
+                        )
+                        ncosmic += len(crmask[crmask])
 
-                    if msub:
-                        # subtract median from each window
-                        for wind in ccd.values():
-                            wind -= wind.median()
+                # subtract median from each window
+                if msub:
+                    for wind in ccd.values():
+                        wind -= wind.median()
 
-                    # set intensity limits
-                    if iset == "p":
-                        # Set intensities from percentiles
-                        if xlo is not None and xhi is not None:
-                            pxlo = min(xlo, xhi)
-                            pxhi = max(xlo, xhi)
-                        else:
-                            pxlo, pxhi = None, None
-                        if ylo is not None and yhi is not None:
-                            pylo = min(ylo, yhi)
-                            pyhi = max(ylo, yhi)
-                        else:
-                            pylo, pyhi = None, None
-                        vmin, vmax = ccd.percentile((plo, phi), pxlo, pxhi, pylo, pyhi)
-
-                    elif iset == "a":
-                        # Set intensities from min/max range
-                        vmin, vmax = ccd.min(), ccd.max()
-
-                    elif iset == "d":
-                        vmin, vmax = ilo, ihi
-
-                    content = [ccd, vmin, vmax]
-
-                    if swindows is not None:
-                        content.append(swindows)
+                # set intensity limits
+                if iset == "p":
+                    # Set intensities from percentiles
+                    if xlo is not None and xhi is not None:
+                        pxlo = min(xlo, xhi)
+                        pxhi = max(xlo, xhi)
                     else:
-                        content.append(None)
+                        pxlo, pxhi = None, None
+                    if ylo is not None and yhi is not None:
+                        pylo = min(ylo, yhi)
+                        pyhi = max(ylo, yhi)
+                    else:
+                        pylo, pyhi = None, None
+                    vmin, vmax = ccd.percentile((plo, phi), pxlo, pxhi, pylo, pyhi)
 
-                    # Save the content to send to the plot updater
-                    img_accum[nc] = content
+                elif iset == "a":
+                    # Set intensities from min/max range
+                    vmin, vmax = ccd.min(), ccd.max()
 
-                    # accumulate string of image scalings
-                    if nc:
-                        message += ", "
-                    message += f"ccd {cnam}: {vmin:.1f}, {vmax:.1f}, exp: {mccd.head['EXPTIME']:.4f}"
-                    if fcosmic:
-                        message += f", nc: {ncosmic}"
-                    skipped = False
+                elif iset == "d":
+                    vmin, vmax = ilo, ihi
+
+                content = [ccd, vmin, vmax]
+
+                if swindows is not None:
+                    content.append(swindows)
+                else:
+                    content.append(None)
+
+                # finally, all the fame processing is done
+                # save to send to the plot updater
+                ccd_data[cnam] = content
+
+                # accumulate string of image scalings
+                if nc:
+                    message += ", "
+                message += f"ccd {cnam}: {vmin:.1f}, {vmax:.1f}, exp: {mccd.head['EXPTIME']:.4f}"
+                if fcosmic:
+                    message += f", nc: {ncosmic}"
+                skipped = False
 
             # Print messages
             if skipped:
@@ -1053,8 +1049,8 @@ def nrtplot(args=None):
                 print(emessage)
 
             # We have all the data, now get to plotting.
-            # at this point "img_accum" contains a list of lists, each of
-            # which consists of:
+            # at this point "ccd_data" contains a list for each CCD,
+            # each of which consists of:
             #
             # [ccd, vmin, vmax, swindows]
             #
@@ -1063,7 +1059,7 @@ def nrtplot(args=None):
 
             # First, if we're profile fitting we need to select targets.
             if profit and pfit_targets is None:
-                all_plotted = [content is not None for content in img_accum]
+                all_plotted = [ccd_data[cnam] is not None for cnam in ccds]
                 if not all(all_plotted):
                     # Due to nskips, we need to wait until all CCDs have data
                     continue
@@ -1072,7 +1068,7 @@ def nrtplot(args=None):
                 # from which stars can be selected.
 
                 # Ready to make first plot of all CCDs
-                img_fig, img_axs = setup_images(
+                fig, axs = setup_images(
                     len(ccds),
                     nx,
                     "Profile fit selection",
@@ -1083,20 +1079,23 @@ def nrtplot(args=None):
                     imwidth,
                     imheight,
                 )
-                for ax, cnam, content in zip(img_axs, ccds, img_accum):
-                    disp_ccd(ax, cnam, cmap, defects[cnam], content, False)
+                for ax, cnam in zip(axs, ccd_data):
+                    disp_ccd(ax, cnam, cmap, defects[cnam], ccd_data[cnam], False)
+
+                # mapping from CCD name to axes
+                caxes = dict(zip(ccds, axs))
 
                 # print out instructions for the user
                 print(
-                    "\nUse the SpaceBar to select targets for profile fitting; q(uit) to exit selection and start animation"
+                    "\nUse the SpaceBar to select targets for profile fitting; "
+                    "q(uit) to exit selection and start animation"
                 )
 
                 # create the picker class and connect it to the figure
                 picker = PickProfitTargets(
-                    img_accum,
-                    ccds,
-                    img_fig,
-                    img_axs,
+                    mccd,
+                    fig,
+                    caxes,
                     shbox,
                     fwhm,
                     beta,
@@ -1109,17 +1108,20 @@ def nrtplot(args=None):
                     gain,
                     thresh,
                 )
-                img_fig.canvas.mpl_connect("key_press_event", picker._keyPressEvent)
+                fig.canvas.mpl_connect("key_press_event", picker._keyPressEvent)
                 plt.show()
 
                 # once we return, targets should be selected, if any
                 if len(picker.targets) > 0:
-                    pfit_targets = picker.targets
+                    # create a dict, with each target assigned a number
+                    pfit_targets = {
+                        i + 1: pfit for i, pfit in enumerate(picker.targets)
+                    }
 
                     # set up the accumulator objects now, because we didn't know
                     # how many targets the user would choose at the start
-                    fit_accum = [([], []) for n in range(len(pfit_results))]
-                    targ_accum = len(pfit_results) * [None]
+                    targ_data = {ntarg: None for ntarg in pfit_targets}
+                    fwhm_data = {ntarg: ([], []) for ntarg in pfit_targets}
                 else:
                     # user didn't pick any targets, turn off profit
                     profit = False
@@ -1131,19 +1133,17 @@ def nrtplot(args=None):
                 # First update search box positions. In normal
                 # operation this moves the boxes to match the target
                 # positions previously fitted.
-                for pfit in pfit_targets:
+                for ntarg, pfit in pfit_targets.items():
                     pfit.update_sbox()
 
                 # Carry out fits
-                img_map = dict(zip(ccds, img_accum))
-                pfit_results = len(pfit_targets) * [None]
-                for ntarg, pfit in enumerate(pfit_targets):
-                    content = img_map[pfit.cnam]
-                    if content is not None:
+                pfit_results = {ntarg: None for ntarg in targ_data}
+                for ntarg, pfit in pfit_targets.items():
+                    if ccd_data[pfit.cnam] is not None:
                         # Do the fit and store the results
                         # If the fit fails, results will be None
                         results, message = pfit.fit(
-                            ccd=content[0],
+                            ccd=ccd_data[pfit.cnam][0],
                             method=method,
                             smooth=smooth,
                             fhbox=fhbox,
@@ -1172,19 +1172,21 @@ def nrtplot(args=None):
                     )
 
                 # add in latest results
-                for n, pfit in enumerate(pfit_results):
-                    if pfit is not None:
-                        fwhm = pfit[0].fwhm
-                        fit_accum[n][0].append(nfrm)
-                        fit_accum[n][1].append(fwhm)
-                        targ_accum[n] = pfit[0]
+                for ntarg, pfit in pfit_targets.items():
+                    if pfit_results[ntarg] is not None:
+                        # add Pfit class to target data
+                        targ_data[ntarg] = pfit
+                        # add frame number and fwhm to fit data
+                        fwhm_data[ntarg][0].append(nframe)
+                        fwhm_data[ntarg][1].append(pfit.fwhm)
 
             if not profit or pfit_targets is None:
                 # We're ready to start plotting
                 if imanager is None:
                     # First time through, create the image plot manager
                     imanager = ImageManager(
-                        ccds,
+                        ccd_data,
+                        targ_data,
                         nx,
                         imwidth,
                         imheight,
@@ -1194,8 +1196,6 @@ def nrtplot(args=None):
                         yhi,
                         cmap,
                         defects,
-                        img_accum,
-                        targ_accum,
                         shbox,
                         fwhm,
                         beta,
@@ -1230,7 +1230,7 @@ def nrtplot(args=None):
                     if fwhmmanager is None:
                         # First time through, create the FWHM plot manager
                         fwhmmanager = FwhmManager(
-                            fit_accum,
+                            fwhm_data,
                             nfrm - 1,
                             nfrm + fwnmax + 1,
                             fwymax,
@@ -1373,7 +1373,8 @@ class ImageManager:
 
     def __init__(
         self,
-        cnams,
+        ccd_data,
+        targ_data,
         nx,
         width,
         height,
@@ -1383,8 +1384,6 @@ class ImageManager:
         yhi,
         cmap,
         defects,
-        img_accum,
-        targ_accum,
         shbox,
         fwhm,
         beta,
@@ -1399,8 +1398,15 @@ class ImageManager:
     ):
         """Initialises the plot. Arguments:
 
-          cnams : list of strings
-             CCD names to plot
+        ccd_data : dict of {str: :class:`CCD` or None}
+            one entry per CCD being displayed, keys are CCD names.
+            Contains the calibrated CCD, or None if the CCD is being skipped.
+            Used to create the artists; later frames go through update_images.
+
+        targ_data : dict of {int: :class:`Pfit` or None}
+            one entry per target being profile fitted, keys are target numbers.
+            Contains the Pfit class, or None if no fit was made.
+            Used to create the artists; later fits go through update_targets.
 
           nx : int
              max number of panels in X
@@ -1429,44 +1435,24 @@ class ImageManager:
           defects : MccdDefect | None
              Group of defects to plot on each frame, if any.
 
-          img_accum : list of lists
-             one list per CCD being displayed. Contains the information
-             required for the image plot. Per CCD the list should be:
-             [ccd, vmin, vmax, swindows] or None if the CCD is
-             being skipped. swindows -- setup windows -- can be None.
-             A reference to this is stored internally so that changes to
-             it outside the object are reflected internally.
-             This allows update to work without arguments.
-
-          targ_accum : list of Pfits
-             one tuple per target being profile fitted, containg all
-             info needed to make plots of the fit etc. This can be
-             None if no fit was made. See Pfit.fit for what the tuples
-             contain.  A reference to this is stored internally so
-             that changes to it outside the object are reflected
-             internally. This allows update to work without arguments.
-
         shbox, fwhm, beta, method, smooth, fhbox, hmin, fwhm_min, read,
         gain, thresh are profile fitting parameters described elsewhere.
         They are sent to a cursor selection routine.
 
         """
-
-        # basic check
-        assert len(img_accum) == len(cnams)
+        # image content data
+        self.ccd_data = ccd_data
+        self.targ_data = targ_data
 
         # create figure and axes
         self.fig, self.axs = setup_images(
-            len(cnams), nx, "CCD display", xlo, xhi, ylo, yhi, width, height
+            len(ccd_data), nx, "CCD display", xlo, xhi, ylo, yhi, width, height
         )
+        self.caxes = dict(zip(ccd_data, self.axs))
 
-        self.cnv = self.fig.canvas
         self._bg = None
-        self.img_accum = img_accum
-        self.targ_accum = targ_accum
 
         # plot inputs
-        self.cnams = cnams
         self.xlo = xlo
         self.xhi = xhi
         self.ylo = ylo
@@ -1474,33 +1460,35 @@ class ImageManager:
         self.cmap = cmap
         self.defects = defects
 
-        # list of dictionaries of artists for each image panel
-        self.img_artists = []
+        # list of dictionaries of artists for each image panel,
+        # None for a CCD that has yet to be plotted
+        self.img_artists = {cnam: None for cnam in ccd_data}
 
         # now we actually create the artists
-        for ax, cnam, content in zip(self.axs, self.cnams, self.img_accum):
+        for cnam in self.ccd_data:
+            ax = self.caxes[cnam]
+            content = self.ccd_data[cnam]
             if content is None:
                 # do nothing much other than add a placeholder
-                self.img_artists.append(None)
+                self.img_artists[cnam] = None
             else:
                 # plot the CCD, storing references to the animated artists
-                self.img_artists.append(self._disp_ccd(ax, cnam, content))
+                self.img_artists[cnam] = self._disp_ccd(ax, cnam, content)
 
         # now for the fit targets
         self.targ_artists = self._disp_targs()
 
         # grab the background on every draw
-        self.cid = self.cnv.mpl_connect("draw_event", self.on_draw)
+        self.cid = self.fig.canvas.mpl_connect("draw_event", self.on_draw)
 
         # print out instructions for the user
         print("\n(use the SpaceBar to select targets for one-off profile fits)\n")
 
         # create the picker class and connect it to the figure
         self.picker = PickProfit(
-            img_accum,
-            self.cnams,
+            ccd_data,
             self.fig,
-            self.axs,
+            self.caxes,
             shbox,
             fwhm,
             beta,
@@ -1513,14 +1501,13 @@ class ImageManager:
             gain,
             thresh,
         )
-        self.fig.canvas.mpl_connect("self.picker", self.picker._keyPressEvent)
+        self.fig.canvas.mpl_connect("key_press_event", self.picker._keyPressEvent)
 
     def on_draw(self, event):
         """Callback to register with 'draw_event'."""
-        cnv = self.cnv
-        if event is not None and event.canvas != cnv:
+        if event is not None and event.canvas != self.fig.canvas:
             raise RuntimeError
-        self._bg = cnv.copy_from_bbox(cnv.figure.bbox)
+        self._bg = self.fig.canvas.copy_from_bbox(self.fig.bbox)
         self._draw_animated()
 
     def _draw_animated(self):
@@ -1559,62 +1546,57 @@ class ImageManager:
     def update(self):
         """Updating routine."""
         # update the frames used by the cursor picker
-        self.picker.update(self.img_accum)
+        self.picker.update(self.ccd_data)
         # now update / create the artists
 
         # first the images
-        lartists = []
-        for ax, cnam, content, artists in zip(
-            self.axs, self.cnams, self.img_accum, self.img_artists
-        ):
-            if content is None:
+        lartists = {}
+        for cnam in self.ccd_data:
+            ax = self.caxes[cnam]
+            artists = self.img_artists[cnam]
+            if self.ccd_data[cnam] is None:
                 # just pass old artists through
-                lartists.append(artists)
+                lartists[cnam] = artists
             else:
                 # plot the CCD, return with the updated animated artists
-                lartists.append(self._disp_ccd(ax, cnam, content, artists))
+                lartists[cnam] = self._disp_ccd(ax, cnam, self.ccd_data[cnam], artists)
         self.img_artists = lartists
 
         # then the profile fit targets
         self.targ_artists = self._disp_targs(self.targ_artists)
 
-        cnv = self.cnv
-        fig = self.fig
+        # refresh
         if self._bg is None:
             self.on_draw(None)
         else:
             # restore the background
-            cnv.restore_region(self._bg)
+            self.fig.canvas.restore_region(self._bg)
             self._draw_animated()
-            cnv.blit(fig.bbox)
-        cnv.flush_events()
+            self.fig.canvas.blit(self.fig)
+        self.fig.canvas.flush_events()
 
     def _disp_ccd(self, ax, cnam, content, artists=None):
         """Displays a CCD ccd, name cnam, in Axes ax.
 
         If "artists" is None, a dictionary will be created (see
         disp_ccd for details). Otherwise it is assumed to be such a
-        dcitionary resulting from an earlier run and will be updated.
+        dictionary resulting from an earlier run and will be updated.
 
         """
 
         if artists is None:
-
             # in this case we are setting up for the first time
             artists = disp_ccd(ax, cnam, self.cmap, self.defects[cnam], content, True)
-
             # need to re-draw to avoid irritating distorted image
-            self.cnv.draw()
+            self.fig.canvas.draw()
 
         else:
+            # this is the "usual" post-setup case where we just update the artists
 
             # unpack the new content
             ccd, vmin, vmax, swindows = content
 
-            # this is the "usual" post-setup case where we just update
-            # the artists
-
-            # the CCD window data
+            # plot the CCD window data
             mpl.pCcd(
                 ax,
                 ccd,
@@ -1665,8 +1647,8 @@ class ImageManager:
         return artists
 
     def _disp_targs(self, artists=None):
-        """Displays target as (a) a search box and (b) a circle of radius
-        equal to the FWHM and a dot for the target.
+        """Displays profile fitting target as (a) a search box and
+        (b) a circle of radius equal to the FWHM and a dot for the target.
 
         If "artists" is None, a list will be created and
         returned containing the animated artists.
@@ -1675,47 +1657,46 @@ class ImageManager:
 
         """
 
-        if self.targ_accum is None:
+        if self.targ_data is None:
             return []
 
-        # mapping from CCD name to axes
-        ccd2axes = dict(zip(self.cnams, self.axs))
-
         if artists is None:
-
+            # First time, create the artists and return them
             artists = []
-            for ntarg, pfit in enumerate(self.targ_accum):
+            for ntarg, pfit in self.targ_data.items():
                 if pfit is not None:
-                    ax = ccd2axes[pfit.cnam]
+                    ax = self.caxes[pfit.cnam]
                     artists += pfit.plot(ax, True)
                 else:
                     artists += [None, None, None]
 
             # re-draw
-            self.cnv.draw()
+            self.fig.canvas.draw()
 
-        else:
+            return artists
 
-            for ntarg, pfit in enumerate(self.targ_accum):
-                if pfit is not None:
-                    if artists[3 * ntarg] is None:
-                        # The artists have yet to be made
-                        ax = ccd2axes[pfit.cnam]
-                        artists[3 * ntarg : 3 * ntarg + 3] = pfit.plot(ax, True)
-                    else:
-                        # they exist already and need updating
-                        dot, circ, sbox = artists[3 * ntarg : 3 * ntarg + 3]
-                        # set_data must take a sequence from MPL 3.9
-                        dot.set_data((pfit.x,), (pfit.y,))
-                        circ.set_center((pfit.x, pfit.y))
-                        circ.set_radius(pfit.fwhm)
-                        xlo, xhi, ylo, yhi = pfit.region()
-                        sbox.set_data(
-                            [xlo, xhi, xhi, xlo, xlo], [ylo, ylo, yhi, yhi, ylo]
-                        )
+        # In this case we already have artists,
+        # so we just update them with the new data
+        for ntarg, pfit in self.targ_data.items():
+            if pfit is not None:
+                i = 3 * (ntarg - 1)
+                if artists[i] is None:
+                    # The artists have yet to be made
+                    ax = self.caxes[pfit.cnam]
+                    artists[i : i + 3] = pfit.plot(ax, True)
+                else:
+                    # they exist already and need updating
+                    dot, circ, sbox = artists[i: i + 3]
+                    # set_data must take a sequence from MPL 3.9
+                    dot.set_data((pfit.x,), (pfit.y,))
+                    circ.set_center((pfit.x, pfit.y))
+                    circ.set_radius(pfit.fwhm)
+                    xlo, xhi, ylo, yhi = pfit.region()
+                    sbox.set_data(
+                        [xlo, xhi, xhi, xlo, xlo], [ylo, ylo, yhi, yhi, ylo]
+                    )
 
         return artists
-
 
 
 def disp_ccd(ax, cnam, cmap, defects, content, animated):
@@ -1805,14 +1786,13 @@ def disp_ccd(ax, cnam, cmap, defects, content, animated):
 class FwhmManager:
     """Class to start and control the FWHM history animation"""
 
-    def __init__(self, accum, xlo, xhi, fwmax, width, height):
+    def __init__(self, fwhm_data, xlo, xhi, fwmax, width, height):
         """
         Initialises the FWHM history plot. Arguments:
 
-          accum : list of of tuples
+          fwhm_data : list of of tuples
              the lists consists of a sequence of tuples with the frame number
-             and results for all targets (nframe, pfits), with pfits a seies
-             of Pfit objects (can be None if no fit made)
+             and FWHM for each target.
 
           xlo : float
              left-hand X -limit (inital) for plot
@@ -1830,8 +1810,7 @@ class FwhmManager:
              plot height [inches]
 
         """
-
-        self.accum = accum
+        self.fwhm_data = fwhm_data
 
         # Create the figure
         if width > 0 and height > 0:
@@ -1839,7 +1818,6 @@ class FwhmManager:
         else:
             self.fig = plt.figure("FWHM vs frame number")
 
-        self.cnv = self.fig.canvas
         self.ax = self.fig.add_subplot(animated=True)
         self._bg = None
 
@@ -1859,21 +1837,20 @@ class FwhmManager:
 
         # Now plot and create artists for each FWHM plot
         self.fwhm_artists = []
-        for ntarg, (xs, ys) in enumerate(self.accum):
+        for ntarg, (xs, ys) in self.fwhm_data.items():
             (fwhm,) = self.ax.plot(xs, ys, animated=True, label=f"{ntarg+1}")
             self.fwhm_artists.append(fwhm)
         self.ax.legend()
-        #        self.cnv.draw()
+        #        self.fig.canvas.draw()
 
         # grab the background on every draw
-        self.cid = self.cnv.mpl_connect("draw_event", self.on_draw)
+        self.cid = self.fig.canvas.mpl_connect("draw_event", self.on_draw)
 
     def on_draw(self, event):
         """Callback to register with 'draw_event'."""
-        cnv = self.cnv
-        if event is not None and event.canvas != cnv:
+        if event is not None and event.canvas != self.fig.canvas:
             raise RuntimeError
-        self._bg = cnv.copy_from_bbox(cnv.figure.bbox)
+        self._bg = self.fig.canvas.copy_from_bbox(self.fig.bbox)
         self._draw_animated()
 
     def _draw_animated(self):
@@ -1886,13 +1863,10 @@ class FwhmManager:
                 self.fig.draw_artist(artist)
 
     def update(self):
-        """updating routine. Uses current value of self.accum which
-        should be a list of Pfit objects for each target.
-
-        """
+        """Displays the latest FWHM measurements."""
 
         xmax = None
-        for ntarg, (xs, ys) in enumerate(self.accum):
+        for ntarg, (xs, ys) in self.fwhm_data.items():
             self.fwhm_artists[ntarg].set_data(xs, ys)
             if len(xs):
                 xmax = max(xs) if xmax is None else max(xmax, max(xs))
@@ -1904,16 +1878,14 @@ class FwhmManager:
             self.xhi += xadd
             self.ax.set_xlim(self.xlo, self.xhi)
 
-        cnv = self.cnv
-        fig = self.fig
         if self._bg is None:
             self.on_draw(None)
         else:
             # restore the background
-            cnv.restore_region(self._bg)
+            self.fig.canvas.restore_region(self._bg)
             self._draw_animated()
-            cnv.blit(fig.bbox)
-        cnv.flush_events()
+            self.fig.canvas.blit(self.fig.bbox)
+        self.fig.canvas.flush_events()
 
 
 class PickProfitTargets:
@@ -1921,10 +1893,9 @@ class PickProfitTargets:
 
     def __init__(
         self,
-        img_accum,
-        ccds,
+        mccd,
         fig,
-        axs,
+        caxes,
         shbox,
         fwhm,
         beta,
@@ -1938,13 +1909,12 @@ class PickProfitTargets:
         thresh,
     ):
         # image content data
-        self.img_accum = img_accum
-        self.ccds = ccds
+        self.mccd = mccd
 
         # figure and axes
         self.fig = fig
-        self.cnv = fig.canvas
-        self.axs = axs
+        self.caxes = caxes
+        self.axnams = {axes: cnam for cnam, axes in caxes.items()}  # reverse for events
 
         # fitting params
         self.shbox = shbox
@@ -1961,60 +1931,61 @@ class PickProfitTargets:
 
         # accumulating target list
         self.targets = []
-        self.ntarg = 0
 
     def _keyPressEvent(self, event):
         """
         Where stuff is done
         """
+        if event.key == "q":
+            plt.close()
+            print(f"Selected {len(self.targets)} target(s) for profile fitting")
+            return
 
         if event.key == " " and event.inaxes is not None:
+            # clicked inside an Axes
+            ax = event.inaxes
 
-            for ax, cnam, content in zip(self.axs, self.ccds, self.img_accum):
+            # extract the CCD
+            cnam = self.axnams[ax]
+            ccd = self.mccd[cnam]
 
-                # search to identify the CCD
-                if event.inaxes == ax:
+            # check that the position is inside a window
+            x, y = event.xdata, event.ydata
+            wnam = ccd.inside(x, y, 2)
 
-                    # clicked inside an Axes
-                    x, y = event.xdata, event.ydata
-
-                    # extract the CCD
-                    ccd = content[0]
-
-                    # check that the position is inside a window
-                    wnam = ccd.inside(x, y, 2)
-
-                    if wnam is not None:
-                        # store the position, Window label, target
-                        # number, box size fwhm, beta
-                        pfit = Pfit(cnam, wnam, x, y, self.shbox, self.fwhm, self.beta)
-                        results, message = pfit.fit(
-                            ccd,
-                            self.method,
-                            self.smooth,
-                            self.fhbox,
-                            self.hmin,
-                            self.fwhm_min,
-                            self.read,
-                            self.gain,
-                            self.thresh,
-                        )
-                        if results is not None:
-                            # fitted OK
-                            self.ntarg += 1
-                            self.targets.append(pfit)
-                            print(
-                                f"\n   target {self.ntarg} added at initial x,y = "
-                                f"{x:.2f}, {y:.2f} in CCD {cnam}, window {wnam}, refined by fit with results:"
-                            )
-                            print(f"   {message}")
-                            pfit.plot(ax)
-                            self.cnv.draw()
-                        else:
-                            print(
-                                f"\n   ** fit failed for position x,y = {x:.2f}, {y:.2f} in CCD {cnam}, window {wnam}; no new target added"
-                            )
-                            print(f"   ** fit message = {message}")
+            if wnam is not None:
+                # store the position, Window label, target
+                # number, box size fwhm, beta
+                pfit = Pfit(cnam, wnam, x, y, self.shbox, self.fwhm, self.beta)
+                results, message = pfit.fit(
+                    ccd,
+                    self.method,
+                    self.smooth,
+                    self.fhbox,
+                    self.hmin,
+                    self.fwhm_min,
+                    self.read,
+                    self.gain,
+                    self.thresh,
+                )
+                if results is not None:
+                    # fitted OK
+                    self.targets.append(pfit)
+                    print(
+                        f"\n   target {len(self.targets)} added "
+                        f"at initial x,y = {x:.2f}, {y:.2f} "
+                        f"in CCD {cnam}, window {wnam}, "
+                        "refined by fit with results:"
+                    )
+                    print(f"   {message}")
+                    pfit.plot(ax)
+                    self.fig.canvas.draw()
+                else:
+                    print(
+                        f"\n   ** fit failed for position x,y = {x:.2f}, {y:.2f} "
+                        f"in CCD {cnam}, window {wnam}; no new target added"
+                    )
+                    print(f"   ** fit message = {message}")
 
 
 class PickProfit:
@@ -2022,10 +1993,9 @@ class PickProfit:
 
     def __init__(
         self,
-        img_accum,
-        ccds,
+        ccd_data,
         fig,
-        axs,
+        caxes,
         shbox,
         fwhm,
         beta,
@@ -2039,16 +2009,15 @@ class PickProfit:
         thresh,
     ):
         # image content data
-        self.img_accum_old = None
+        self.ccd_data_old = None
         # have to copy here to avoid reference-passing auto-updating
         # the images because we have to work one frame behind
-        self.img_accum = img_accum.copy()
-        self.ccds = ccds
+        self.ccd_data = ccd_data.copy()
 
         # figure and axes
         self.fig = fig
-        self.cnv = fig.canvas
-        self.axs = axs
+        self.caxes = caxes
+        self.axnams = {axes: cnam for cnam, axes in caxes.items()}  # reverse for events
 
         # fitting params
         self.shbox = shbox
@@ -2063,75 +2032,58 @@ class PickProfit:
         self.gain = gain
         self.thresh = thresh
 
-    def update(self, img_accum):
-        self.img_accum_old = self.img_accum
-        self.img_accum = img_accum.copy()
+    def update(self, ccd_data):
+        self.ccd_data_old = self.ccd_data
+        self.ccd_data = ccd_data.copy()
 
     def _keyPressEvent(self, event):
         """
         Where stuff is done
         """
 
-        if (
-            event.key == " "
-            and event.inaxes is not None
-            and self.img_accum_old is not None
-        ):
+        if event.key == " " and event.inaxes is not None:
+            # clicked inside an Axes
+            ax = event.inaxes
 
-            for ax, cnam, content in zip(self.axs, self.ccds, self.img_accum_old):
+            # extract the CCD
+            cnam = self.axnams[ax]
+            ccd = self.ccd_data[cnam]
+            if ccd is None:
+                # nothing to fit if this CCD has yet to be plotted
+                return
 
-                if event.inaxes == ax:
+            # check that the position is inside a window
+            x, y = event.xdata, event.ydata
+            wnam = ccd.inside(x, y, 2)
 
-                    # clicked inside an Axes
-                    x, y = event.xdata, event.ydata
-
-                    # extract the CCD
-                    ccd = content[0]
-
-                    # check that the position is inside a window
-                    wnam = ccd.inside(x, y, 2)
-
-                    if wnam is not None:
-                        # store the position, Window label, target number,
-                        # box size fwhm, beta
-                        pfit = Pfit(cnam, wnam, x, y, self.shbox, self.fwhm, self.beta)
-                        results, message = pfit.fit(
-                            ccd,
-                            self.method,
-                            self.smooth,
-                            self.fhbox,
-                            self.hmin,
-                            self.fwhm_min,
-                            self.read,
-                            self.gain,
-                            self.thresh,
-                        )
-                        if results is not None:
-                            # fitted OK
-                            print(
-                                f"   profile fit with initial x,y = "
-                                f"{x:.2f}, {y:.2f} in CCD {cnam}, window {wnam}, [applies to previous frame]:"
-                            )
-                            print(f"   {message}\n")
-                        else:
-                            print(
-                                f"\n   ** fit failed at position x,y = {x:.2f}, {y:.2f} in CCD {cnam}, window {wnam}"
-                            )
-                            print(f"   ** fit message = {message}\n")
-
-    def _onpress(self, event):
-        self.press = True
-
-    def _onmove(self, event):
-        if self.press:
-            self.move = True
-
-    def _onrelease(self, event):
-        # only call onclick in special circumstances
-        if self.press and not self.move:
-            self._onclick(event)
-        self.press = False
-        self.move = False
+            if wnam is not None:
+                # store the position, Window label, target number,
+                # box size fwhm, beta
+                pfit = Pfit(cnam, wnam, x, y, self.shbox, self.fwhm, self.beta)
+                results, message = pfit.fit(
+                    ccd,
+                    self.method,
+                    self.smooth,
+                    self.fhbox,
+                    self.hmin,
+                    self.fwhm_min,
+                    self.read,
+                    self.gain,
+                    self.thresh,
+                )
+                if results is not None:
+                    # fitted OK
+                    print(
+                        f"   profile fit with initial x,y = "
+                        f"{x:.2f}, {y:.2f} in CCD {cnam}, window {wnam}"
+                        ", [applies to previous frame]:"
+                    )
+                    print(f"   {message}\n")
+                else:
+                    print(
+                        f"\n   ** fit failed at position x,y = {x:.2f}, {y:.2f} in CCD {cnam}, window {wnam}"
+                    )
+                    print(f"   ** fit message = {message}\n")
 
 
 class Pfit:
