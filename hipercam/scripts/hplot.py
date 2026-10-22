@@ -500,7 +500,6 @@ class PickProfit:
         if event.key == "r":
             # plot the radial fit
             (
-                _,
                 radius,
                 pixel_value,
                 _,

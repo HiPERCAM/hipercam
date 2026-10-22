@@ -1112,8 +1112,8 @@ def nrtplot(args=None):
                 img_fig.canvas.mpl_connect("key_press_event", picker._keyPressEvent)
                 plt.show()
 
-                targets = picker.targets
-                if len(targets) == 0:
+                pfit_targets = picker.targets
+                if len(pfit_targets) == 0:
                     # nothing selected, give up on
                     # profile fits.
                     profit = False
@@ -1125,42 +1125,54 @@ def nrtplot(args=None):
                 # First update search box positions. In normal
                 # operation this moves the boxes to match the target
                 # positions previously fitted.
-                for targ in targets:
-                    targ.update_sbox()
+                for pfit in pfit_targets:
+                    pfit.update_sbox()
 
                 # Carry out fits
-                pfits = prof_fit(
-                    ccds,
-                    targets,
-                    img_accum,
-                    method,
-                    smooth,
-                    fhbox,
-                    hmin,
-                    fwhm_min,
-                    read,
-                    gain,
-                    thresh,
-                )
+                img_map = dict(zip(ccds, img_accum))
+                pfit_results = len(pfit_targets) * [None]
+                for ntarg, pfit in enumerate(pfit_targets):
+                    content = img_map[pfit.cnam]
+                    if content is not None:
+                        # Do the fit and store the results
+                        # If the fit fails, results will be None
+                        results, message = pfit.fit(
+                            ccd=content[0],
+                            method=method,
+                            smooth=smooth,
+                            fhbox=fhbox,
+                            hmin=hmin,
+                            fwhm_min=fwhm_min,
+                            read=read,
+                            gain=gain,
+                            thresh=thresh
+                        )
+                        print(f" target {ntarg+1}, {message}")
+                        pfit_results[ntarg] = results
 
-                # if we have two (and only two) valid fits, then find the angle between them
-                if len(pfits) == 2 and pfits[0] is not None and pfits[1] is not None:
-                    dx = pfits[1][0].x - pfits[0][0].x
-                    dy = pfits[1][0].y - pfits[0][0].y
+                # if we have two (and only two) fitted targets,
+                # then find the angle between them
+                if (len(pfit_targets) == 2 and
+                    pfit_results[1] is not None and
+                    pfit_results[2] is not None
+                ):
+                    dx = pfit_targets[2].x - pfit_targets[1].x
+                    dy = pfit_targets[2].y - pfit_targets[1].y
                     theta = Angle(np.arctan2(dy, dx), unit=u.rad).to(u.deg)
                     theta = theta.wrap_at(360 * u.deg).to_value()
                     print(
-                        f"  From target 1 to 2: \u03F4 = {theta:.2f}\u00B0 (anti-clockwise from horizontal)"
+                        f"  From target 1 to 2: Θ = {theta:.2f}° "
+                        "(anti-clockwise from horizontal)"
                     )
 
                 if first_fwhm:
                     # set up the accumulator object now because we didn't know
                     # how many targets the user would choose at the start
-                    fit_accum = [([], []) for n in range(len(pfits))]
-                    targ_accum = len(pfits) * [None]
+                    fit_accum = [([], []) for n in range(len(pfit_results))]
+                    targ_accum = len(pfit_results) * [None]
 
                 # add in latest results
-                for n, pfit in enumerate(pfits):
+                for n, pfit in enumerate(pfit_results):
                     if pfit is not None:
                         fwhm = pfit[0].fwhm
                         fit_accum[n][0].append(nfrm)
@@ -2334,7 +2346,7 @@ class Pfit:
                 f = sky + height / (1 + alpha * r**2) ** beta
 
             # return the fit results
-            results = (self, R.flat, fwind.data.flat, ok.flat, vmin, vmax, r, f)
+            results = (R.flat, fwind.data.flat, ok.flat, vmin, vmax, r, f)
             return (results, message)
 
         except hcam.HipercamError as err:
@@ -2345,32 +2357,3 @@ class Pfit:
         """Moves centre of box to match target position"""
         self.x_cbox = self.x
         self.y_cbox = self.y
-
-
-def prof_fit(
-    ccds, targets, img_accum, method, smooth, fhbox, hmin, fwhm_min, read, gain, thresh
-):
-    """Carries out profile fitting over all targets. Returns container accumulating x,y lists for plotting
-    the FWHM vs frame for each target.
-
-    """
-
-    # first a mapping from CCD name to the image content
-    img_map = dict(zip(ccds, img_accum))
-
-    # container for results
-    pfits = len(targets) * [None]
-
-    for ntarg, pfit in enumerate(targets):
-        # carry out fits. Nothing happens if the CCD has not been
-        # updated [content = None]
-        content = img_map[pfit.cnam]
-        if content is not None:
-            ccd = content[0]
-            results, message = pfit.fit(
-                ccd, method, smooth, fhbox, hmin, fwhm_min, read, gain, thresh
-            )
-            print(f" target {ntarg+1}, {message}")
-            pfits[ntarg] = results
-
-    return pfits
