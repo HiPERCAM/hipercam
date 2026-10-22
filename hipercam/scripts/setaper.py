@@ -457,14 +457,8 @@ def setaper(args=None):
         thresh = cl.get_value("thresh", "RMS rejection threshold for fitting", 4.0)
         ndiv = cl.get_value("ndiv", "pixel sub-division factor", 0, 0)
 
-    # start plot
-    fig = plt.figure()
-    if width > 0 and height > 0:
-        fig.set_size_inches(width, height)
-
-    # plot the CCDs on the figure
-    caxes = hcam.mpl.plot_frame(
-        fig=fig,
+    # create the plot
+    fig, caxes = hcam.mpl.plot_frame(
         mccd=mccd,
         cnams=ccds,
         ncols=nx,
@@ -473,8 +467,9 @@ def setaper(args=None):
         iset=iset,
         ilim=(plo, phi) if iset == "p" else (ilo, ihi),
         region=(xlo, xhi, ylo, yhi),
+        title='setaper',
+        figsize=(width, height),
     )
-    plt.tight_layout()
 
     # add any existing apertures to the CCDs, storing a reference to the plot objects
     pobjs = {}
@@ -559,7 +554,7 @@ class PickStar:
         self.fig.canvas.mpl_connect("key_press_event", self._keyPressEvent)
         self.mccd = mccd
         self.caxes = caxes
-        self.cnams = {axes: cnam for cnam, axes in caxes.items()}  # reverse for events
+        self.axnams = {axes: cnam for cnam, axes in caxes.items()}  # reverse for events
         self.mccdaper = mccdaper
         self.linput = linput
         self.rtarg = rtarg
@@ -636,7 +631,7 @@ class PickStar:
             elif event.key == "l":
                 # link mode. this should be the second aperture
                 # store essential data
-                self._cnam = self.cnams[event.inaxes]
+                self._cnam = self.axnams[event.inaxes]
                 self._axes = event.inaxes
                 self._x = event.xdata
                 self._y = event.ydata
@@ -651,7 +646,7 @@ class PickStar:
 
             elif event.key == "e":
                 # extra mode. store essential data
-                self._cnam = self.cnams[event.inaxes]
+                self._cnam = self.axnams[event.inaxes]
                 self._axes = event.inaxes
                 self._x = event.xdata
                 self._y = event.ydata
@@ -665,7 +660,7 @@ class PickStar:
 
             elif event.key == "m":
                 # mask mode. store essential data
-                self._cnam = self.cnams[event.inaxes]
+                self._cnam = self.axnams[event.inaxes]
                 self._axes = event.inaxes
                 self._x = event.xdata
                 self._y = event.ydata
@@ -685,7 +680,7 @@ class PickStar:
         if axes is not None:
             # store information in attributes accessible to all methods, for
             # later access: name, the key hit, the axes instance, x, y
-            self._cnam = self.cnams[axes]
+            self._cnam = self.axnams[axes]
             self._key = key
             self._axes = axes
             self._x = x

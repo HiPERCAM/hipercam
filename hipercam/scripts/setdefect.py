@@ -265,14 +265,8 @@ def setdefect(args=None):
         # might be worth trying to improve this at some point
         xlo, xhi, ylo, yhi = 0, nxmax + 1, 0, nymax + 1
 
-    # start plot
-    fig = plt.figure()
-    if width > 0 and height > 0:
-        fig.set_size_inches(width, height)
-
-    # plot the CCDs on the figure
-    caxes = hcam.mpl.plot_frame(
-        fig=fig,
+    # create the plot
+    fig, caxes = hcam.mpl.plot_frame(
         mccd=mccd,
         cnams=ccds,
         ncols=nx,
@@ -281,8 +275,9 @@ def setdefect(args=None):
         iset=iset,
         ilim=(plo, phi) if iset == "p" else (ilo, ihi),
         region=(xlo, xhi, ylo, yhi),
+        title='setdefect',
+        figsize=(width, height),
     )
-    plt.tight_layout()
 
     # add any existing defects to the CCDs, storing a reference to the plot objects
     pobjs = {}
@@ -335,7 +330,7 @@ class PickDefect:
         self.fig.canvas.mpl_connect("key_press_event", self._keyPressEvent)
         self.mccd = mccd
         self.caxes = caxes
-        self.cnams = {axes: cnam for cnam, axes in caxes.items()}  # reverse for events
+        self.axnams = {axes: cnam for cnam, axes in caxes.items()}  # reverse for events
         self.mccd_dfct = mccd_dfct
         self.dfctnam = dfctnam
         self.ffield = ffield
@@ -392,7 +387,7 @@ class PickDefect:
                 self._severity = defect.Severity.SEVERE
 
             if event.inaxes is not None:
-                self._cnam = self.cnams[event.inaxes]
+                self._cnam = self.axnams[event.inaxes]
                 self._key = event.key
                 self._axes = event.inaxes
                 self._x = event.xdata
@@ -414,7 +409,7 @@ class PickDefect:
 
             # store information in attributes accessible to all methods, for
             # later access: name, the key hit, the axes instance, x, y
-            self._cnam = self.cnams[axes]
+            self._cnam = self.axnams[axes]
             self._key = key
             self._axes = axes
             self._x = x

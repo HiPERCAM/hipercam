@@ -9,15 +9,14 @@ import os
 from typing import TYPE_CHECKING
 
 import matplotlib as mpl
+import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 
 from . import defect, utils
 from .core import CIS, HipercamError
 
 if TYPE_CHECKING:
-    import matplotlib.pyplot as plt
-
-    from .ccd import MCCD
+    from .ccd import CCD, MCCD
 
 
 # Font scale factor
@@ -896,8 +895,163 @@ def pCcdFringePair(axes, ccdFringePair):
     return pobjs
 
 
+def create_figure(
+    cnams: list[str],
+    ncols: int,
+    region: tuple[int, int, int, int] | None = None,
+    title: str | None = None,
+    figsize: tuple[float, float] | None = None,
+):
+    """
+    Sets up the figure and axes for plotting an MCCD.
+
+    This is separate from plot_frame because for an animation,
+    the figure and axes are set up once and then reused.
+
+    Arguments::
+
+        cnams : list[str]
+            The names of the CCDs to create axes for.
+
+        ncols : int
+            The number of columns in the grid of subplots
+
+        region : tuple[int, int, int, int] | None
+            The region to plot, values are (xmin, xmax, ymin, ymax)
+            If None, the entire CCD is displayed.
+
+        title : str
+            The title of the figure, used for the window title.
+
+        figsize : tuple[float, float] | None
+            The width and height of the figure, in inches.
+            If None, the default size is used.
+
+    Returns::
+        fig: matplotlib.figure.Figure
+            The figure object.
+
+        caxes: dict[str, matplotlib.axes.Axes]
+            A dictionary of the axes objects, one per CCD, labeled by their names.
+    """
+    if region is None:
+        region = [None, None, None, None]
+    xlim = region[0:2]
+    ylim = region[2:4]
+
+    # Create the figure for the image plot
+    fig = plt.figure()
+    if title is not None:
+        fig.canvas.manager.set_window_title(title)
+    if figsize is not None and figsize[0] > 0 and figsize[1] > 0:
+        fig.set_size_inches(figsize[0], figsize[1])
+
+    # Define the panel grid
+    ncols = min(len(cnams), ncols) if len(cnams) > 1 else 1
+    nrows = len(cnams) // ncols if len(cnams) % ncols == 0 else len(cnams) // ncols + 1
+
+    # Create the axes
+    caxes = {}
+    for n, cnam in enumerate(cnams):
+        if n == 0:
+            axes = first_axes = fig.add_subplot(nrows, ncols, n + 1)
+            axes.set_aspect("equal", adjustable="box")
+            axes.set_xlim(*xlim)
+            axes.set_ylim(*ylim)
+        else:
+            # subsequent axes share the same x and y as the first
+            axes = fig.add_subplot(
+                nrows, ncols, n + 1, sharex=first_axes, sharey=first_axes
+            )
+            axes.set_aspect("equal")
+
+        # store the axes for each CCD in a dictionary for later reference
+        caxes[cnam] = axes
+
+    return fig, caxes
+
+
+def display_ccd(
+    axes: plt.Axes,
+    ccd: CCD,
+    cnam: str,
+    msub: bool = False,
+    cmap: str = "Greys",
+    iset: str = "p",
+    ilim: tuple[float, float] | None = None,
+    region: tuple[int, int, int, int] | None = None,
+    animated: bool = False,
+    artists: dict | None = None,
+) -> dict:
+    """Displays a CCD on the given axes.
+
+    Arguments::
+        axes : matplotlib.pyplot.Axes
+            Axes object to plot onto
+
+        ccd : :class:`CCD`
+            the CCD to plot
+
+        cnam: str
+            name of the CCD, used for setting the axis title
+
+        msub : bool
+            Whether to subtract the median from each window before plotting
+
+        cmap: str or None
+            matplotlib colormap to use for the image plot
+
+        iset : str
+            How to set the intensity scale for the images:
+                'a' for automatic min/max range
+                'p' for percentiles (set using `ilim`)
+                'd' for direct values (set using `ilim`)
+
+        ilim : tuple[float, float] | None
+            Lower and upper limits for the intensity scaling.
+            See get_scale_limits for details on how these are used based on `iset`.
+
+        region : tuple[int, int, int, int] | None
+            The region to plot, values are (xmin, xmax, ymin, ymax)
+            If None, the entire CCD is displayed.
+            If iset='p', only this region is used to compute the percentiles for
+            intensity scaling.
+
+    """
+    if region is None:
+        region = [None, None, None, None]
+    xlim = region[0:2]
+    ylim = region[2:4]
+    if artists is None:
+        artists = {
+            "ccd": None,
+            "defects": None,
+        }
+
+    # Subtract median from each window, if requested
+    if msub:
+        for wind in ccd.values():
+            wind -= wind.median()
+
+    # Plot the ccd
+    pCcd(
+        axes,
+        ccd,
+        iset=iset,
+        plo=ilim[0],
+        phi=ilim[1],
+        dlo=ilim[0],
+        dhi=ilim[1],
+        cmap=cmap,
+        tlabel=f"CCD {cnam}",
+        xlo=xlim[0],
+        xhi=xlim[1],
+        ylo=ylim[0],
+        yhi=ylim[1],
+    )
+
+
 def plot_frame(
-    fig: plt.Figure,
     mccd: MCCD,
     cnams: str | list[str] = "0",
     ncols: int = 3,
@@ -906,21 +1060,20 @@ def plot_frame(
     iset: str = "p",
     ilim: tuple[float, float] | None = None,
     region: tuple[int, int, int, int] | None = None,
-) -> dict[str, plt.Axes]:
-    """Plots an :class:`Mccd` object on a given figure.
+    title: str | None = None,
+    figsize: tuple[float, float] | None = None,
+) -> tuple[plt.Figure, dict[str, plt.Axes]]:
+    """Creates a plot of an :class:`Mccd` object.
 
     Each CCD is added to a subplot in a grid.
 
     Arguments::
 
-        fig : :class:`matplotlib.figure.Figure`
-            The figure to plot to.
-
-        mccd : MCCD
-            The :class:`MCCD` to plot
+        mccd : :class:`MCCD`
+            The MCCD to plot
 
         cnams : str | list[str]
-            The names of the CCDs to plot.
+            The name(s) of the CCDs to plot.
             If "0" then all CCDs in the MCCD are plotted.
 
         ncols : int
@@ -953,8 +1106,18 @@ def plot_frame(
             If iset='p', only this region is used to compute the percentiles for
             intensity scaling.
 
+        title : str | None
+            The title of the figure, used for the window title.
+
+        figsize : tuple[float, float] | None
+            The width and height of the figure, in inches.
+            If None, the default size is used.
+
     Returns:
-        dict[str, :class:`matplotlib.axes.Axes`]
+        fig: :class:`matplotlib.figure.Figure`
+            The Figure object.
+
+        caxes: dict[str, :class:`matplotlib.axes.Axes`]
             A dictionary mapping CCD names to their corresponding Axes objects.
 
     """
@@ -964,55 +1127,33 @@ def plot_frame(
         ilim = 0.0, 1000.0
     if region is None:
         region = [None, None, None, None]
-    xlim = region[0:2]
-    ylim = region[2:4]
-
-    # define the panel grid
     if cnams == "0" or len(mccd) == 1:
         cnams = list(mccd.keys())
-    ncols = min(len(cnams), ncols) if len(cnams) > 1 else 1
-    nrows = len(cnams) // ncols if len(cnams) % ncols == 0 else len(cnams) // ncols + 1
+    if isinstance(cnams, str):
+        cnams = [cnams]
 
-    # set up the axes and plot each CCD
-    caxes = {}
-    for n, cnam in enumerate(cnams):
-        if n == 0:
-            axes = first_axes = fig.add_subplot(nrows, ncols, n + 1)
-            axes.set_aspect("equal", adjustable="box")
-            axes.set_xlim(*xlim)
-            axes.set_ylim(*ylim)
-        else:
-            # subsequent axes share the same x and y as the first
-            axes = fig.add_subplot(
-                nrows, ncols, n + 1, sharex=first_axes, sharey=first_axes
-            )
-            axes.set_aspect("equal")
+    # Create the figure and axes
+    fig, caxes = create_figure(
+        cnams=cnams, ncols=ncols, region=region, title=title, figsize=figsize
+    )
 
-        if msub:
-            # subtract median from each window
-            for wind in mccd[cnam].values():
-                wind -= wind.median()
-
-        # plot the CCD windows
-        mccd[cnam].plot(
-            axes,
-            iset=iset,
-            plo=ilim[0],
-            phi=ilim[1],
-            dlo=ilim[0],
-            dhi=ilim[1],
-            tlabel=f"CCD {cnam}",
-            xlo=xlim[0],
-            xhi=xlim[1],
-            ylo=ylim[0],
-            yhi=ylim[1],
+    # Plot each CCD
+    for cnam, axes in caxes.items():
+        display_ccd(
+            axes=axes,
+            ccd=mccd[cnam],
+            cnam=cnam,
+            msub=msub,
             cmap=cmap,
+            iset=iset,
+            ilim=ilim,
+            region=region,
         )
 
-        # store the axes for each CCD in a dictionary for later reference
-        caxes[cnam] = axes
+    # Adjust the layout to prevent overlap
+    fig.tight_layout()
 
-    return caxes
+    return fig, caxes
 
 
 def setup_plot(fig, disable_shortcuts=True):

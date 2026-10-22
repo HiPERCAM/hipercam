@@ -328,14 +328,8 @@ def hplot(args=None):
         gain = cl.get_value("gain", "gain, ADU/e-", 1.0)
         thresh = cl.get_value("thresh", "number of RMS to reject at", 4.0)
 
-    # start plot
-    fig = plt.figure()
-    if width > 0 and height > 0:
-        fig.set_size_inches(width, height)
-
-    # plot the CCDs on the figure
-    caxes = hcam.mpl.plot_frame(
-        fig=fig,
+    # create the plot
+    fig, caxes = hcam.mpl.plot_frame(
         mccd=mccd,
         cnams=ccds,
         ncols=nx,
@@ -344,8 +338,9 @@ def hplot(args=None):
         iset=iset,
         ilim=(plo, phi) if iset == "p" else (ilo, ihi),
         region=(xlo, xhi, ylo, yhi),
+        title=frame,
+        figsize=(width, height),
     )
-    plt.tight_layout()
 
     # print the plot ranges for each CCD
     for cnam in caxes:
