@@ -152,7 +152,8 @@ def flagcloud(args=None):
     # Inputs obtained.
     print()
 
-    cnams, anams, plots = {}, {}, {}
+    plots = {}
+    caxes = {}
     ax = None
 
     fig,axs = plt.subplots(len(ccds),1,sharex=True)
@@ -201,18 +202,24 @@ def flagcloud(args=None):
             "rat": rat if aper2 is not None else None
         }
 
-        # keep track of the CCD associated with each axes
-        cnams[ax] = cnam
+        # store the axes for each CCD in a dictionary for later reference
+        caxes[cnam] = ax
 
-        # and the axes associated with each CCD
-        anams[cnam] = ax
         ax.set_ylabel("CCD {:s}".format(cnam))
 
     ax.set_xlabel(f'Time [MJD - {T0}]')
     plt.tight_layout()
 
-    # create the picker class
-    picker = PickPoints(fig, hlog, cnams, anams, plots, T0, output)
+    # create the picker class and connect it to the figure
+    picker = PickPoints(
+        hlog,
+        fig,
+        caxes,
+        plots,
+        T0,
+        output,
+    )
+    fig.canvas.mpl_connect("key_press_event", picker._keyPressEvent)
     picker.action_prompt(False)
 
     # finally set up the plot for interactive mode and display
@@ -289,24 +296,23 @@ def nearest(x, y, lc, ax, fig, dmax=0.02, rmin=1.5):
 
 
 class PickPoints:
-    """This is where all the action occurs. A rather complicated matter
-    of handling events. Note that standard terminal input with 'input'
-    becomes impossible, explaining some of the weirdness. Effectively
-    the class is used here to define a scope for variables that would
-    otherwise be treated as globals
-    """
+    """Class to pick points and flag them as cloudy or junk."""
 
-    def __init__(self, fig, hlog, cnams, anams, plots, T0, oname):
-
-        # save the inputs, tack on event handlers.
-        self.fig = fig
-        self.fig.canvas.mpl_connect("key_press_event", self._keyPressEvent)
+    def __init__(self, hlog, fig, caxes, plots, T0, oname):
+        # log data
         self.hlog = hlog
-        self.cnams = cnams
-        self.anams = anams
+
+        # figure and axes
+        self.fig = fig
+        self.caxes = caxes
+        self.axnams = {axes: cnam for cnam, axes in caxes.items()}  # reverse for events
         self.plots = plots
-        self.T0 = T0
+
+        # output file
         self.oname = oname
+
+        # other params
+        self.T0 = T0
 
         # flag to indicate the action we are in which requires extra input
         self._range_mode = False
@@ -343,11 +349,11 @@ class PickPoints:
                 # trap 'q' for quit
                 self._range_mode = False
                 print("no time range was defined")
-                PickPoints.action_prompt(True)
+                self.action_prompt(True)
 
             elif event.key == "c" or event.key == "J" or event.key == "R":
                 # range mode.
-                self._cnam = self.cnams[event.inaxes]
+                self._cnam = self.axnams[event.inaxes]
                 self._axes = event.inaxes
                 self._x = event.xdata
                 self._y = event.ydata
@@ -370,7 +376,7 @@ class PickPoints:
 
             # store information in attributes accessible to all methods, for
             # later access: name, the key hit, the axes instance, x, y
-            self._cnam = self.cnams[axes]
+            self._cnam = self.axnams[axes]
             self._key = key
             self._axes = axes
             self._x = x
@@ -403,7 +409,7 @@ require setting 2 points which should be from the same window.
                 print(key)
 
                 # short-hand
-                cnam = self.cnams[axes]
+                cnam = self.axnams[axes]
                 plot = self.plots[cnam]
                 p1, p2, rat = plot['a1'], plot['a2'], plot['rat']
 
@@ -456,7 +462,7 @@ require setting 2 points which should be from the same window.
                         (flag & ~hcam.JUNK & ~hcam.CLOUDS)
 
                 plt.draw()
-                PickPoints.action_prompt(False)
+                self.action_prompt(False)
 
             elif key == "c" or key == "J" or key == "R":
                 # define a time range
@@ -488,7 +494,7 @@ require setting 2 points which should be from the same window.
 
             else:
                 print(f'\nNo action is defined for key = "{key}"')
-                PickPoints.action_prompt(False)
+                self.action_prompt(False)
 
     def _range(self, key):
         """Defines time range
@@ -534,7 +540,7 @@ require setting 2 points which should be from the same window.
 
                 # mark points across all CCDs
                 for cnam, plot in self.plots.items():
-                    axes = self.anams[cnam]
+                    axes = self.caxes[cnam]
                     p1, p2, rat = plot['a1'], plot['a2'], plot['rat']
 
                     col = COL_CLOUD if key == 'c' else \
@@ -570,4 +576,4 @@ require setting 2 points which should be from the same window.
                             data[f'flag_{ap}'][mask] &= (~hcam.JUNK & ~hcam.CLOUDS)
 
                 plt.draw()
-                PickPoints.action_prompt(True)
+                self.action_prompt(True)

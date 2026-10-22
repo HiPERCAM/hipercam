@@ -279,13 +279,13 @@ def setdefect(args=None):
         figsize=(width, height),
     )
 
-    # add any existing defects to the CCDs, storing a reference to the plot objects
+    # add any existing defects to the plot, storing a reference to the plot objects
     pobjs = {}
     for cnam, axes in caxes.items():
         if cnam in mccd_dfct:
             pobjs[cnam] = hcam.mpl.pCcdDefect(axes, mccd_dfct[cnam])
         else:
-            # add in an empty group for any CCD not already present
+            # create in an empty group to be added to later
             mccd_dfct[cnam] = defect.CcdDefect()
             pobjs[cnam] = {}
 
@@ -306,10 +306,18 @@ def setdefect(args=None):
                     label = int(mccd_dfct[cnam].next_label())
                     mccd_dfct[cnam][label] = hot
 
-    # create the picker class
+    # create the picker class and connect it to the figure
     picker = PickDefect(
-        mccd, caxes, fig, mccd_dfct, dfct, ffield, hsbox, pobjs
+        mccd,
+        mccd_dfct,
+        fig,
+        caxes,
+        pobjs,
+        dfct,
+        ffield,
+        hsbox,
     )
+    fig.canvas.mpl_connect("key_press_event", picker._keyPressEvent)
     picker.action_prompt(False)
 
     # finally set up the plot for interactive mode and display
@@ -318,26 +326,37 @@ def setdefect(args=None):
 
 
 class PickDefect:
-    """Class to pick defects
-    """
+    """Class to pick defects."""
 
     def __init__(
-        self, mccd, caxes, fig, mccd_dfct, dfctnam, ffield, hsbox, pobjs
+        self,
+        mccd,
+        mccd_dfct,
+        fig,
+        caxes,
+        pobjs,
+        dfctnam,
+        ffield,
+        hsbox,
     ):
-
-        # save the inputs, tack on event handlers.
-        self.fig = fig
-        self.fig.canvas.mpl_connect("key_press_event", self._keyPressEvent)
+        # image content data
         self.mccd = mccd
+        self.mccd_dfct = mccd_dfct
+
+        # figure and axes
+        self.fig = fig
         self.caxes = caxes
         self.axnams = {axes: cnam for cnam, axes in caxes.items()}  # reverse for events
-        self.mccd_dfct = mccd_dfct
-        self.dfctnam = dfctnam
-        self.ffield = ffield
-        self.hsbox = hsbox
         self.pobjs = pobjs
 
-        # then mutually exclusive flags to indicate the action we are in
+        # output file
+        self.dfctnam = dfctnam
+
+        # other params
+        self.ffield = ffield
+        self.hsbox = hsbox
+
+        # mutually exclusive flags to indicate the action we are in
         # for actions that require extra input. We are not in these at the
         # start so we set them False
         self._line_mode = False

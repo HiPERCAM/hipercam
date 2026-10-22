@@ -348,59 +348,58 @@ def hplot(args=None):
         vmin, vmax = imgs[0].get_clim()  # the first window, but should all be the same
         print(f"CCD = {cnam}, plot range = {vmin} to {vmax}")
 
-    if device == "term":
-        box_size = 2 * hsbox + 1
-        print(
-            f"\nClick points in windows for stats in a {box_size:d}x{box_size:d} box"
-            f"\nPress space bar to fit a profile at the cursor position"
-            f"\nPress 'r' to plot a radial profile of the fit in a new window"
-        )
-
-        # disable 'r' key as shortcut for reset zoom
-        mpl.rcParams["keymap.home"].remove("r")
-
-        # add the keypress callback
-        fitter = OnDemandFit(
-            fig,
-            mccd,
-            caxes,
-            shbox,
-            fwhm,
-            beta,
-            method,
-            smooth,
-            fhbox,
-            hmin,
-            fwhm_min,
-            read,
-            gain,
-            thresh,
-            hsbox,
-        )
-        fig.canvas.mpl_connect("key_press_event", fitter._keyPressEvent)
-        fig.canvas.mpl_connect("button_press_event", fitter._buttonPressEvent)
-
-        # finally set up the plot for interactive mode and display
-        hcam.mpl.setup_plot(fig, disable_shortcuts=False)
-        plt.show()
-
-    else:
+    if device != "term":
         # save plot to file
         if device.endswith(".png"):
             plt.savefig(device, dpi=dpi, bbox_inches="tight", pad_inches=0)
         else:
             plt.savefig(device, bbox_inches="tight", pad_inches=0)
+        return
+
+    # print out instructions for the user
+    box_size = 2 * hsbox + 1
+    print(
+        f"\nClick points in windows for stats in a {box_size:d}x{box_size:d} box"
+        f"\nPress space bar to fit a profile at the cursor position"
+        f"\nPress 'r' to plot a radial profile of the fit in a new window"
+    )
+
+    # disable 'r' key as shortcut for reset zoom
+    mpl.rcParams["keymap.home"].remove("r")
+
+    # create the picker class and connect it to the figure
+    picker = PickProfit(
+        mccd,
+        fig,
+        caxes,
+        shbox,
+        fwhm,
+        beta,
+        method,
+        smooth,
+        fhbox,
+        hmin,
+        fwhm_min,
+        read,
+        gain,
+        thresh,
+        hsbox,
+    )
+    fig.canvas.mpl_connect("key_press_event", picker._keyPressEvent)
+    fig.canvas.mpl_connect("button_press_event", picker._buttonPressEvent)
+
+    # finally set up the plot for interactive mode and display
+    hcam.mpl.setup_plot(fig, disable_shortcuts=False)
+    plt.show()
 
 
-class OnDemandFit:
-    """
-    Callback
-    """
+class PickProfit:
+    """Class to pick targets for profile fitting."""
 
     def __init__(
         self,
-        fig,
         mccd,
+        fig,
         caxes,
         shbox=31,
         fwhm=6,
@@ -415,11 +414,15 @@ class OnDemandFit:
         thresh=4.0,
         hsbox=2,
     ):
-        self.fig = fig
-        self.hsbox = hsbox
+        # image content data
         self.mccd = mccd
+
+        # figure and axes
+        self.fig = fig
         self.caxes = caxes
-        self.cnams = {axes: cnam for cnam, axes in caxes.items()}  # reverse for events
+        self.axnams = {axes: cnam for cnam, axes in caxes.items()}  # reverse for events
+
+        # fitting params
         self.shbox = shbox
         self.fwhm = fwhm
         self.beta = beta
@@ -432,6 +435,10 @@ class OnDemandFit:
         self.gain = gain
         self.thresh = thresh
 
+        # other params
+        self.hsbox = hsbox
+
+        # list to hold future plot artists
         self.artists = None
 
     def _keyPressEvent(self, event):
@@ -441,9 +448,7 @@ class OnDemandFit:
         if event.key == "q":
             return
 
-        # only when curser is within the axes and not in pan/zoom mode
-        if self.fig.canvas.manager.toolbar.mode == "pan/zoom":
-            return
+        # only when curser is within the axes
         if event.inaxes is None:
             return
 
@@ -452,7 +457,7 @@ class OnDemandFit:
             return
 
         # check that the position is inside a window
-        cnam = self.cnams[event.inaxes]
+        cnam = self.axnams[event.inaxes]
         ccd = self.mccd[cnam]
         x, y = event.xdata, event.ydata
         wnam = ccd.inside(x, y, 2)
@@ -529,7 +534,7 @@ class OnDemandFit:
         if event.inaxes is None:
             return
 
-        cnam = self.cnams[event.inaxes]
+        cnam = self.axnams[event.inaxes]
         utils.print_stats(
             self.mccd[cnam], cnam, event.xdata, event.ydata, self.hsbox
         )

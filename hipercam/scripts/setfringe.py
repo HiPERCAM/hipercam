@@ -210,20 +210,27 @@ def setfringe(args=None):
         figsize=(width, height),
     )
 
-    # add any existing fringe pairs to the CCDs, storing a reference to the plot objects
+    # add any existing fringe pairs to the plot, storing a reference to the plot objects
     pobjs = {}
     for cnam, axes in caxes.items():
         if cnam in mccd_fpair:
             pobjs[cnam] = hcam.mpl.pCcdFringePair(axes, mccd_fpair[cnam])
         else:
-            # add in an empty group for any CCD not already present
+            # create in an empty group to be added to later
             mccd_fpair[cnam] = fringe.CcdFringePair()
             pobjs[cnam] = {}
 
-    # create the picker class
+    # create the picker class and connect it to the figure
     picker = PickFringePair(
-        mccd, caxes, fig, mccd_fpair, fpair, nhalf, pobjs
+        mccd,
+        mccd_fpair,
+        fig,
+        caxes,
+        pobjs,
+        fpair,
+        nhalf,
     )
+    fig.canvas.mpl_connect("key_press_event", picker._keyPressEvent)
     picker.action_prompt(False)
 
     # finally set up the plot for interactive mode and display
@@ -232,24 +239,35 @@ def setfringe(args=None):
 
 
 class PickFringePair:
-    """Class to pick fringe pairs"""
+    """Class to pick fringe pairs."""
 
     def __init__(
-        self, mccd, caxes, fig, mccd_fpair, fringenam, nhalf, pobjs
+        self,
+        mccd,
+        mccd_fpair,
+        fig,
+        caxes,
+        pobjs,
+        fringenam,
+        nhalf,
     ):
-
-        # save the inputs, tack on event handlers.
-        self.fig = fig
-        self.fig.canvas.mpl_connect("key_press_event", self._keyPressEvent)
+        # image content data
         self.mccd = mccd
+        self.mccd_fpair = mccd_fpair
+
+        # figure and axes
+        self.fig = fig
         self.caxes = caxes
         self.axnams = {axes: cnam for cnam, axes in caxes.items()}  # reverse for events
-        self.mccd_fpair = mccd_fpair
-        self.fringenam = fringenam
-        self.nhalf = nhalf
         self.pobjs = pobjs
 
-        # then mutually exclusive flags to indicate the action we are in
+        # output file
+        self.fringenam = fringenam
+
+        # other params
+        self.nhalf = nhalf
+
+        # mutually exclusive flags to indicate the action we are in
         # for actions that require extra input. We are not in these at the
         # start so we set them False
         self._mid_pair = False

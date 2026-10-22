@@ -389,13 +389,13 @@ def psfaper(args=None):
         figsize=(width, height),
     )
 
-    # add any existing apertures to the CCDs, storing a reference to the plot objects
+    # add any existing apertures to the plot, storing a reference to the plot objects
     pobjs = {}
     for cnam, axes in caxes.items():
         if cnam in mccdaper:
             pobjs[cnam] = hcam.mpl.pCcdAper(axes, mccdaper[cnam])
         else:
-            # add in an empty group for any CCD not already present
+            # create in an empty group to be added to later
             mccdaper[cnam] = hcam.CcdAper()
             pobjs[cnam] = {}
 
@@ -422,12 +422,14 @@ close enough.
 """
     )
 
-    # create the picker class
+    # create the picker class and connect it to the figure
     picker = PickRef(
         mccd,
-        caxes,
-        fig,
         mccdaper,
+        fig,
+        caxes,
+        pobjs,
+        aper,
         method,
         beta,
         beta_max,
@@ -444,9 +446,8 @@ close enough.
         read,
         gain,
         rejthresh,
-        pobjs,
-        aper,
     )
+    fig.canvas.mpl_connect("key_press_event", picker._keyPressEvent)
 
     # finally set up the plot for interactive mode and display
     hcam.mpl.setup_plot(fig)
@@ -459,9 +460,11 @@ class PickRef:
     def __init__(
         self,
         mccd,
-        caxes,
-        fig,
         mccdaper,
+        fig,
+        caxes,
+        pobjs,
+        apernam,
         method,
         beta,
         beta_max,
@@ -478,16 +481,21 @@ class PickRef:
         read,
         gain,
         rejthresh,
-        pobjs,
-        apernam,
     ):
-        # save the inputs, tack on event handlers.
-        self.fig = fig
-        self.fig.canvas.mpl_connect("key_press_event", self._keyPressEvent)
+        # image content data
         self.mccd = mccd
+        self.mccdaper = mccdaper
+
+        # figure and axes
+        self.fig = fig
         self.caxes = caxes
         self.axnams = {axes: cnam for cnam, axes in caxes.items()}  # reverse for events
-        self.mccdaper = mccdaper
+        self.pobjs = pobjs
+
+        # output file
+        self.apernam = apernam
+
+        # fitting params
         self.method = method
         self.beta = beta
         self.beta_max = beta_max
@@ -505,8 +513,7 @@ class PickRef:
         self.read = read
         self.gain = gain
         self.rejthresh = rejthresh
-        self.pobjs = pobjs
-        self.apernam = apernam
+
         # dictionary to store fit data for PSFs of reference stars
         self.psf_data = dict()
 

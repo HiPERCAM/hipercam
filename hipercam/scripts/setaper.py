@@ -471,22 +471,24 @@ def setaper(args=None):
         figsize=(width, height),
     )
 
-    # add any existing apertures to the CCDs, storing a reference to the plot objects
+    # add any existing apertures to the plot, storing a reference to the plot objects
     pobjs = {}
     for cnam, axes in caxes.items():
         if cnam in mccdaper:
             pobjs[cnam] = hcam.mpl.pCcdAper(axes, mccdaper[cnam])
         else:
-            # add in an empty group for any CCD not already present
+            # create in an empty group to be added to later
             mccdaper[cnam] = hcam.CcdAper()
             pobjs[cnam] = {}
 
-    # create the picker class
-    picker = PickStar(
+    # create the picker class and connect it to the figure
+    picker = PickAper(
         mccd,
-        caxes,
-        fig,
         mccdaper,
+        fig,
+        caxes,
+        pobjs,
+        aper,
         linput,
         rtarg,
         rsky1,
@@ -506,9 +508,8 @@ def setaper(args=None):
         gain,
         thresh,
         ndiv,
-        aper,
-        pobjs,
     )
+    fig.canvas.mpl_connect("key_press_event", picker._keyPressEvent)
     picker.action_prompt(False)
 
     # finally set up the plot for interactive mode and display
@@ -516,7 +517,7 @@ def setaper(args=None):
     plt.show()
 
 
-class PickStar:
+class PickAper:
     """Class to pick targets for apertures."""
 
     ADD_PROMPT = "enter a label for the aperture, '!' to abort: "
@@ -524,9 +525,11 @@ class PickStar:
     def __init__(
         self,
         mccd,
-        caxes,
-        fig,
         mccdaper,
+        fig,
+        caxes,
+        pobjs,
+        apernam,
         linput,
         rtarg,
         rsky1,
@@ -546,16 +549,21 @@ class PickStar:
         gain,
         thresh,
         ndiv,
-        apernam,
-        pobjs,
     ):
-        # save the inputs, tack on event handlers.
-        self.fig = fig
-        self.fig.canvas.mpl_connect("key_press_event", self._keyPressEvent)
+        # image content data
         self.mccd = mccd
+        self.mccdaper = mccdaper
+
+        # figure and axes
+        self.fig = fig
         self.caxes = caxes
         self.axnams = {axes: cnam for cnam, axes in caxes.items()}  # reverse for events
-        self.mccdaper = mccdaper
+        self.pobjs = pobjs
+
+        # output file
+        self.apernam = apernam
+
+        # fitting params
         self.linput = linput
         self.rtarg = rtarg
         self.rsky1 = rsky1
@@ -575,10 +583,8 @@ class PickStar:
         self.gain = gain
         self.thresh = thresh
         self.ndiv = ndiv
-        self.apernam = apernam
-        self.pobjs = pobjs
 
-        # then mutually exclusive flags to indicate the action we are in
+        # mutually exclusive flags to indicate the action we are in
         # for actions that require extra input. We are not in these at the
         # start so we set them False
         self._add_mode = False
@@ -626,7 +632,7 @@ class PickStar:
                 # trap 'q' for quit during linking
                 self._link_mode = False
                 print("no link added")
-                PickStar.action_prompt(True)
+                self.action_prompt(True)
 
             elif event.key == "l":
                 # link mode. this should be the second aperture
@@ -642,7 +648,7 @@ class PickStar:
             if event.key == "q":
                 self._extra_mode = False
                 print("no extra aperture added")
-                PickStar.action_prompt(True)
+                self.action_prompt(True)
 
             elif event.key == "e":
                 # extra mode. store essential data
@@ -656,7 +662,7 @@ class PickStar:
             if event.key == "q":
                 self._mask_mode = False
                 print("no mask added")
-                PickStar.action_prompt(True)
+                self.action_prompt(True)
 
             elif event.key == "m":
                 # mask mode. store essential data
@@ -727,7 +733,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                     # switch to add mode, initialise buffer for label input
                     self._add_mode = True
                     self._label = ""
-                    print(PickStar.ADD_PROMPT, end="", flush=True)
+                    print(PickAper.ADD_PROMPT, end="", flush=True)
 
             elif key == "b":
                 # break a link
@@ -758,7 +764,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                 print(key)
                 if len(self.mccdaper[self._cnam]) < 2:
                     print("need at least 2 apertures in a CCD to be able to make links")
-                    PickStar.action_prompt(True)
+                    self.action_prompt(True)
                 else:
                     # switch to link mode, set number of apertures picked
                     self._link_stage = 0
@@ -787,7 +793,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                         " switched off profile fitting & re-positioning"
                         " when adding apertures"
                     )
-                PickStar.action_prompt(True)
+                self.action_prompt(True)
 
             elif key == "q":
                 print(key)
@@ -838,10 +844,10 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                         " to all other displayed CCDs".format(self._cnam)
                     )
 
-                PickStar.action_prompt(True)
+                self.action_prompt(True)
 
             elif key == "enter":
-                PickStar.action_prompt(True)
+                self.action_prompt(True)
 
             elif (
                 key == "shift"
@@ -855,7 +861,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
 
             else:
                 print('\nNo action is defined for key = "{:s}"'.format(key))
-                PickStar.action_prompt(False)
+                self.action_prompt(False)
 
     def _add(self):
         """
@@ -879,7 +885,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                     " should not occur".format(self._x, self._y),
                     file=sys.stderr,
                 )
-                PickStar.action_prompt(True)
+                self.action_prompt(True)
                 return
 
             # get Window around the selected position
@@ -956,7 +962,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
             except hcam.HipercamError as err:
                 print(err, file=sys.stderr)
                 # fit failed.
-                PickStar.action_prompt(True)
+                self.action_prompt(True)
                 return
 
         # create and add aperture
@@ -978,7 +984,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                 self._label, self._cnam, self._x, self._y
             )
         )
-        PickStar.action_prompt(True)
+        self.action_prompt(True)
 
     def _break(self):
         """
@@ -1012,7 +1018,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                 )
             )
 
-        PickStar.action_prompt(True)
+        self.action_prompt(True)
 
     def _centre(self):
         """
@@ -1151,7 +1157,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                     print(err, file=sys.stderr)
                     print("  *** aperture left as is")
 
-        PickStar.action_prompt(True)
+        self.action_prompt(True)
 
     def _delete(self):
         """This deletes the nearest aperture to the currently selected
@@ -1203,7 +1209,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
         else:
             print("  found no aperture near enough " "the cursor position for deletion")
 
-        PickStar.action_prompt(True)
+        self.action_prompt(True)
 
     def _extra(self):
         """
@@ -1226,7 +1232,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                     " cursor position to add extra pixels; nothing done"
                 )
                 self._extra_mode = False
-                PickStar.action_prompt(True)
+                self.action_prompt(True)
 
             else:
                 # ok, we have an aperture. store the CCD, aperture label and
@@ -1274,7 +1280,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                     )
                 )
 
-            PickStar.action_prompt(True)
+            self.action_prompt(True)
 
     def _link(self):
         """Links one aperture to another. The other one is used when
@@ -1296,7 +1302,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
             else:
                 print("  *** no link made.")
                 # note we stay in link mode so the user can try again
-                PickStar.action_prompt(True)
+                self.action_prompt(True)
 
         else:
             # ok, we have an aperture
@@ -1306,7 +1312,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                 if aper.ref:
                     print("  *** cannot link a reference aperture")
                     self._link_mode = False
-                    PickStar.action_prompt(True)
+                    self.action_prompt(True)
 
                 else:
                     # first time through, store the CCD, aperture label and
@@ -1358,7 +1364,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                         " in CCD {:s}".format(self._link_apnam, apnam, self._link_cnam)
                     )
 
-                PickStar.action_prompt(True)
+                self.action_prompt(True)
 
     def _mask(self):
         """
@@ -1381,7 +1387,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                     " cursor position to add mask to; nothing done"
                 )
                 self._mask_mode = False
-                PickStar.action_prompt(True)
+                self.action_prompt(True)
 
             else:
                 # ok, we have an aperture. store the CCD, aperture label and
@@ -1397,7 +1403,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
             if self._cnam != self._mask_cnam:
                 print("  *** cannot add sky mask across CCDs; no mask added")
                 self._mask_mode = False
-                PickStar.action_prompt(True)
+                self.action_prompt(True)
             else:
                 # store mask centre
                 self._mask_xcen = self._x
@@ -1444,7 +1450,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                     )
                 )
 
-            PickStar.action_prompt(True)
+            self.action_prompt(True)
 
     def _compo(self):
         """
@@ -1470,7 +1476,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
             self.pobjs[self._cnam][apnam] = hcam.mpl.pAper(self._axes, aper, apnam)
 
         plt.draw()
-        PickStar.action_prompt(True)
+        self.action_prompt(True)
 
     def _reference(self):
         """
@@ -1505,7 +1511,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                 self.pobjs[self._cnam][apnam] = hcam.mpl.pAper(self._axes, aper, apnam)
 
         plt.draw()
-        PickStar.action_prompt(True)
+        self.action_prompt(True)
 
     def _find_aper(self):
         """Finds the nearest aperture to the currently selected position,
@@ -1540,7 +1546,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                     "label={:s} already in use; please try again".format(self._label),
                     file=sys.stderr,
                 )
-                print(PickStar.ADD_PROMPT, end="", flush=True)
+                print(PickAper.ADD_PROMPT, end="", flush=True)
                 self._label = ""
 
             elif self._label == "":
@@ -1548,7 +1554,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                     "label blank; please try again".format(self._label),
                     file=sys.stderr,
                 )
-                print(PickStar.ADD_PROMPT, end="", flush=True)
+                print(PickAper.ADD_PROMPT, end="", flush=True)
 
             else:
                 # add & plot aperture
@@ -1558,13 +1564,13 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
         elif key == "!" and self._label == "":
             # terminate accumulation mode without bothering to wait for an 'enter'
             print("\n*** no aperture added")
-            PickStar.action_prompt(True)
+            self.action_prompt(True)
             self._add_mode = False
 
         elif key == "backspace" or key == "delete":
             # remove a character
             self._label = self._label[:-1]
-            print("{:s}{:s} ".format(PickStar.ADD_PROMPT, self._label))
+            print("{:s}{:s} ".format(PickAper.ADD_PROMPT, self._label))
 
         elif key in "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ":
             # accumulate input and add to the buffer
@@ -1576,7 +1582,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
 
                 if key == "0":
                     print("Apertures cannot be labelled just '0'")
-                    print(PickStar.ADD_PROMPT, end="", flush=True)
+                    print(PickAper.ADD_PROMPT, end="", flush=True)
                     self._label = ""
 
                 elif self._label in self.mccdaper[self._cnam]:
@@ -1586,7 +1592,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                         ),
                         file=sys.stderr,
                     )
-                    print(PickStar.ADD_PROMPT, end="", flush=True)
+                    print(PickAper.ADD_PROMPT, end="", flush=True)
                     self._label = ""
 
                 elif self._label == "":
@@ -1594,7 +1600,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                         "label blank; please try again".format(self._label),
                         file=sys.stderr,
                     )
-                    print(PickStar.ADD_PROMPT, end="", flush=True)
+                    print(PickAper.ADD_PROMPT, end="", flush=True)
 
                 else:
                     # add & plot aperture

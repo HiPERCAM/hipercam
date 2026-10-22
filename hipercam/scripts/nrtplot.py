@@ -1086,12 +1086,17 @@ def nrtplot(args=None):
                 for ax, cnam, content in zip(img_axs, ccds, img_accum):
                     disp_ccd(ax, cnam, cmap, defects[cnam], content, False)
 
-                # Cursor selection routine. Comes back with a set of targets
-                cselect = ProfitCursorSelect(
+                # print out instructions for the user
+                print(
+                    "\nUse the SpaceBar to select targets for profile fitting; q(uit) to exit selection and start animation"
+                )
+
+                # create the picker class and connect it to the figure
+                picker = PickProfitTargets(
+                    img_accum,
+                    ccds,
                     img_fig,
                     img_axs,
-                    ccds,
-                    img_accum,
                     shbox,
                     fwhm,
                     beta,
@@ -1104,9 +1109,10 @@ def nrtplot(args=None):
                     gain,
                     thresh,
                 )
+                img_fig.canvas.mpl_connect("key_press_event", picker._keyPressEvent)
                 plt.show()
 
-                targets = cselect.targets
+                targets = picker.targets
                 if len(targets) == 0:
                     # nothing selected, give up on
                     # profile fits.
@@ -1484,12 +1490,15 @@ class ImageManager:
         # grab the background on every draw
         self.cid = self.cnv.mpl_connect("draw_event", self.on_draw)
 
-        # profile fitter
-        self.cselect = OntheflyCursorSelect(
+        # print out instructions for the user
+        print("\n(use the SpaceBar to select targets for one-off profile fits)\n")
+
+        # create the picker class and connect it to the figure
+        self.picker = PickProfit(
+            img_accum,
+            self.cnams,
             self.fig,
             self.axs,
-            self.cnams,
-            img_accum,
             shbox,
             fwhm,
             beta,
@@ -1502,6 +1511,7 @@ class ImageManager:
             gain,
             thresh,
         )
+        self.fig.canvas.mpl_connect("self.picker", self.picker._keyPressEvent)
 
     def on_draw(self, event):
         """Callback to register with 'draw_event'."""
@@ -1547,7 +1557,7 @@ class ImageManager:
     def update(self):
         """Updating routine."""
         # update the frames used by the cursor picker
-        self.cselect.update(self.img_accum)
+        self.picker.update(self.img_accum)
         # now update / create the artists
 
         # first the images
@@ -1904,17 +1914,15 @@ class FwhmManager:
         cnv.flush_events()
 
 
-class ProfitCursorSelect:
-    """
-    Selection of targets to profile fit for animation
-    """
+class PickProfitTargets:
+    """Class to pick targets for ongoing profile fitting."""
 
     def __init__(
         self,
+        img_accum,
+        ccds,
         fig,
         axs,
-        ccds,
-        img_accum,
         shbox,
         fwhm,
         beta,
@@ -1927,17 +1935,16 @@ class ProfitCursorSelect:
         gain,
         thresh,
     ):
-        """
-        fig : the Figure
-        axs : the Axes, one per CCD
-        img_accum : image content data
-        shbox : falf width search box
-        """
+        # image content data
+        self.img_accum = img_accum
+        self.ccds = ccds
 
+        # figure and axes
+        self.fig = fig
         self.cnv = fig.canvas
         self.axs = axs
-        self.ccds = ccds
-        self.img_accum = img_accum
+
+        # fitting params
         self.shbox = shbox
         self.fwhm = fwhm
         self.beta = beta
@@ -1953,10 +1960,6 @@ class ProfitCursorSelect:
         # accumulating target list
         self.targets = []
         self.ntarg = 0
-        print(
-            "\nUse the SpaceBar to select targets for profile fitting; q(uit) to exit selection and start animation"
-        )
-        self.kp = self.cnv.mpl_connect("key_press_event", self._keyPressEvent)
 
     def _keyPressEvent(self, event):
         """
@@ -2012,17 +2015,15 @@ class ProfitCursorSelect:
                             print(f"   ** fit message = {message}")
 
 
-class OntheflyCursorSelect:
-    """
-    Selection of targets for on-the-fly fits
-    """
+class PickProfit:
+    """Class to pick targets for on-the-fly profile fitting."""
 
     def __init__(
         self,
+        img_accum,
+        ccds,
         fig,
         axs,
-        ccds,
-        img_accum,
         shbox,
         fwhm,
         beta,
@@ -2035,20 +2036,19 @@ class OntheflyCursorSelect:
         gain,
         thresh,
     ):
-        """
-        fig : the Figure
-        axs : the Axes, one per CCD
-        img_accum : image content data
-        shbox : falf width search box
-        """
-
-        self.cnv = fig.canvas
-        self.axs = axs
-        self.ccds = ccds
+        # image content data
         self.img_accum_old = None
         # have to copy here to avoid reference-passing auto-updating
         # the images because we have to work one frame behind
         self.img_accum = img_accum.copy()
+        self.ccds = ccds
+
+        # figure and axes
+        self.fig = fig
+        self.cnv = fig.canvas
+        self.axs = axs
+
+        # fitting params
         self.shbox = shbox
         self.fwhm = fwhm
         self.beta = beta
@@ -2060,9 +2060,6 @@ class OntheflyCursorSelect:
         self.read = read
         self.gain = gain
         self.thresh = thresh
-
-        print("\n(use the SpaceBar to select targets for one-off profile fits)\n")
-        self.kp = self.cnv.mpl_connect("key_press_event", self._keyPressEvent)
 
     def update(self, img_accum):
         self.img_accum_old = self.img_accum
