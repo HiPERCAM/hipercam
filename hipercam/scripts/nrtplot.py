@@ -407,9 +407,9 @@ def nrtplot(args=None):
         To help with *dithered* long exposures especially, for which
         'profit' performs very poorly, clicking on any object will
         attempt a one-off profile fit, with results that are reported
-        to the terminal. It's a little cludgy in that the profile fits
-        are only carried out and reported *after* the next frame has
-        been plotted, but it's better than nothing.
+        to the terminal. Clicks made while a frame is being processed
+        are handled just before the next frame is displayed, but always
+        use the frame that was on display when you clicked.
 
         If you don't apply bias subtraction and/or you do subtract the
         median, then the usual method to estimate the read noise fails.
@@ -834,9 +834,9 @@ def nrtplot(args=None):
                 if imanager is None and fwhmmanager is None:
                     updaters = ()
                 elif fwhmmanager is None:
-                    updaters = (imanager.update,)
+                    updaters = (imanager.refresh,)
                 else:
-                    updaters = (imanager.update, fwhmmanager.update)
+                    updaters = (imanager.refresh, fwhmmanager.refresh)
 
                 give_up, try_again, total_time = spooler.hang_about(
                     mccd, twait, tmax, total_time, updaters, tupdate
@@ -1109,6 +1109,8 @@ def nrtplot(args=None):
                     thresh,
                 )
                 fig.canvas.mpl_connect("key_press_event", picker._keyPressEvent)
+
+                # finally display the plot
                 plt.show()
 
                 # once we return, targets should be selected, if any
@@ -1126,7 +1128,48 @@ def nrtplot(args=None):
                     # user didn't pick any targets, turn off profit
                     profit = False
 
-            if profit and pfit_targets is not None:
+            # We're ready to start plotting
+            if imanager is None:
+                # First time through, create the image plot manager
+                imanager = ImageManager(
+                    ccd_data=ccd_data,
+                    targ_data=targ_data,
+                    nx=nx,
+                    imwidth=imwidth,
+                    imheight=imheight,
+                    xlo=xlo,
+                    xhi=xhi,
+                    ylo=ylo,
+                    yhi=yhi,
+                    cmap=cmap,
+                    defects=defects,
+                    shbox=shbox,
+                    fwhm=fwhm,
+                    beta=beta,
+                    method=method,
+                    smooth=smooth,
+                    fhbox=fhbox,
+                    hmin=hmin,
+                    fwhm_min=fwhm_min,
+                    read=read,
+                    gain=gain,
+                    thresh=thresh,
+                )
+
+                if memory:
+                    # define object to handle adjusting the figure size
+                    cleanup = CleanUp(
+                        "HIPERCAM_ENV", ".hipercam", command, args, imanager.fig
+                    )
+                    signal(SIGINT, cleanup)
+
+                plt.show(block=False)
+                plt.pause(0.1)
+
+            # Update the image plot (done on every loop)
+            imanager.update_images(ccd_data, swindows)
+
+            if pfit_targets is not None:
                 # If profile fitting is being carried out, then this
                 # section is implemented for each new image.
 
@@ -1153,7 +1196,7 @@ def nrtplot(args=None):
                             gain=gain,
                             thresh=thresh
                         )
-                        print(f" target {ntarg+1}, {message}")
+                        print(f" target {ntarg}, {message}")
                         pfit_results[ntarg] = results
 
                 # if we have two (and only two) fitted targets,
@@ -1180,53 +1223,13 @@ def nrtplot(args=None):
                         fwhm_data[ntarg][0].append(nframe)
                         fwhm_data[ntarg][1].append(pfit.fwhm)
 
-            if not profit or pfit_targets is None:
-                # We're ready to start plotting
-                if imanager is None:
-                    # First time through, create the image plot manager
-                    imanager = ImageManager(
-                        ccd_data,
-                        targ_data,
-                        nx,
-                        imwidth,
-                        imheight,
-                        xlo,
-                        xhi,
-                        ylo,
-                        yhi,
-                        cmap,
-                        defects,
-                        shbox,
-                        fwhm,
-                        beta,
-                        method,
-                        smooth,
-                        fhbox,
-                        hmin,
-                        fwhm_min,
-                        read,
-                        gain,
-                        thresh,
-                    )
-
-                    if memory:
-                        # define object to handle adjusting the figure size
-                        cleanup = CleanUp(
-                            "HIPERCAM_ENV", ".hipercam", command, args, imanager.fig
-                        )
-
-                        # and register with signal
-                        signal(SIGINT, cleanup)
-
-                    plt.show(block=False)
-                    plt.pause(0.1)
-
-                else:
-                    # update plot
-                    imanager.update()
+                # show the latest fits on the image plot
+                imanager.update_targets(targ_data)
 
                 # The FWHM animation
-                if profit and fwnmax > 1:
+                if fwnmax > 1:
+                    # Plot change in FWHM over time
+
                     if fwhmmanager is None:
                         # First time through, create the FWHM plot manager
                         fwhmmanager = FwhmManager(
@@ -1237,13 +1240,11 @@ def nrtplot(args=None):
                             fwwidth,
                             fwheight,
                         )
-
                         plt.show(block=False)
                         plt.pause(0.1)
 
-                    else:
-                        # update the fwhm plot manager
-                        fwhmmanager.update()
+                    # Update the FWHM plot (done on every loop)
+                    fwhmmanager.update(fwhm_data)
 
             if pause > 0.0:
                 # pause between frames
@@ -1254,9 +1255,9 @@ def nrtplot(args=None):
                     for _ in range(nupdate):
                         time.sleep(pause / nupdate)
                         if imanager is not None:
-                            imanager.update()
+                            imanager.refresh()
                         if fwhmmanager is not None:
-                            fwhmmanager.update()
+                            fwhmmanager.refresh()
                 else:
                     # just pause because the updates will come
                     time.sleep(pause)
@@ -1362,11 +1363,12 @@ def setup_images(nccd, nx, title, xlo, xhi, ylo, yhi, width, height):
 class ImageManager:
     """Class to control the image animation
 
-    Basic idea is that initialising it stores all the very many inputs
-    as attributes and creates the plot returning structures containing
-    animated artists which get updated per frame. Allows re-scaling of
-    intensity levels of the images, plotting of defects and setup
-    windows and also the search box and fitted positions of any
+    Basic idea is that initialising it creates the figure and the animated
+    artists for the first frame. After that, ``update_images`` is called once
+    per frame to update them, ``update_targets`` after profile fits, and
+    ``refresh`` as often as needed to keep the window responsive. Allows
+    re-scaling of intensity levels of the images, plotting of defects and
+    setup windows and also the search box and fitted positions of any
     profile fit targets.
 
     """
@@ -1465,18 +1467,14 @@ class ImageManager:
         self.img_artists = {cnam: None for cnam in ccd_data}
 
         # now we actually create the artists
-        for cnam in self.ccd_data:
-            ax = self.caxes[cnam]
-            content = self.ccd_data[cnam]
-            if content is None:
-                # do nothing much other than add a placeholder
-                self.img_artists[cnam] = None
-            else:
-                # plot the CCD, storing references to the animated artists
-                self.img_artists[cnam] = self._disp_ccd(ax, cnam, content)
+        self._update_images(ccd_data)
+
+        # Adjust the layout to prevent overlap
+        # (can only do after the artists are created)
+        self.fig.tight_layout()
 
         # now for the fit targets
-        self.targ_artists = self._disp_targs()
+        self.targ_artists = self._disp_targs(targ_data)
 
         # grab the background on every draw
         self.cid = self.fig.canvas.mpl_connect("draw_event", self.on_draw)
@@ -1515,15 +1513,11 @@ class ImageManager:
         is a list of dictionaries of lists ...
 
         """
-
-        # need to know some of the details behind the dictionaries
-        # returned by mpl
-        for dartist in self.img_artists:
-
-            # dartist is a dictionary as returned by disp_ccd
+        for cnam in self.img_artists:
+            # dartist is a dictionary as returned by _disp_ccd
+            dartist = self.img_artists[cnam]
 
             if dartist is not None:
-
                 # 'ccd' has values which are all lists of artists
                 for lartist in dartist["ccd"].values():
                     for artist in lartist:
@@ -1543,36 +1537,52 @@ class ImageManager:
             if artist is not None:
                 self.fig.draw_artist(artist)
 
-    def update(self):
-        """Updating routine."""
-        # update the frames used by the cursor picker
-        self.picker.update(self.ccd_data)
-        # now update / create the artists
+    def update_images(self, ccd_data, swindows=None):
+        """Displays new frames.
 
-        # first the images
+        Call once per frame, after ccd_data has been updated.
+        """
+        # handle any clicks queued while the frame was processed, while the
+        # cursor selector still has the frame that was on display
+        self.fig.canvas.flush_events()
+        self.picker.update(ccd_data)
+        self._update_images(ccd_data, swindows)
+        self.refresh()
+
+    def _update_images(self, ccd_data):
+        """Creates or updates the artists for each CCD with new data."""
+        # Note this is a separate function to call from __init__,
+        # since update_images would fail before we create the profile selector
         lartists = {}
-        for cnam in self.ccd_data:
+        for cnam in ccd_data:
             ax = self.caxes[cnam]
             artists = self.img_artists[cnam]
-            if self.ccd_data[cnam] is None:
+            if ccd_data[cnam] is None:
                 # just pass old artists through
                 lartists[cnam] = artists
             else:
                 # plot the CCD, return with the updated animated artists
-                lartists[cnam] = self._disp_ccd(ax, cnam, self.ccd_data[cnam], artists)
+                lartists[cnam] = self._disp_ccd(ax, cnam, ccd_data[cnam], artists)
         self.img_artists = lartists
 
-        # then the profile fit targets
-        self.targ_artists = self._disp_targs(self.targ_artists)
+    def update_targets(self, targ_data):
+        """Displays the latest profile fit results for each target."""
+        self.targ_artists = self._disp_targs(targ_data, self.targ_artists)
+        self.refresh()
 
-        # refresh
+    def refresh(self):
+        """Redraws the animated artists without changing any data.
+
+        Safe to call repeatedly while waiting for a frame to arrive,
+        to keep the window responsive.
+        """
         if self._bg is None:
             self.on_draw(None)
         else:
             # restore the background
             self.fig.canvas.restore_region(self._bg)
             self._draw_animated()
-            self.fig.canvas.blit(self.fig)
+            self.fig.canvas.blit(self.fig.bbox)
         self.fig.canvas.flush_events()
 
     def _disp_ccd(self, ax, cnam, content, artists=None):
@@ -1646,7 +1656,7 @@ class ImageManager:
 
         return artists
 
-    def _disp_targs(self, artists=None):
+    def _disp_targs(self, targ_data, artists=None):
         """Displays profile fitting target as (a) a search box and
         (b) a circle of radius equal to the FWHM and a dot for the target.
 
@@ -1656,14 +1666,10 @@ class ImageManager:
         earlier run and will be updated.
 
         """
-
-        if self.targ_data is None:
-            return []
-
         if artists is None:
             # First time, create the artists and return them
             artists = []
-            for ntarg, pfit in self.targ_data.items():
+            for ntarg, pfit in targ_data.items():
                 if pfit is not None:
                     ax = self.caxes[pfit.cnam]
                     artists += pfit.plot(ax, True)
@@ -1677,7 +1683,7 @@ class ImageManager:
 
         # In this case we already have artists,
         # so we just update them with the new data
-        for ntarg, pfit in self.targ_data.items():
+        for ntarg, pfit in targ_data.items():
             if pfit is not None:
                 i = 3 * (ntarg - 1)
                 if artists[i] is None:
@@ -1838,10 +1844,9 @@ class FwhmManager:
         # Now plot and create artists for each FWHM plot
         self.fwhm_artists = []
         for ntarg, (xs, ys) in self.fwhm_data.items():
-            (fwhm,) = self.ax.plot(xs, ys, animated=True, label=f"{ntarg+1}")
+            (fwhm,) = self.ax.plot(xs, ys, animated=True, label=f"{ntarg}")
             self.fwhm_artists.append(fwhm)
         self.ax.legend()
-        #        self.fig.canvas.draw()
 
         # grab the background on every draw
         self.cid = self.fig.canvas.mpl_connect("draw_event", self.on_draw)
@@ -1862,22 +1867,31 @@ class FwhmManager:
             if artist is not None:
                 self.fig.draw_artist(artist)
 
-    def update(self):
-        """Displays the latest FWHM measurements."""
+    def update(self, fwhm_data):
+        """Displays the latest FWHM measurements. Call once per frame.
+
+        fwhm_data is the same list of (frame numbers, FWHMs) per target as was
+        used to create the plot.
+        """
 
         xmax = None
-        for ntarg, (xs, ys) in self.fwhm_data.items():
-            self.fwhm_artists[ntarg].set_data(xs, ys)
+        for ntarg, (xs, ys) in fwhm_data.items():
+            self.fwhm_artists[ntarg - 1].set_data(xs, ys)
             if len(xs):
                 xmax = max(xs) if xmax is None else max(xmax, max(xs))
 
-        if xmax > self.xhi - 1:
+        if xmax is not None and xmax > self.xhi - 1:
             # update axes limits
             xadd = xmax - self.xhi + 1
             self.xlo += xadd
             self.xhi += xadd
             self.ax.set_xlim(self.xlo, self.xhi)
 
+        self.refresh()
+
+    def refresh(self):
+        """Redraws the animated artists without changing any data. Safe to
+        call repeatedly while waiting for a frame."""
         if self._bg is None:
             self.on_draw(None)
         else:
@@ -2009,10 +2023,7 @@ class PickProfit:
         thresh,
     ):
         # image content data
-        self.ccd_data_old = None
-        # have to copy here to avoid reference-passing auto-updating
-        # the images because we have to work one frame behind
-        self.ccd_data = ccd_data.copy()
+        self.update(ccd_data)
 
         # figure and axes
         self.fig = fig
@@ -2033,8 +2044,12 @@ class PickProfit:
         self.thresh = thresh
 
     def update(self, ccd_data):
-        self.ccd_data_old = self.ccd_data
-        self.ccd_data = ccd_data.copy()
+        """Takes a snapshot of the images currently on display, by CCD name.
+
+        The snapshot is needed because the main loop replaces the entries of
+        ccd_data in place while it processes the next frame.
+        """
+        self.ccd_data = dict(ccd_data)
 
     def _keyPressEvent(self, event):
         """
@@ -2074,14 +2089,14 @@ class PickProfit:
                 if results is not None:
                     # fitted OK
                     print(
-                        f"   profile fit with initial x,y = "
-                        f"{x:.2f}, {y:.2f} in CCD {cnam}, window {wnam}"
-                        ", [applies to previous frame]:"
+                        f"   profile fit with initial x,y = {x:.2f}, {y:.2f} "
+                        f"in CCD {cnam}, window {wnam}:"
                     )
                     print(f"   {message}\n")
                 else:
                     print(
-                        f"\n   ** fit failed at position x,y = {x:.2f}, {y:.2f} in CCD {cnam}, window {wnam}"
+                        f"\n   ** fit failed at position x,y = {x:.2f}, {y:.2f} "
+                        f"in CCD {cnam}, window {wnam}"
                     )
                     print(f"   ** fit message = {message}\n")
 
