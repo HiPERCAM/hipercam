@@ -800,14 +800,15 @@ def nrtplot(args=None):
 
     # Phew. We finally have all the inputs and now can now display stuff.
 
-    # track which CCDs have been plotted at least once for the profile fits
-    plotted = np.array(len(ccds) * [False])
-    not_selected = True
-
     # img_accum and (later) fit_accum and targ_accum are long-lived
     # objects passed and stored by reference to plot updating classes
     img_accum = len(ccds) * [None]
     targ_accum = None
+
+    # we also keep track of any profit targets and setup windows,
+    # but we start with neither
+    pfit_targets = None
+    swindows = None
 
     # we create the plot managers later,
     # but need to know if they exist for the waiting game
@@ -907,27 +908,22 @@ def nrtplot(args=None):
                     fpair = fpair.crop(mccd, nhalf)
 
             if setup:
-                # Get setup windows from hdriver / udriver. Fair bit of
-                # error checking needed. 'got_windows' indicates if
-                # anything useful found, 'swindows' is a list of
-                # (llx,lly,nx,ny) tuples if somthing is found.
+                # Get setup windows from hdriver / udriver.
+                # Fair bit of error checking needed.
+                # 'swindows' is a list of (llx,lly,nx,ny) tuples if something is found.
                 try:
                     r = requests.get(drurl, timeout=0.2)
-
                     if r.text.strip() == "No valid data available":
                         emessages.append(
                             f"** bad return from hdriver = {r.text.strip()}"
                         )
-                        got_windows = False
-
+                        swindows = None
                     elif r.text.strip() == "fullframe":
                         # to help Stu out a bit, effectively just
                         # ignore this one
-                        got_windows = False
-
+                        swindows = None
                     else:
                         # OK, got something
-                        got_windows = True
                         lines = r.text.split("\r\n")
                         xbinh, ybinh, nwinh = lines[0].split()
                         xbinh, ybinh, nwinh = int(xbinh), int(ybinh), int(nwinh)
@@ -939,9 +935,9 @@ def nrtplot(args=None):
                         if nwinh != len(swindows):
                             emessages.append(
                                 f"** expected {nwinh} windows from"
-                                " (u/h)driver but got {len(swindows)}"
+                                f" (u/h)driver but got {len(swindows)}"
                             )
-                            got_windows = False
+                            swindows = None
 
                 except (
                     requests.exceptions.ConnectionError,
@@ -949,10 +945,7 @@ def nrtplot(args=None):
                     requests.exceptions.Timeout,
                 ) as err:
                     emessages.append(" ** hdriver error: {!r}".format(err))
-                    got_windows = False
-
-            else:
-                got_windows = False
+                    swindows = None
 
             # wind through the CCDs to display, accumulating stuff
             # to send to the plot manager
@@ -965,7 +958,6 @@ def nrtplot(args=None):
                 if plotall or ccd.is_data():
                     # "is_data" indicates genuine data as opposed to junk
                     # that results from nskip > 0.
-                    plotted[nc] = True
 
                     if fcosmic:
                         # save a copy for later in order to mask
@@ -1036,7 +1028,7 @@ def nrtplot(args=None):
 
                     content = [ccd, vmin, vmax]
 
-                    if got_windows:
+                    if swindows is not None:
                         content.append(swindows)
                     else:
                         content.append(None)
@@ -1060,6 +1052,7 @@ def nrtplot(args=None):
             for emessage in emessages:
                 print(emessage)
 
+            # We have all the data, now get to plotting.
             # at this point "img_accum" contains a list of lists, each of
             # which consists of:
             #
@@ -1068,10 +1061,15 @@ def nrtplot(args=None):
             # i.e. the CCD, intensity range and setup windows, or
             # "None" if the CCD has yet to be initialised due to nskip
 
-            if profit and not_selected and plotted.all():
-                # Finally have at least one proper exposure of all CCDs
+            # First, if we're profile fitting we need to select targets.
+            if profit and pfit_targets is None:
+                all_plotted = [content is not None for content in img_accum]
+                if not all(all_plotted):
+                    # Due to nskips, we need to wait until all CCDs have data
+                    continue
+
+                # We have at least one proper exposure of all CCDs
                 # from which stars can be selected.
-                not_selected = False
 
                 # Ready to make first plot of all CCDs
                 img_fig, img_axs = setup_images(
@@ -1114,13 +1112,19 @@ def nrtplot(args=None):
                 img_fig.canvas.mpl_connect("key_press_event", picker._keyPressEvent)
                 plt.show()
 
-                pfit_targets = picker.targets
-                if len(pfit_targets) == 0:
-                    # nothing selected, give up on
-                    # profile fits.
+                # once we return, targets should be selected, if any
+                if len(picker.targets) > 0:
+                    pfit_targets = picker.targets
+
+                    # set up the accumulator objects now, because we didn't know
+                    # how many targets the user would choose at the start
+                    fit_accum = [([], []) for n in range(len(pfit_results))]
+                    targ_accum = len(pfit_results) * [None]
+                else:
+                    # user didn't pick any targets, turn off profit
                     profit = False
 
-            if profit and not not_selected:
+            if profit and pfit_targets is not None:
                 # If profile fitting is being carried out, then this
                 # section is implemented for each new image.
 
@@ -1167,12 +1171,6 @@ def nrtplot(args=None):
                         "(anti-clockwise from horizontal)"
                     )
 
-                if fwhmmanager is None:
-                    # set up the accumulator objects now, because we didn't know
-                    # how many targets the user would choose at the start
-                    fit_accum = [([], []) for n in range(len(pfit_results))]
-                    targ_accum = len(pfit_results) * [None]
-
                 # add in latest results
                 for n, pfit in enumerate(pfit_results):
                     if pfit is not None:
@@ -1181,7 +1179,7 @@ def nrtplot(args=None):
                         fit_accum[n][1].append(fwhm)
                         targ_accum[n] = pfit[0]
 
-            if not profit or not not_selected:
+            if not profit or pfit_targets is None:
                 # We're ready to start plotting
                 if imanager is None:
                     # First time through, create the image plot manager
@@ -1247,13 +1245,13 @@ def nrtplot(args=None):
                         # update the fwhm plot manager
                         fwhmmanager.update()
 
-            if not (profit and not_selected) and pause > 0.0:
+            if pause > 0.0:
                 # pause between frames
                 if pause > 2 * tupdate:
-                    # run the updaters if pause is a little
-                    # long. Designed to make the plot more responsive
+                    # run the updaters if pause is a little long.
+                    # designed to make the plot more responsive
                     nupdate = int(pause / tupdate)
-                    for n in range(nupdate):
+                    for _ in range(nupdate):
                         time.sleep(pause / nupdate)
                         if imanager is not None:
                             imanager.update()
@@ -1272,9 +1270,6 @@ def nrtplot(args=None):
 
     if memory:
         cleanup.finish()
-
-
-# From here is support code not visible outside
 
 
 class CleanUp:
