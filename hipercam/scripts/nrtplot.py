@@ -1023,11 +1023,6 @@ def nrtplot(args=None):
 
                 content = [ccd, vmin, vmax]
 
-                if swindows is not None:
-                    content.append(swindows)
-                else:
-                    content.append(None)
-
                 # finally, all the fame processing is done
                 # save to send to the plot updater
                 ccd_data[cnam] = content
@@ -1052,7 +1047,7 @@ def nrtplot(args=None):
             # at this point "ccd_data" contains a list for each CCD,
             # each of which consists of:
             #
-            # [ccd, vmin, vmax, swindows]
+            # [ccd, vmin, vmax]
             #
             # i.e. the CCD, intensity range and setup windows, or
             # "None" if the CCD has yet to be initialised due to nskip
@@ -1134,15 +1129,16 @@ def nrtplot(args=None):
                 imanager = ImageManager(
                     ccd_data=ccd_data,
                     targ_data=targ_data,
+                    defects=defects,
+                    swindows=swindows,
                     nx=nx,
-                    imwidth=imwidth,
-                    imheight=imheight,
+                    width=imwidth,
+                    height=imheight,
                     xlo=xlo,
                     xhi=xhi,
                     ylo=ylo,
                     yhi=yhi,
                     cmap=cmap,
-                    defects=defects,
                     shbox=shbox,
                     fwhm=fwhm,
                     beta=beta,
@@ -1163,6 +1159,7 @@ def nrtplot(args=None):
                     )
                     signal(SIGINT, cleanup)
 
+                # start live display
                 plt.show(block=False)
                 plt.pause(0.1)
 
@@ -1377,6 +1374,8 @@ class ImageManager:
         self,
         ccd_data,
         targ_data,
+        defects,
+        swindows,
         nx,
         width,
         height,
@@ -1385,7 +1384,6 @@ class ImageManager:
         ylo,
         yhi,
         cmap,
-        defects,
         shbox,
         fwhm,
         beta,
@@ -1398,7 +1396,9 @@ class ImageManager:
         gain,
         thresh,
     ):
-        """Initialises the plot. Arguments:
+        """Initialises and manages the plot.
+
+        Arguments:
 
         ccd_data : dict of {str: :class:`CCD` or None}
             one entry per CCD being displayed, keys are CCD names.
@@ -1409,6 +1409,13 @@ class ImageManager:
             one entry per target being profile fitted, keys are target numbers.
             Contains the Pfit class, or None if no fit was made.
             Used to create the artists; later fits go through update_targets.
+
+        defects : MccdDefect | None
+            Group of defects to plot on each frame, if any.
+
+        swindows : list of tuples, or None
+            List of setup windows to plot on the frame,
+            each tuple is (llxh, llyh, nxh, nyh)
 
           nx : int
              max number of panels in X
@@ -1434,18 +1441,11 @@ class ImageManager:
           cmap : str  | None
              Matplotlib colour map. None gives default
 
-          defects : MccdDefect | None
-             Group of defects to plot on each frame, if any.
-
         shbox, fwhm, beta, method, smooth, fhbox, hmin, fwhm_min, read,
         gain, thresh are profile fitting parameters described elsewhere.
         They are sent to a cursor selection routine.
 
         """
-        # image content data
-        self.ccd_data = ccd_data
-        self.targ_data = targ_data
-
         # create figure and axes
         self.fig, self.axs = setup_images(
             len(ccd_data), nx, "CCD display", xlo, xhi, ylo, yhi, width, height
@@ -1467,7 +1467,7 @@ class ImageManager:
         self.img_artists = {cnam: None for cnam in ccd_data}
 
         # now we actually create the artists
-        self._update_images(ccd_data)
+        self._update_images(ccd_data, swindows)
 
         # Adjust the layout to prevent overlap
         # (can only do after the artists are created)
@@ -1549,7 +1549,7 @@ class ImageManager:
         self._update_images(ccd_data, swindows)
         self.refresh()
 
-    def _update_images(self, ccd_data):
+    def _update_images(self, ccd_data, swindows=None):
         """Creates or updates the artists for each CCD with new data."""
         # Note this is a separate function to call from __init__,
         # since update_images would fail before we create the profile selector
@@ -1562,7 +1562,9 @@ class ImageManager:
                 lartists[cnam] = artists
             else:
                 # plot the CCD, return with the updated animated artists
-                lartists[cnam] = self._disp_ccd(ax, cnam, ccd_data[cnam], artists)
+                lartists[cnam] = self._disp_ccd(
+                    ax, cnam, ccd_data[cnam], artists, swindows
+                )
         self.img_artists = lartists
 
     def update_targets(self, targ_data):
@@ -1585,18 +1587,31 @@ class ImageManager:
             self.fig.canvas.blit(self.fig.bbox)
         self.fig.canvas.flush_events()
 
-    def _disp_ccd(self, ax, cnam, content, artists=None):
+    def _disp_ccd(self, ax, cnam, content, swindows=None, artists=None):
         """Displays a CCD ccd, name cnam, in Axes ax.
 
-        If "artists" is None, a dictionary will be created (see
-        disp_ccd for details). Otherwise it is assumed to be such a
-        dictionary resulting from an earlier run and will be updated.
+        If "artists" is None, a dictionary will be created of all artists plotted,
+        with keys:
+            'ccd' : dictionary as returned by pCcd
+            'defects' : dictionary as returned by pCcdDefect. Can be just {}
+            'swindows' : list of Artists, can be just []
+
+        Otherwise it is assumed to be such a dictionary resulting from an earlier run,
+        and will be updated.
 
         """
 
         if artists is None:
             # in this case we are setting up for the first time
-            artists = disp_ccd(ax, cnam, self.cmap, self.defects[cnam], content, True)
+            artists = disp_ccd(
+                ax=ax,
+                content=content,
+                defects=self.defects[cnam],
+                swindows=swindows,
+                cnam=cnam,
+                cmap=self.cmap,
+                animated=True
+            )
             # need to re-draw to avoid irritating distorted image
             self.fig.canvas.draw()
 
@@ -1604,7 +1619,7 @@ class ImageManager:
             # this is the "usual" post-setup case where we just update the artists
 
             # unpack the new content
-            ccd, vmin, vmax, swindows = content
+            ccd, vmin, vmax = content
 
             # plot the CCD window data
             mpl.pCcd(
@@ -1705,12 +1720,23 @@ class ImageManager:
         return artists
 
 
-def disp_ccd(ax, cnam, cmap, defects, content, animated):
+
+def disp_ccd(ax, content, defects, swindows, cnam, cmap, animated):
     """Displays a CCD on the given axes.
 
     Arguments::
         ax: matplotlib.pyplot.Axes
             Axes object to plot onto
+
+        content: list
+            containing [ccd, vmin, vmax]
+
+        defects: CcdDefect or None,
+            group of defects to plot on the frame
+
+        swindows: list of tuples, or None
+            List of setup windows to plot on the frame,
+            each tuple is (llxh, llyh, nxh, nyh)
 
         cnam: str
             name of the CCD, used for setting the axis title
@@ -1718,11 +1744,6 @@ def disp_ccd(ax, cnam, cmap, defects, content, animated):
         cmap: str or None
             matplotlib colormap to use for the image plot
 
-        defects: CcdDefect or None,
-            group of defects to plot on the frame
-
-        content: list
-            containing [ccd, vmin, vmax, swindows]
 
         animated: bool
             whether to use animated artists or not.
@@ -1737,7 +1758,7 @@ def disp_ccd(ax, cnam, cmap, defects, content, animated):
     """
 
     # unpack the new content
-    ccd, vmin, vmax, swindows = content
+    ccd, vmin, vmax = content
 
     artists = {}
 
