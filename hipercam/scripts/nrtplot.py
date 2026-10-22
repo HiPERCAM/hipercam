@@ -1436,10 +1436,10 @@ class ImageManager:
              it outside the object are reflected internally.
              This allows update to work without arguments.
 
-          targ_accum : list of Fpars
+          targ_accum : list of Pfits
              one tuple per target being profile fitted, containg all
              info needed to make plots of the fit etc. This can be
-             None if no fit was made. See Fpar.fit for what the tuples
+             None if no fit was made. See Pfit.fit for what the tuples
              contain.  A reference to this is stored internally so
              that changes to it outside the object are reflected
              internally. This allows update to work without arguments.
@@ -1682,10 +1682,10 @@ class ImageManager:
         if artists is None:
 
             artists = []
-            for ntarg, fpar in enumerate(self.targ_accum):
-                if fpar is not None:
-                    ax = ccd2axes[fpar.cnam]
-                    artists += fpar.plot(ax, True)
+            for ntarg, pfit in enumerate(self.targ_accum):
+                if pfit is not None:
+                    ax = ccd2axes[pfit.cnam]
+                    artists += pfit.plot(ax, True)
                 else:
                     artists += [None, None, None]
 
@@ -1694,20 +1694,20 @@ class ImageManager:
 
         else:
 
-            for ntarg, fpar in enumerate(self.targ_accum):
-                if fpar is not None:
+            for ntarg, pfit in enumerate(self.targ_accum):
+                if pfit is not None:
                     if artists[3 * ntarg] is None:
                         # The artists have yet to be made
-                        ax = ccd2axes[fpar.cnam]
-                        artists[3 * ntarg : 3 * ntarg + 3] = fpar.plot(ax, True)
+                        ax = ccd2axes[pfit.cnam]
+                        artists[3 * ntarg : 3 * ntarg + 3] = pfit.plot(ax, True)
                     else:
                         # they exist already and need updating
                         dot, circ, sbox = artists[3 * ntarg : 3 * ntarg + 3]
                         # set_data must take a sequence from MPL 3.9
-                        dot.set_data((fpar.x,), (fpar.y,))
-                        circ.set_center((fpar.x, fpar.y))
-                        circ.set_radius(fpar.fwhm)
-                        xlo, xhi, ylo, yhi = fpar.region()
+                        dot.set_data((pfit.x,), (pfit.y,))
+                        circ.set_center((pfit.x, pfit.y))
+                        circ.set_radius(pfit.fwhm)
+                        xlo, xhi, ylo, yhi = pfit.region()
                         sbox.set_data(
                             [xlo, xhi, xhi, xlo, xlo], [ylo, ylo, yhi, yhi, ylo]
                         )
@@ -1810,7 +1810,7 @@ class FwhmManager:
           accum : list of of tuples
              the lists consists of a sequence of tuples with the frame number
              and results for all targets (nframe, pfits), with pfits a seies
-             of fpar objects (can be None if no fit made)
+             of Pfit objects (can be None if no fit made)
 
           xlo : float
              left-hand X -limit (inital) for plot
@@ -1885,7 +1885,7 @@ class FwhmManager:
 
     def update(self):
         """updating routine. Uses current value of self.accum which
-        should be a list of Fpar objects for each target.
+        should be a list of Pfit objects for each target.
 
         """
 
@@ -1985,8 +1985,8 @@ class PickProfitTargets:
                     if wnam is not None:
                         # store the position, Window label, target
                         # number, box size fwhm, beta
-                        fpar = Fpar(cnam, wnam, x, y, self.shbox, self.fwhm, self.beta)
-                        results, message = fpar.fit(
+                        pfit = Pfit(cnam, wnam, x, y, self.shbox, self.fwhm, self.beta)
+                        results, message = pfit.fit(
                             ccd,
                             self.method,
                             self.smooth,
@@ -2000,13 +2000,13 @@ class PickProfitTargets:
                         if results is not None:
                             # fitted OK
                             self.ntarg += 1
-                            self.targets.append(fpar)
+                            self.targets.append(pfit)
                             print(
                                 f"\n   target {self.ntarg} added at initial x,y = "
                                 f"{x:.2f}, {y:.2f} in CCD {cnam}, window {wnam}, refined by fit with results:"
                             )
                             print(f"   {message}")
-                            fpar.plot(ax)
+                            pfit.plot(ax)
                             self.cnv.draw()
                         else:
                             print(
@@ -2092,8 +2092,8 @@ class PickProfit:
                     if wnam is not None:
                         # store the position, Window label, target number,
                         # box size fwhm, beta
-                        fpar = Fpar(cnam, wnam, x, y, self.shbox, self.fwhm, self.beta)
-                        results, message = fpar.fit(
+                        pfit = Pfit(cnam, wnam, x, y, self.shbox, self.fwhm, self.beta)
+                        results, message = pfit.fit(
                             ccd,
                             self.method,
                             self.smooth,
@@ -2132,9 +2132,11 @@ class PickProfit:
         self.move = False
 
 
-class Fpar:
-    """Class for representing a target for profile fits. Stores
-    the CCD name and window name where it is located."""
+class Pfit:
+    """Class for representing a target for profile fitting.
+
+    Stores the CCD name and window name where it is located.
+    """
 
     def __init__(self, cnam, wnam, x, y, shbox, fwhm, beta):
         """
@@ -2160,7 +2162,7 @@ class Fpar:
         )
 
     def plot(self, ax, animated=False):
-        """Plots the Fpar as a search box plus and a circle of radius FWHM and
+        """Plots the Pfit as a search box plus and a circle of radius FWHM and
         a dot for target. Returns with a list of three artists. The
         artists can be animated if they are be updated.
         """
@@ -2181,12 +2183,22 @@ class Fpar:
         return (dot, circ, sbox)
 
     def fit(self, ccd, method, smooth, fhbox, hmin, fwhm_min, read, gain, thresh):
-        """Carries out a fit when passed a CCD. If successful,
-        x, y, fwhm and beta will be altered but the centre
-        of the search region will be unchanged.
+        """Carries out a fit when passed a CCD.
 
-        Returns (results, message) where results = (self, fradii, fdata, fok, vmin, vmax, r, f)
-        if successful, None if not. "message" is a string summarising the result.
+        If successful, self.x, self.y, self.fwhm and self.beta will be altered,
+        but the centre of the search region will be unchanged.
+
+        Returns:
+            (results, message) if successful, None if not.
+            "results" is a list of:
+                - fradii
+                - fdata
+                - fok
+                - vmin
+                - vmax
+                - r
+                - f
+            "message" is a string summarising the result.
 
         """
 
@@ -2293,43 +2305,41 @@ class Fpar:
                 else:
                     message += f', failed to measure "read"; used value = {read1}'
 
-            if peak > hmin and ccd[self.wnam].distance(x, y) > 1:
-                # update some initial parameters for next time
-                if method == "g":
-                    self.x, self.y, self.fwhm = x, y, fwhm
-                elif method == "m":
-                    self.x, self.y, self.fwhm, self.beta = x, y, fwhm, beta
-
-                # values vs radial distance, plot range
-                ok = sigma > 0
-                R = np.sqrt((X - x) ** 2 + (Y - y) ** 2)
-                vmin = min(sky, sky + height, fwind.min())
-                vmax = max(sky, sky + height, fwind.max())
-                extent = vmax - vmin
-                vmin -= 0.05 * extent
-                vmax += 0.05 * extent
-
-                # line fit
-                r = np.linspace(0, R.max(), 400)
-                if method == "g":
-                    alpha = 4 * np.log(2.0) / fwhm**2
-                    f = sky + height * np.exp(-alpha * r**2)
-                elif method == "m":
-                    alpha = 4 * (2 ** (1 / beta) - 1) / fwhm**2
-                    f = sky + height / (1 + alpha * r**2) ** beta
-
-                # save the Fpar, radii, data, flags, plot range, fit x & y
-                results = (self, R.flat, fwind.data.flat, ok.flat, vmin, vmax, r, f)
-
-            else:
-                results = None
+            if peak < hmin or ccd[self.wnam].distance(x, y) <= 1:
                 message += "\n*** below detection threshold. Parameters unchanged."
+                return (None, message)
+
+            # update some initial parameters for next time
+            if method == "g":
+                self.x, self.y, self.fwhm = x, y, fwhm
+            elif method == "m":
+                self.x, self.y, self.fwhm, self.beta = x, y, fwhm, beta
+
+            # values vs radial distance, plot range
+            ok = sigma > 0
+            R = np.sqrt((X - x) ** 2 + (Y - y) ** 2)
+            vmin = min(sky, sky + height, fwind.min())
+            vmax = max(sky, sky + height, fwind.max())
+            extent = vmax - vmin
+            vmin -= 0.05 * extent
+            vmax += 0.05 * extent
+
+            # line fit
+            r = np.linspace(0, R.max(), 400)
+            if method == "g":
+                alpha = 4 * np.log(2.0) / fwhm**2
+                f = sky + height * np.exp(-alpha * r**2)
+            elif method == "m":
+                alpha = 4 * (2 ** (1 / beta) - 1) / fwhm**2
+                f = sky + height / (1 + alpha * r**2) ** beta
+
+            # return the fit results
+            results = (self, R.flat, fwind.data.flat, ok.flat, vmin, vmax, r, f)
+            return (results, message)
 
         except hcam.HipercamError as err:
-            results = None
             message = f"fit failed: {err}"
-
-        return (results, message)
+            return (None, message)
 
     def update_sbox(self):
         """Moves centre of box to match target position"""
@@ -2351,13 +2361,13 @@ def prof_fit(
     # container for results
     pfits = len(targets) * [None]
 
-    for ntarg, fpar in enumerate(targets):
+    for ntarg, pfit in enumerate(targets):
         # carry out fits. Nothing happens if the CCD has not been
         # updated [content = None]
-        content = img_map[fpar.cnam]
+        content = img_map[pfit.cnam]
         if content is not None:
             ccd = content[0]
-            results, message = fpar.fit(
+            results, message = pfit.fit(
                 ccd, method, smooth, fhbox, hmin, fwhm_min, read, gain, thresh
             )
             print(f" target {ntarg+1}, {message}")

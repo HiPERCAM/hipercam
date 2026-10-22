@@ -5,7 +5,7 @@ from trm.cline import Cline
 
 import hipercam as hcam
 from hipercam import utils
-from hipercam.scripts.nrtplot import Fpar
+from hipercam.scripts.nrtplot import Pfit
 
 ###################################
 #
@@ -465,8 +465,8 @@ class PickProfit:
             return
 
         # profile fit at the position of the cursor
-        fpar = Fpar(cnam, wnam, x, y, self.shbox, self.fwhm, self.beta)
-        results, message = fpar.fit(
+        pfit = Pfit(cnam, wnam, x, y, self.shbox, self.fwhm, self.beta)
+        results, message = pfit.fit(
             ccd,
             self.method,
             self.smooth,
@@ -480,7 +480,7 @@ class PickProfit:
         if self.artists is not None:
             for artist in self.artists:
                 artist.remove()
-        self.artists = fpar.plot(event.inaxes)
+        self.artists = pfit.plot(event.inaxes)
         self.fig.canvas.draw_idle()
 
         print(
