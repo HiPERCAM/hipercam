@@ -767,9 +767,14 @@ def makemovie(args=None):
                 # plot images
                 for n, (cnam, ccd, ilo, ihi)  in enumerate(zip(ccds, current_ccds, ilos, ihis)):
                     ax = fig.add_subplot(gs[n // nx, n % nx])
+                    vmin, vmax = mpl.get_scale_limits(
+                        ccd,
+                        iset,
+                        (ilo, ihi) if iset == 'd' else (plo, phi),
+                        (xlo, xhi,ylo, yhi),
+                    )
                     mpl.pCcd(
-                        ax, ccd, iset, plo, phi, ilo, ihi, f'CCD {cnam}',
-                        xlo=xlo, xhi=xhi, ylo=ylo, yhi=yhi, cmap=cmap
+                        ax, ccd, vmin, vmax, cmap, f'CCD {cnam}',
                     )
                     ax.set_xlim(xlo,xhi)
                     ax.set_ylim(ylo,yhi)

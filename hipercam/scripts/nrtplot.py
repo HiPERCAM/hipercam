@@ -5,7 +5,7 @@ import time
 import warnings
 from signal import SIGINT, signal
 
-import matplotlib.pylab as plt
+import matplotlib.pyplot as plt
 import numpy as np
 import requests
 from astropy import units as u
@@ -16,7 +16,7 @@ from trm import cline
 from trm.cline import Cline
 
 import hipercam as hcam
-from hipercam import defect, fringe, mpl, spooler
+from hipercam import defect, fringe, spooler
 from hipercam.ccd import crop_calib_frame_to
 from hipercam.instruments import available_instruments
 
@@ -24,10 +24,6 @@ try:
     import lacosmic
 except ModuleNotFoundError:
     lacosmic = None
-
-# colour for setup windows. works for me at least
-# but may need input from Stu
-COL_SETUP = (0.8, 0.0, 0.0)
 
 __all__ = [
     "nrtplot",
@@ -486,7 +482,7 @@ def nrtplot(args=None):
         cl.register("fwheight", Cline.LOCAL, Cline.HIDE)
         cl.register("fcosmic", Cline.LOCAL, Cline.HIDE)
         cl.register("crthresh", Cline.LOCAL, Cline.PROMPT)
-        cl.register("nrthresh", Cline.LOCAL, Cline.PROMPT)
+        cl.register("nbthresh", Cline.LOCAL, Cline.PROMPT)
         cl.register("sathresh", Cline.LOCAL, Cline.PROMPT)
         cl.register("readout", Cline.LOCAL, Cline.PROMPT)
 
@@ -640,6 +636,8 @@ def nrtplot(args=None):
         if defect_file is not None:
             # read the defect frame
             defects = defect.MccdDefect.read(defect_file)
+        else:
+            defects = None
 
         # Get windows from hdriver
         setup = cl.get_value("setup", "display current hdriver window settings", False)
@@ -823,7 +821,7 @@ def nrtplot(args=None):
     fwhmmanager = None
 
     # Now onto the animated plots.
-    nframe = 0
+    total_frames = 0
     total_time = 0.0
     with spooler.data_source(source, resource, first, full=False) as spool:
         for mccd in spool:
@@ -848,13 +846,8 @@ def nrtplot(args=None):
                 elif try_again:
                     continue
 
-            # indicate progress
-            tstamp = Time(mccd.head["TIMSTAMP"], format="isot", precision=3)
-            nfrm = mccd.head.get("NFRAME", nframe + 1)
-            print(
-                f'{nfrm}, utc= {tstamp.iso} ({"ok" if mccd.head.get("GOODTIME", True) else "nok"}), ',
-                end="",
-            )
+            # we have a frame!
+            total_frames += 1
 
             # accumulate errors from here on to print later
             emessages = []
@@ -886,7 +879,7 @@ def nrtplot(args=None):
                     )
 
             # first time setup
-            if nframe == 0:
+            if total_frames == 1:
                 # crop the calibration frames on the first frame only
                 if bias is not None:
                     bias = crop_calib_frame_to(mccd, bias, 'bias')
@@ -939,10 +932,8 @@ def nrtplot(args=None):
 
             # wind through the CCDs to display, accumulating stuff
             # to send to the plot manager
-            message = ""
-
-            skipped = True
-            for nc, cnam in enumerate(ccds):
+            ncosmic = {cnam: 0 for cnam in ccds}
+            for cnam in ccds:
                 ccd = mccd[cnam]
 
                 if not ccd.is_data() and not plotall:
@@ -981,7 +972,6 @@ def nrtplot(args=None):
 
                 # cosmic ray detection
                 if fcosmic:
-                    ncosmic = 0
                     for wind, rwind in zip(ccd.values(), raw.values()):
                         smask = rwind.data >= sathresh
                         _, crmask = lacosmic.lacosmic(
@@ -992,66 +982,18 @@ def nrtplot(args=None):
                             effective_gain=gain,
                             readnoise=readout * gain,
                         )
-                        ncosmic += len(crmask[crmask])
+                        ncosmic[cnam] += len(crmask[crmask])
 
                 # subtract median from each window
                 if msub:
                     for wind in ccd.values():
                         wind -= wind.median()
 
-                # set intensity limits
-                if iset == "p":
-                    # Set intensities from percentiles
-                    if xlo is not None and xhi is not None:
-                        pxlo = min(xlo, xhi)
-                        pxhi = max(xlo, xhi)
-                    else:
-                        pxlo, pxhi = None, None
-                    if ylo is not None and yhi is not None:
-                        pylo = min(ylo, yhi)
-                        pyhi = max(ylo, yhi)
-                    else:
-                        pylo, pyhi = None, None
-                    vmin, vmax = ccd.percentile((plo, phi), pxlo, pxhi, pylo, pyhi)
-
-                elif iset == "a":
-                    # Set intensities from min/max range
-                    vmin, vmax = ccd.min(), ccd.max()
-
-                elif iset == "d":
-                    vmin, vmax = ilo, ihi
-
-                content = [ccd, vmin, vmax]
-
                 # finally, all the fame processing is done
                 # save to send to the plot updater
-                ccd_data[cnam] = content
-
-                # accumulate string of image scalings
-                if nc:
-                    message += ", "
-                message += f"ccd {cnam}: {vmin:.1f}, {vmax:.1f}, exp: {mccd.head['EXPTIME']:.4f}"
-                if fcosmic:
-                    message += f", nc: {ncosmic}"
-                skipped = False
-
-            # Print messages
-            if skipped:
-                print(f"{message}skipped")
-            else:
-                print(f"{message}")
-            for emessage in emessages:
-                print(emessage)
+                ccd_data[cnam] = ccd
 
             # We have all the data, now get to plotting.
-            # at this point "ccd_data" contains a list for each CCD,
-            # each of which consists of:
-            #
-            # [ccd, vmin, vmax]
-            #
-            # i.e. the CCD, intensity range and setup windows, or
-            # "None" if the CCD has yet to be initialised due to nskip
-
             # First, if we're profile fitting we need to select targets.
             if profit and pfit_targets is None:
                 all_plotted = [ccd_data[cnam] is not None for cnam in ccds]
@@ -1062,23 +1004,20 @@ def nrtplot(args=None):
                 # We have at least one proper exposure of all CCDs
                 # from which stars can be selected.
 
-                # Ready to make first plot of all CCDs
-                fig, axs = setup_images(
-                    len(ccds),
-                    nx,
-                    "Profile fit selection",
-                    xlo,
-                    xhi,
-                    ylo,
-                    yhi,
-                    imwidth,
-                    imheight,
+                # create the plot
+                fig, caxes = hcam.mpl.plot_frame(
+                    mccd=mccd,
+                    cnams=ccds,
+                    ncols=nx,
+                    defects=defects,
+                    msub=msub,
+                    cmap=cmap,
+                    iset=iset,
+                    ilim=(plo, phi) if iset == "p" else (ilo, ihi),
+                    region=(xlo, xhi, ylo, yhi),
+                    title="Profile fit selection",
+                    figsize=(imwidth, imheight),
                 )
-                for ax, cnam in zip(axs, ccd_data):
-                    disp_ccd(ax, cnam, cmap, defects[cnam], ccd_data[cnam], False)
-
-                # mapping from CCD name to axes
-                caxes = dict(zip(ccds, axs))
 
                 # print out instructions for the user
                 print(
@@ -1105,7 +1044,8 @@ def nrtplot(args=None):
                 )
                 fig.canvas.mpl_connect("key_press_event", picker._keyPressEvent)
 
-                # finally display the plot
+                # finally set up the plot for interactive mode and display
+                hcam.mpl.setup_plot(fig)
                 plt.show()
 
                 # once we return, targets should be selected, if any
@@ -1134,6 +1074,8 @@ def nrtplot(args=None):
                     nx=nx,
                     width=imwidth,
                     height=imheight,
+                    iset=iset,
+                    ilim=(ilo, ihi) if iset == 'd' else (plo, phi),
                     xlo=xlo,
                     xhi=xhi,
                     ylo=ylo,
@@ -1166,6 +1108,46 @@ def nrtplot(args=None):
             # Update the image plot (done on every loop)
             imanager.update_images(ccd_data, swindows)
 
+            # Now print progress indicators
+            tstamp = Time(mccd.head["TIMSTAMP"], format="isot", precision=3)
+            nframe = mccd.head.get("NFRAME", total_frames)
+            tok = "ok" if mccd.head.get("GOODTIME", True) else "nok"
+            print(f"{nframe}, utc= {tstamp.iso} ({tok}), ", end="")
+
+            # Get statistics to print out
+            message = f"exp= {mccd.head['EXPTIME']:.4f}"
+            skipped = True
+            for cnam in ccds:
+                ccd = mccd[cnam]
+
+                message += f", CCD {cnam}: "
+                if not ccd.is_data() and not plotall:
+                    # skipped due to nskip > 0, no data in this frame
+                    message += "none"
+                    continue
+
+                # get vmin, vmax from the plot
+                # these are calculated in hcam.mpl.display_ccd, no need to repeat here
+                imgs = imanager.caxes[cnam].get_images()
+                vmin, vmax = imgs[0].get_clim()
+
+                # accumulate string of image scalings
+                message += f"{vmin:.1f} to {vmax:.1f}"
+
+                # add cosmic ray counts
+                if fcosmic:
+                    message += f", nc: {ncosmic[cnam]}"
+
+                skipped = False
+
+            # Print messages
+            if skipped:
+                # we skipped every CCD in the frame!
+                message += " - skipped"
+            print(message)
+            for emessage in emessages:
+                print(emessage)
+
             if pfit_targets is not None:
                 # If profile fitting is being carried out, then this
                 # section is implemented for each new image.
@@ -1183,7 +1165,7 @@ def nrtplot(args=None):
                         # Do the fit and store the results
                         # If the fit fails, results will be None
                         results, message = pfit.fit(
-                            ccd=ccd_data[pfit.cnam][0],
+                            ccd=ccd_data[pfit.cnam],
                             method=method,
                             smooth=smooth,
                             fhbox=fhbox,
@@ -1231,8 +1213,8 @@ def nrtplot(args=None):
                         # First time through, create the FWHM plot manager
                         fwhmmanager = FwhmManager(
                             fwhm_data,
-                            nfrm - 1,
-                            nfrm + fwnmax + 1,
+                            nframe - 1,
+                            nframe + fwnmax + 1,
                             fwymax,
                             fwwidth,
                             fwheight,
@@ -1258,9 +1240,6 @@ def nrtplot(args=None):
                 else:
                     # just pause because the updates will come
                     time.sleep(pause)
-
-            # update the frame number
-            nframe += 1
 
     # At then end the plots will close automatically,
     # so block this by asking the user to confirm
@@ -1300,63 +1279,6 @@ class CleanUp:
             )
 
 
-def setup_images(nccd, nx, title, xlo, xhi, ylo, yhi, width, height):
-    """
-    Sets up the figure and axes for the images display.
-
-    Arguments::
-
-       nccd : int
-          number of CCDs to display
-
-       nx : int
-          number of panels in the X direction.
-
-       title : str
-          title of figure
-
-       xlo, xhi, ylo, yhi : floats
-          the unbinned pixel eange to display
-
-       width : float
-          width, inches
-
-       height : float
-          height, inches
-
-    Returns (fig, axs)
-
-    The Figure and Axes, one per CCD
-    """
-
-    # Create the figure for the image plot
-    if width > 0 and height > 0:
-        fig = plt.figure(title, figsize=(width, height))
-    else:
-        fig = plt.figure(title)
-
-    # Define config of images
-    ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
-
-    # Create the axes
-    for ind in range(nccd):
-        if ind == 0:
-            ax0 = ax = fig.add_subplot(ny, nx, ind + 1, aspect="equal")
-            ax.set_xlim(xlo, xhi)
-            ax.set_ylim(ylo, yhi)
-            axs = [ax]
-        else:
-            ax = fig.add_subplot(
-                ny, nx, ind + 1, sharex=ax0, sharey=ax0, aspect="equal"
-            )
-            axs.append(ax)
-        ax.set_aspect("equal")
-        for tick in ax.get_yticklabels():
-            tick.set_rotation(90)
-
-    return (fig, axs)
-
-
 class ImageManager:
     """Class to control the image animation
 
@@ -1379,6 +1301,8 @@ class ImageManager:
         nx,
         width,
         height,
+        iset,
+        ilim,
         xlo,
         xhi,
         ylo,
@@ -1447,14 +1371,22 @@ class ImageManager:
 
         """
         # create figure and axes
-        self.fig, self.axs = setup_images(
-            len(ccd_data), nx, "CCD display", xlo, xhi, ylo, yhi, width, height
+        self.fig, self.caxes = hcam.mpl.create_figure(
+            cnams = ccd_data.keys(),
+            ncols=nx,
+            region=(xlo, xhi, ylo, yhi),
+            title="CCD display",
+            figsize=(width, height),
         )
-        self.caxes = dict(zip(ccd_data, self.axs))
+
+        # setup the figure for interactive mode
+        hcam.mpl.setup_plot(self.fig)
 
         self._bg = None
 
         # plot inputs
+        self.iset = iset
+        self.ilim = ilim
         self.xlo = xlo
         self.xhi = xhi
         self.ylo = ylo
@@ -1563,7 +1495,7 @@ class ImageManager:
             else:
                 # plot the CCD, return with the updated animated artists
                 lartists[cnam] = self._disp_ccd(
-                    ax, cnam, ccd_data[cnam], artists, swindows
+                    ax, cnam, ccd_data[cnam], swindows, artists
                 )
         self.img_artists = lartists
 
@@ -1587,7 +1519,7 @@ class ImageManager:
             self.fig.canvas.blit(self.fig.bbox)
         self.fig.canvas.flush_events()
 
-    def _disp_ccd(self, ax, cnam, content, swindows=None, artists=None):
+    def _disp_ccd(self, ax, cnam, ccd, swindows=None, artists=None):
         """Displays a CCD ccd, name cnam, in Axes ax.
 
         If "artists" is None, a dictionary will be created of all artists plotted,
@@ -1600,76 +1532,66 @@ class ImageManager:
         and will be updated.
 
         """
+        # get defects, if any
+        if self.defects is not None and cnam in self.defects:
+            defects = self.defects[cnam]
+        else:
+            defects = None
+
+        # create/update the animated artists
+        new_artists = hcam.mpl.display_ccd(
+            axes=ax,
+            ccd=ccd,
+            cnam=cnam,
+            defects=defects,
+            msub=False,
+            cmap=self.cmap,
+            iset=self.iset,
+            ilim=self.ilim,
+            region=None,
+            animated=True,
+            artists=artists,
+        )
+
+        # The setup windows can change in number as well as size, so delete old ones
+        # (if there are any) and re-create each time
+        if artists is not None and artists["swindows"] is not None:
+            for artist in artists["swindows"]:
+                artist.remove()
+
+        if swindows is not None:
+            sartists = []
+            for llxh, llyh, nxh, nyh in swindows:
+                (box,) = ax.plot(
+                    [
+                        llxh - 0.5,
+                        llxh + nxh - 0.5,
+                        llxh + nxh - 0.5,
+                        llxh - 0.5,
+                        llxh - 0.5,
+                    ],
+                    [
+                        llyh - 0.5,
+                        llyh - 0.5,
+                        llyh + nyh - 0.5,
+                        llyh + nyh - 0.5,
+                        llyh - 0.5,
+                    ],
+                    "--",
+                    color=hcam.mpl.Params["setup.box.col"],
+                    animated=True,
+                )
+                sartists.append(box)
+            new_artists["swindows"] = sartists
+        else:
+            new_artists["swindows"] = []
 
         if artists is None:
-            # in this case we are setting up for the first time
-            artists = disp_ccd(
-                ax=ax,
-                content=content,
-                defects=self.defects[cnam],
-                swindows=swindows,
-                cnam=cnam,
-                cmap=self.cmap,
-                animated=True
-            )
+            # In this case we are setting up for the first time
             # need to re-draw to avoid irritating distorted image
             self.fig.canvas.draw()
 
-        else:
-            # this is the "usual" post-setup case where we just update the artists
-
-            # unpack the new content
-            ccd, vmin, vmax = content
-
-            # plot the CCD window data
-            mpl.pCcd(
-                ax,
-                ccd,
-                "d",
-                dlo=vmin,
-                dhi=vmax,
-                tlabel=f"CCD {cnam}",
-                cmap=self.cmap,
-                animated=True,
-                artists=artists["ccd"],
-            )
-
-            # the setup windows. Can change in number as well as size
-            # so delete old ones (if there are any) and re-create each
-            # time remove old setup windows
-            swins = artists["swindows"]
-            for artist in swins:
-                artist.remove()
-            artists["swindows"] = []
-
-            if swindows is not None:
-
-                # draw new ones, keeping refs to objects for next time
-                swins = []
-                for llxh, llyh, nxh, nyh in swindows:
-                    (box,) = ax.plot(
-                        [
-                            llxh - 0.5,
-                            llxh + nxh - 0.5,
-                            llxh + nxh - 0.5,
-                            llxh - 0.5,
-                            llxh - 0.5,
-                        ],
-                        [
-                            llyh - 0.5,
-                            llyh - 0.5,
-                            llyh + nyh - 0.5,
-                            llyh + nyh - 0.5,
-                            llyh - 0.5,
-                        ],
-                        "--",
-                        color=COL_SETUP,
-                        animated=True,
-                    )
-                    swins.append(box)
-                artists["swindows"] = swins
-
-        return artists
+        return new_artists
 
     def _disp_targs(self, targ_data, artists=None):
         """Displays profile fitting target as (a) a search box and
@@ -1718,96 +1640,6 @@ class ImageManager:
                     )
 
         return artists
-
-
-
-def disp_ccd(ax, content, defects, swindows, cnam, cmap, animated):
-    """Displays a CCD on the given axes.
-
-    Arguments::
-        ax: matplotlib.pyplot.Axes
-            Axes object to plot onto
-
-        content: list
-            containing [ccd, vmin, vmax]
-
-        defects: CcdDefect or None,
-            group of defects to plot on the frame
-
-        swindows: list of tuples, or None
-            List of setup windows to plot on the frame,
-            each tuple is (llxh, llyh, nxh, nyh)
-
-        cnam: str
-            name of the CCD, used for setting the axis title
-
-        cmap: str or None
-            matplotlib colormap to use for the image plot
-
-
-        animated: bool
-            whether to use animated artists or not.
-            If used for movie-style display, set animated=True.
-
-    Returns a dictionary of all artists plotted, with keys:
-
-      'ccd' : dictionary as returned by pCcd
-      'defects' : dictionary as returned by pCcdDefect. Can be just {}
-      'swindows' : list of Artists, can be just []
-
-    """
-
-    # unpack the new content
-    ccd, vmin, vmax = content
-
-    artists = {}
-
-    # plot the ccd
-    artists["ccd"] = mpl.pCcd(
-        ax,
-        ccd,
-        "d",
-        dlo=vmin,
-        dhi=vmax,
-        tlabel=f"CCD {cnam}",
-        cmap=cmap,
-        animated=animated,
-    )[2]
-
-    # plot the defects, if any
-    if defects is not None:
-        artists["defects"] = mpl.pCcdDefect(ax, defects, animated)
-    else:
-        artists["defects"] = {}
-
-    # plot setup windows, if any
-    if swindows is None:
-        swins = []
-    else:
-        swins = []
-        for llxh, llyh, nxh, nyh in swindows:
-            (box,) = ax.plot(
-                [
-                    llxh - 0.5,
-                    llxh + nxh - 0.5,
-                    llxh + nxh - 0.5,
-                    llxh - 0.5,
-                    llxh - 0.5,
-                ],
-                [
-                    llyh - 0.5,
-                    llyh - 0.5,
-                    llyh + nyh - 0.5,
-                    llyh + nyh - 0.5,
-                    llyh - 0.5,
-                ],
-                "--",
-                color=COL_SETUP,
-                animated=animated,
-            )
-            swins.append(box)
-    artists["swindows"] = swins
-    return artists
 
 
 class FwhmManager:

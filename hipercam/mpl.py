@@ -17,6 +17,7 @@ from .core import CIS, HipercamError
 
 if TYPE_CHECKING:
     from .ccd import CCD, MCCD
+    from .defect import CcdDefect
 
 
 # Font scale factor
@@ -58,6 +59,8 @@ Params = {
     "defect.moderate.col": CIS[8],
     # severe defect colour
     "defect.severe.col": CIS[2],
+    # setup window box colour
+    "setup.box.col": (0.8, 0.0, 0.0),
 }
 
 
@@ -203,19 +206,12 @@ def pWind(axes, wind, vmin, vmax, label="", cmap="Greys", animated=False, artist
 def pCcd(
     axes,
     ccd,
-    iset="p",
-    plo=5.0,
-    phi=95.0,
-    dlo=0.0,
-    dhi=1000.0,
+    vmin=None,
+    vmax=None,
+    cmap="Greys",
     tlabel="",
     xlabel="X",
     ylabel="Y",
-    xlo=None,
-    xhi=None,
-    ylo=None,
-    yhi=None,
-    cmap="Greys",
     animated=False,
     artists=None,
 ):
@@ -230,22 +226,14 @@ def pCcd(
        ccd : CCD
            the :class:`CCD` to plot
 
-       iset : str
-           how to set the intensity scale to be used. 'p' for percentiles (set
-           using plo and phi); 'a' for automatic min/max range; 'd' for direct
-           value set using dlo and dhi.
+       vmin : float | None
+           image value at minimum intensity
 
-       plo : float
-           lower percentile limit to use (if iset='p')
+       vmax : float | None
+           image value at maximum intensity
 
-       phi : float
-           upper percentile limit to use (if iset='p')
-
-       dlo : float
-           value to use for lower intensity limit (if iset='d')
-
-       dhi : float
-           value to use for upper intensity limit (if iset='d')
+       cmap : str
+           the name of the matplotlib colormap to use
 
        tlabel : str
            label to use for top of plot
@@ -255,18 +243,6 @@ def pCcd(
 
        ylabel : str
            label for Y axis
-
-       xlo : int | None
-           left-hand limit to define region for computing percentile
-
-       xhi : int | None
-           right-hand limit to define region for computing percentile
-
-       ylo : int | None
-           lower limit to define region for computing percentile
-
-       yhi : int | None
-           upper limit to define region for computing percentile
 
        animated : bool
            whether any artists created or updated are animated (had
@@ -278,33 +254,17 @@ def pCcd(
            animated=True. In this case they are updated rather
            than re-created.
 
-    Returns: (vmin,vmax,artists), the intensity limits used and
-    a dictionary, the values of which are all lists of artists.
+    Returns: a dictionary, the values of which are all artists or lists of artists:
+    - <wnam>:  the artists for Windows with name <wnam>, returned from pWind
+    - "border" : the artist for the CCD border
+    - "labels" : list of artists for the title and axis labels
 
     """
-    if iset == "p":
-        # Set intensities from percentiles
-        if xlo is not None and xhi is not None:
-            xlo = min(xlo, xhi)
-            xhi = max(xlo, xhi)
-        if ylo is not None and yhi is not None:
-            ylo = min(ylo, yhi)
-            yhi = max(ylo, yhi)
-        vmin, vmax = ccd.percentile((plo, phi), xlo, xhi, ylo, yhi)
-
-    elif iset == "a":
-        # Set intensities from min/max range
-        vmin, vmax = ccd.min(), ccd.max()
-
-    elif iset == "d":
-        vmin, vmax = dlo, dhi
-
-    else:
-        raise ValueError('did not recognise iset = "' + iset + '"')
-
     if artists is None:
         # create the artists
         artists = {}
+
+        # plot each window in the CCD
         for key, wind in ccd.items():
             artists[key] = pWind(axes, wind, vmin, vmax, key, cmap, animated)
 
@@ -318,6 +278,7 @@ def pCcd(
 
         axes.tick_params(labelsize=Params["axis.number.fs"])
 
+        # plot labels
         artists["labels"] = []
         if tlabel != "":
             artists["labels"].append(
@@ -328,7 +289,6 @@ def pCcd(
                     animated=animated,
                 )
             )
-
         if xlabel != "":
             artists["labels"].append(
                 axes.set_xlabel(
@@ -338,7 +298,6 @@ def pCcd(
                     animated=animated,
                 )
             )
-
         if ylabel != "":
             artists["labels"].append(
                 axes.set_ylabel(
@@ -356,7 +315,7 @@ def pCcd(
                 axes, wind, vmin, vmax, key, cmap, animated, artists[key]
             )
 
-    return (vmin, vmax, artists)
+    return artists
 
 
 def pAper(axes, aper, label="", ccdAper=None, animated=False, artists=None):
@@ -895,6 +854,76 @@ def pCcdFringePair(axes, ccdFringePair):
     return pobjs
 
 
+def get_scale_limits(ccd, mode, limits, region=None):
+    """Returns the intensity limits for a CCD based on the given mode.
+
+    Arguments::
+        ccd : :class:`CCD`
+            The CCD to compute intensity limits for.
+
+        mode : str
+            How to set the intensity scale for the images:
+                'a' for automatic min/max range
+                'p' for percentiles (set using `limits`)
+                'd' for direct values (set using `limits`)
+
+        limits : tuple[float, float] | None
+            Lower and upper limits for the intensity scaling:
+                If mode='p' these are the lower and upper percentiles
+                If mode='d' these are the lower and upper intensity limits
+                If mode='a' this argument is ignored
+            If None, default values are used:
+                (5.0, 95.0) if mode='p'
+                (0.0, 1000.0) if mode='d'
+
+        region : tuple[int, int, int, int] | None
+            The region to consider for computing intensity limits,
+            values are (xmin, xmax, ymin, ymax).
+            Only used if mode is 'p'. If None, the entire CCD is considered.
+
+    Returns::
+        vmin, vmax : tuple[float, float]
+            The computed minimum and maximum intensity limits.
+    """
+    if mode not in ("a", "p", "d"):
+        raise ValueError(f"Invalid mode '{mode}'. Must be 'a', 'p', or 'd'.")
+    if limits is None:
+        if mode == "p":
+            limits = (5.0, 95.0)
+        elif mode == "d":
+            limits = (0.0, 1000.0)
+        else:  # mode == "a"
+            limits = (None, None)
+
+    if mode == "p":
+        # Set intensities from percentiles for the given region
+        if region is not None:
+            xlo, xhi, ylo, yhi = region
+        else:
+            xlo, xhi, ylo, yhi = None, None, None, None
+        if xlo is not None and xhi is not None:
+            pxlo = min(xlo, xhi)
+            pxhi = max(xlo, xhi)
+        else:
+            pxlo, pxhi = None, None
+        if ylo is not None and yhi is not None:
+            pylo = min(ylo, yhi)
+            pyhi = max(ylo, yhi)
+        else:
+            pylo, pyhi = None, None
+        vmin, vmax = ccd.percentile((limits[0], limits[1]), pxlo, pxhi, pylo, pyhi)
+
+    elif mode == "a":
+        # Set intensities from min/max range
+        vmin, vmax = ccd.min(), ccd.max()
+
+    elif mode == "d":
+        # Set intensities from direct values
+        vmin, vmax = limits[0], limits[1]
+
+    return vmin, vmax
+
+
 def create_figure(
     cnams: list[str],
     ncols: int,
@@ -975,6 +1004,7 @@ def display_ccd(
     axes: plt.Axes,
     ccd: CCD,
     cnam: str,
+    defects: CcdDefect | None = None,
     msub: bool = False,
     cmap: str = "Greys",
     iset: str = "p",
@@ -994,6 +1024,9 @@ def display_ccd(
 
         cnam: str
             name of the CCD, used for setting the axis title
+
+        defects: :class:`CcdDefect`, or None
+            group of defects to plot on the frame
 
         msub : bool
             Whether to subtract the median from each window before plotting
@@ -1017,11 +1050,22 @@ def display_ccd(
             If iset='p', only this region is used to compute the percentiles for
             intensity scaling.
 
+        animated : bool
+            whether to use animated artists or not.
+            If used for movie-style display, set animated=True.
+
+        artists : None | dict
+            If not None, should be a saved version of the dict of
+            returned from a previous call to this routine with
+            animated=True. In this case they are updated rather than re-created.
+
+    Returns a dictionary of artists plotted, depending on the arguments passed in:
+      'ccd' : dictionary as returned by pCcd, always present
+      'defects' : dictionary as returned by pCcdDefect, empty if defects is None
+
     """
     if region is None:
         region = [None, None, None, None]
-    xlim = region[0:2]
-    ylim = region[2:4]
     if artists is None:
         artists = {
             "ccd": None,
@@ -1033,28 +1077,43 @@ def display_ccd(
         for wind in ccd.values():
             wind -= wind.median()
 
+    # Get scale limits
+    vmin, vmax = get_scale_limits(
+        ccd,
+        mode=iset,
+        limits=ilim,
+        region=region,
+    )
+
     # Plot the ccd
-    pCcd(
+    ccd_artists = pCcd(
         axes,
         ccd,
-        iset=iset,
-        plo=ilim[0],
-        phi=ilim[1],
-        dlo=ilim[0],
-        dhi=ilim[1],
+        vmin=vmin,
+        vmax=vmax,
         cmap=cmap,
         tlabel=f"CCD {cnam}",
-        xlo=xlim[0],
-        xhi=xlim[1],
-        ylo=ylim[0],
-        yhi=ylim[1],
+        animated=animated,
+        artists=artists["ccd"],
     )
+    artists["ccd"] = ccd_artists
+
+    # Plot the defects, if any
+    if defects is not None:
+        artists["defects"] = pCcdDefect(
+            axes, defects, animated, artists=artists["defects"]
+        )
+    else:
+        artists["defects"] = {}
+
+    return artists
 
 
 def plot_frame(
     mccd: MCCD,
     cnams: str | list[str] = "0",
     ncols: int = 3,
+    defects: dict[str, CcdDefect] | None = None,
     msub: bool = False,
     cmap: str = "Greys",
     iset: str = "p",
@@ -1078,6 +1137,10 @@ def plot_frame(
 
         ncols : int
             The number of columns in the grid of subplots
+
+        defects: dict[str, :class:`CcdDefect`] or None
+            groups of defects to plot on each CCD
+            keys should be cnams
 
         msub : bool
             Whether to subtract the median from each window before plotting
@@ -1121,12 +1184,6 @@ def plot_frame(
             A dictionary mapping CCD names to their corresponding Axes objects.
 
     """
-    if ilim is None and iset == "p":
-        ilim = 5.0, 95.0
-    elif ilim is None and iset == "d":
-        ilim = 0.0, 1000.0
-    if region is None:
-        region = [None, None, None, None]
     if cnams == "0" or len(mccd) == 1:
         cnams = list(mccd.keys())
     if isinstance(cnams, str):
@@ -1143,6 +1200,7 @@ def plot_frame(
             axes=axes,
             ccd=mccd[cnam],
             cnam=cnam,
+            defects=defects[cnam] if defects is not None and cnam in defects else None,
             msub=msub,
             cmap=cmap,
             iset=iset,
