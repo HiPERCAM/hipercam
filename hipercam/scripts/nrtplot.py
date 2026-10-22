@@ -808,22 +808,24 @@ def nrtplot(args=None):
     # objects passed and stored by reference to plot updating classes
     img_accum = len(ccds) * [None]
     targ_accum = None
-    first_image = True
-    first_fwhm = True
+
+    # we create the plot managers later,
+    # but need to know if they exist for the waiting game
+    imanager = None
+    fwhmmanager = None
 
     # Now onto the animated plots.
+    nframe = 0
+    total_time = 0.0
     with spooler.data_source(source, resource, first, full=False) as spool:
-
-        nframe, total_time = 0, 0.0
         for mccd in spool:
-
             if server_or_local:
                 # Handle the waiting game ... some awkward stuff
                 # involving updating on a cycle faster than twait to
                 # make the plots more responsive, if twait is long.
-                if first_image and first_fwhm:
+                if imanager is None and fwhmmanager is None:
                     updaters = ()
-                elif first_fwhm:
+                elif fwhmmanager is None:
                     updaters = (imanager.update,)
                 else:
                     updaters = (imanager.update, fwhmmanager.update)
@@ -1165,8 +1167,8 @@ def nrtplot(args=None):
                         "(anti-clockwise from horizontal)"
                     )
 
-                if first_fwhm:
-                    # set up the accumulator object now because we didn't know
+                if fwhmmanager is None:
+                    # set up the accumulator objects now, because we didn't know
                     # how many targets the user would choose at the start
                     fit_accum = [([], []) for n in range(len(pfit_results))]
                     targ_accum = len(pfit_results) * [None]
@@ -1180,13 +1182,9 @@ def nrtplot(args=None):
                         targ_accum[n] = pfit[0]
 
             if not profit or not not_selected:
-
-                # The image animation
-                if first_image:
-                    # one-off setup
-                    first_image = False
-
-                    # Create the image plot manager
+                # We're ready to start plotting
+                if imanager is None:
+                    # First time through, create the image plot manager
                     imanager = ImageManager(
                         ccds,
                         nx,
@@ -1229,13 +1227,10 @@ def nrtplot(args=None):
                     # update plot
                     imanager.update()
 
+                # The FWHM animation
                 if profit and fwnmax > 1:
-                    # The fwhm animation
-                    if first_fwhm:
-                        # one-off setup
-                        first_fwhm = False
-
-                        # Create the FWHM plot manager
+                    if fwhmmanager is None:
+                        # First time through, create the FWHM plot manager
                         fwhmmanager = FwhmManager(
                             fit_accum,
                             nfrm - 1,
@@ -1260,9 +1255,9 @@ def nrtplot(args=None):
                     nupdate = int(pause / tupdate)
                     for n in range(nupdate):
                         time.sleep(pause / nupdate)
-                        if not first_image:
+                        if imanager is not None:
                             imanager.update()
-                        if not first_fwhm:
+                        if fwhmmanager is not None:
                             fwhmmanager.update()
                 else:
                     # just pause because the updates will come
