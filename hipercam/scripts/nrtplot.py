@@ -1404,6 +1404,7 @@ class ImageManager:
         self.yhi = yhi
         self.cmap = cmap
         self.defects = defects
+        self.swindows = None  # will be set in update_images
 
         # print out instructions for the user
         print("\n(use the SpaceBar to select targets for one-off profile fits)\n")
@@ -1504,8 +1505,9 @@ class ImageManager:
         #     'ccd' : dictionary as returned by pCcd
         #     'defects' : dictionary as returned by pCcdDefect. Can be just {}
         #     'swindows' : list of Artists, can be just []
-
         new_artists = {}
+
+        # update CCD (and defect) artists
         for cnam in ccd_data:
             if ccd_data[cnam] is None:
                 # no new frame, just pass old artists through
@@ -1542,37 +1544,58 @@ class ImageManager:
                 if old_artists is None:
                     self.fig.canvas.draw()
 
-                # The setup windows can change in number as well as size,
-                # so delete old ones (if there are any) and re-create each time
+        # update swindow artists
+        for cnam in ccd_data:
+            # The setup windows can change in number as well as size.
+            # We only need to update the artists if the windows have changed.
+            # Note we still do this even if ccd_data is None,
+            # because we want to update the windows even on a frame that is skipped,
+            # which is why this is a separate loop.
+            axes = self.caxes[cnam]
+            old_artists = self.img_artists[cnam]
+            if swindows is None or self.swindows != swindows:
+                # the windows have changed (or been removed)
+                # delete any existing artists
                 if old_artists is not None and old_artists["swindows"] is not None:
                     for artist in old_artists["swindows"]:
                         artist.remove()
-                if swindows is not None:
-                    sartists = []
-                    for llxh, llyh, nxh, nyh in swindows:
-                        (box,) = axes.plot(
-                            [
-                                llxh - 0.5,
-                                llxh + nxh - 0.5,
-                                llxh + nxh - 0.5,
-                                llxh - 0.5,
-                                llxh - 0.5,
-                            ],
-                            [
-                                llyh - 0.5,
-                                llyh - 0.5,
-                                llyh + nyh - 0.5,
-                                llyh + nyh - 0.5,
-                                llyh - 0.5,
-                            ],
-                            "--",
-                            color=hcam.mpl.Params["setup.box.col"],
-                            animated=True,
-                        )
-                        sartists.append(box)
-                    new_artists[cnam]["swindows"] = sartists
-                else:
-                    new_artists[cnam]["swindows"] = []
+
+            sartists = []
+            if swindows is None:
+                # no windows to plot, so just keep an empty list
+                pass
+            elif old_artists is None or self.swindows != swindows:
+                # first time, or the windows have changed, so create new artists
+                for llxh, llyh, nxh, nyh in swindows:
+                    (box,) = axes.plot(
+                        [
+                            llxh - 0.5,
+                            llxh + nxh - 0.5,
+                            llxh + nxh - 0.5,
+                            llxh - 0.5,
+                            llxh - 0.5,
+                        ],
+                        [
+                            llyh - 0.5,
+                            llyh - 0.5,
+                            llyh + nyh - 0.5,
+                            llyh + nyh - 0.5,
+                            llyh - 0.5,
+                        ],
+                        "--",
+                        color=hcam.mpl.Params["setup.box.col"],
+                        animated=True,
+                    )
+                    sartists.append(box)
+            else:
+                # the windows are the same, so reuse the existing artists (if any)
+                sartists = old_artists["swindows"]
+
+            if new_artists[cnam] is not None:
+                new_artists[cnam]["swindows"] = sartists
+
+        # save the current windows for comparison next time
+        self.swindows = swindows
 
         # Finally, update the artists and refresh the display
         self.img_artists = new_artists
