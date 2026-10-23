@@ -3,6 +3,7 @@ import socket
 import sys
 import time
 import warnings
+from collections import deque
 from signal import SIGINT, signal
 
 import matplotlib.pyplot as plt
@@ -804,8 +805,12 @@ def nrtplot(args=None):
     #       a filtered version of the `pfit_targets` list of `Pfit` classes,
     #       but if a CCD has no data or a fit fails it is replaced with None
     #       to skip plotting
-    #   `fwhm_data`: dict of {ntarg: [(nframe, fwhm), ...]} for each target,
-    #       used for the FWHM plot when profile fitting
+    #   `fwhm_data`: dict of {ntarg: (deque(nframe, ..), deque(fwhm, ...))},
+    #       used for the FWHM plot when profile fitting.
+    #       Double-ended queues are used to allow the plot to "slide" when the
+    #       maximum number of frames is reached (`fwnmax`).
+    # Both targ_data and fwhm_data are empty at the start, and are filled in after
+    # profile fitting is completed.
     ccd_data = {cnam: None for cnam in ccds}
     targ_data = {}
     fwhm_data = {}
@@ -1058,7 +1063,10 @@ def nrtplot(args=None):
                     # set up the accumulator objects now, because we didn't know
                     # how many targets the user would choose at the start
                     targ_data = {ntarg: None for ntarg in pfit_targets}
-                    fwhm_data = {ntarg: ([], []) for ntarg in pfit_targets}
+                    fwhm_data = {
+                        ntarg: (deque(maxlen=fwnmax), deque(maxlen=fwnmax))
+                        for ntarg in pfit_targets
+                    }
                 else:
                     # user didn't pick any targets, turn off profit
                     profit = False
@@ -1383,6 +1391,10 @@ class ImageManager:
         # setup the figure for interactive mode
         hcam.mpl.setup_plot(self.fig, disable_shortcuts=False)
 
+        # grab the background on every draw
+        self._bg = None
+        self.fig.canvas.mpl_connect("draw_event", self.on_draw)
+
         # inputs for the image plots
         self.iset = iset
         self.ilim = ilim
@@ -1415,21 +1427,15 @@ class ImageManager:
         )
         self.fig.canvas.mpl_connect("key_press_event", self.picker._keyPressEvent)
 
-        # create empty artist dicts
+        # now actually create and update the artists
         self.img_artists = {cnam: None for cnam in ccd_data}
         self.targ_artists = {ntarg: None for ntarg in targ_data}
-
-        # now actually create and update the artists
         self.update_images(ccd_data, swindows)
         self.update_targets(targ_data)
 
         # adjust the layout to prevent overlap
         # (can only do after the artists are created)
         self.fig.tight_layout()
-
-        # grab the background on every draw
-        self._bg = None
-        self.fig.canvas.mpl_connect("draw_event", self.on_draw)
 
     def on_draw(self, event):
         """Callback to register with 'draw_event'."""
@@ -1590,7 +1596,7 @@ class ImageManager:
             else:
                 axes = self.caxes[pfit.cnam]
                 if old_artists is None:
-                    # First time, create the empty artists
+                    # First time, create the new artists
                     new_artists[ntarg] = pfit.plot(axes, True)
                 else:
                     # In this case we have already created the artists,
@@ -1623,9 +1629,10 @@ class FwhmManager:
         """
         Initialises the FWHM history plot. Arguments:
 
-        fwhm_data : dict[int, tuple[list[float], list[float]]]
+        fwhm_data : dict[int, tuple[deque[float], deque[float]]]
             dict of FWHM data for each target
             keys are target numbers, values are tuples of (frame numbers, FWHMs)
+            when the deques are full, the oldest data is dropped from the left
 
         xlo : float
             left-hand X -limit (inital) for plot
@@ -1650,11 +1657,9 @@ class FwhmManager:
             self.fig.set_size_inches(width, height)
         self.axes = self.fig.add_subplot(animated=True)
 
-        # plot a line for each target
-        self.fwhm_artists = {}
-        for ntarg, (xs, ys) in fwhm_data.items():
-            (artist,) = self.axes.plot(xs, ys, animated=True, label=f"{ntarg}")
-            self.fwhm_artists[ntarg] = artist
+        # grab the background on every draw
+        self._bg = None
+        self.fig.canvas.mpl_connect("draw_event", self.on_draw)
 
         # set axis limits
         self.fwmax = fwmax
@@ -1665,14 +1670,15 @@ class FwhmManager:
         self.axes.set_xlim(self.xlo, self.xhi)
         self.axes.set_ylim(self.ylo, self.yhi)
 
+        # plot a line for each target
+        self.fwhm_artists = {ntarg: None for ntarg in fwhm_data}
+        self.update(fwhm_data)
+
         # plot formatting
         self.axes.set_xlabel("Frame number")
         self.axes.set_ylabel("FWHM [unbinned pixels]")
         self.axes.legend()
 
-        # grab the background on every draw
-        self._bg = None
-        self.fig.canvas.mpl_connect("draw_event", self.on_draw)
 
     def on_draw(self, event):
         """Callback to register with 'draw_event'."""
@@ -1709,7 +1715,15 @@ class FwhmManager:
         """Displays the latest FWHM measurements."""
         xmax = None
         for ntarg, (xs, ys) in fwhm_data.items():
-            self.fwhm_artists[ntarg].set_data(xs, ys)
+            if self.fwhm_artists[ntarg] is None:
+                # First time, create the new artists
+                (artist,) = self.axes.plot(xs, ys, animated=True, label=f"{ntarg}")
+                self.fwhm_artists[ntarg] = artist
+            else:
+                # Update existing artists
+                self.fwhm_artists[ntarg].set_data(xs, ys)
+            # Keep track of the maximum x value,
+            # so we can adjust the x-axis limits if needed
             if len(xs):
                 xmax = max(xs) if xmax is None else max(xmax, max(xs))
 
@@ -1720,10 +1734,13 @@ class FwhmManager:
             self.xhi += xadd
             self.axes.set_xlim(self.xlo, self.xhi)
             # crop out points outside of the buffer
+            # note the deques should drop data automatically,
+            # but if some frames are skipped or have failed fits then there might still
+            # be older items
             for ntarg, (xs, ys) in fwhm_data.items():
-                while len(xs) and xs[0] < self.xlo:
-                    xs.pop(0)
-                    ys.pop(0)
+                while len(xs) and xs[0] <= self.xlo:
+                    xs.popleft()
+                    ys.popleft()
 
         self.refresh()
 
