@@ -825,21 +825,21 @@ def nrtplot(args=None):
     imanager = None
     fwhmmanager = None
 
-    # Now onto the animated plots.
-    total_frames = 0
+    # Start the main loop
     total_time = 0.0
     with spooler.data_source(source, resource, first, full=False) as spool:
-        for mccd in spool:
+        for n, mccd in enumerate(spool):
+
             if server_or_local:
-                # Handle the waiting game ... some awkward stuff
-                # involving updating on a cycle faster than twait to
-                # make the plots more responsive, if twait is long.
-                if imanager is None and fwhmmanager is None:
-                    updaters = ()
-                elif fwhmmanager is None:
-                    updaters = (imanager.refresh,)
-                else:
-                    updaters = (imanager.refresh, fwhmmanager.refresh)
+                # Handle the waiting game ...
+                # Includes some awkward stuff involving updating on a cycle
+                # faster than twait to make the plots more responsive,
+                # if twait is long.
+                updaters = []
+                if imanager is not None:
+                    updaters.append(imanager.refresh)
+                if fwhmmanager is not None:
+                    updaters.append(fwhmmanager.refresh)
 
                 give_up, try_again, total_time = spooler.hang_about(
                     mccd, twait, tmax, total_time, updaters, tupdate
@@ -852,8 +852,6 @@ def nrtplot(args=None):
                     continue
 
             # we have a frame!
-            total_frames += 1
-
             # accumulate errors from here on to print later
             emessages = []
 
@@ -884,7 +882,7 @@ def nrtplot(args=None):
                     )
 
             # first time setup
-            if total_frames == 1:
+            if n == 0:
                 # crop the calibration frames on the first frame only
                 if bias is not None:
                     bias = crop_calib_frame_to(mccd, bias, 'bias')
@@ -955,14 +953,15 @@ def nrtplot(args=None):
                 # subtract the bias
                 if bias is not None:
                     ccd -= bias[cnam]
-                    bexpose = bias.head.get("EXPTIME", 0.0)
-                else:
-                    bexpose = 0.0
 
                 # subtract the dark, scaling by exposure time
                 if dark is not None:
-                    dexpose = dark.head["EXPTIME"]
                     cexpose = ccd.head["EXPTIME"]
+                    dexpose = dark.head["EXPTIME"]
+                    if bias is not None:
+                        bexpose = bias.head.get("EXPTIME", 0.0)
+                    else:
+                        bexpose = 0.0
                     scale = (cexpose - bexpose) / dexpose
                     ccd -= scale * dark[cnam]
 
@@ -1015,7 +1014,7 @@ def nrtplot(args=None):
                     cnams=ccds,
                     ncols=nx,
                     defects=defects,
-                    msub=msub,
+                    msub=False,  # we already subtracted above if msub=True
                     cmap=cmap,
                     iset=iset,
                     ilim=(plo, phi) if iset == "p" else (ilo, ihi),
@@ -1083,7 +1082,7 @@ def nrtplot(args=None):
                     width=imwidth,
                     height=imheight,
                     iset=iset,
-                    ilim=(ilo, ihi) if iset == 'd' else (plo, phi),
+                    ilim=(plo, phi) if iset == "p" else (ilo, ihi),
                     xlo=xlo,
                     xhi=xhi,
                     ylo=ylo,
@@ -1117,8 +1116,8 @@ def nrtplot(args=None):
             imanager.update_images(ccd_data, swindows)
 
             # Now print progress indicators
+            nframe = mccd.head.get("NFRAME", n)
             tstamp = Time(mccd.head["TIMSTAMP"], format="isot", precision=3)
-            nframe = mccd.head.get("NFRAME", total_frames)
             tok = "ok" if mccd.head.get("GOODTIME", True) else "nok"
             print(f"{nframe}, utc= {tstamp.iso} ({tok}), ", end="")
 
@@ -1129,7 +1128,7 @@ def nrtplot(args=None):
                 ccd = mccd[cnam]
 
                 message += f", CCD {cnam}: "
-                if not ccd.is_data() and not plotall:
+                if ccd_data[cnam] is None:
                     # skipped due to nskip > 0, no data in this frame
                     message += "none"
                     continue
@@ -1167,7 +1166,7 @@ def nrtplot(args=None):
                     pfit.update_sbox()
 
                 # Carry out fits
-                pfit_results = {ntarg: None for ntarg in targ_data}
+                pfit_results = {ntarg: None for ntarg in pfit_targets}
                 for ntarg, pfit in pfit_targets.items():
                     if ccd_data[pfit.cnam] is not None:
                         # Do the fit and store the results
@@ -1531,11 +1530,11 @@ class ImageManager:
                     ccd=ccd,
                     cnam=cnam,
                     defects=defects,
-                    msub=False,
+                    msub=False,  # we already subtracted in the main loop
                     cmap=self.cmap,
                     iset=self.iset,
                     ilim=self.ilim,
-                    region=None,
+                    region=(self.xlo, self.xhi, self.ylo, self.yhi),
                     animated=True,
                     artists=old_artists,
                 )
