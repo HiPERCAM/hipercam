@@ -930,6 +930,7 @@ def create_figure(
     region: tuple[int, int, int, int] | None = None,
     title: str | None = None,
     figsize: tuple[float, float] | None = None,
+    animated: bool = False
 ):
     """
     Sets up the figure and axes for plotting an MCCD.
@@ -955,6 +956,12 @@ def create_figure(
         figsize : tuple[float, float] | None
             The width and height of the figure, in inches.
             If None, the default size is used.
+
+        animated : bool
+            whether to use animated artists or not.
+            If used for movie-style display, set animated=True.
+            Note if animated=True, you need to update the axes after each draw using
+            `fig.draw_artist(axes)`, in addition to updating other artists.
 
     Returns::
         fig: matplotlib.figure.Figure
@@ -983,14 +990,21 @@ def create_figure(
     caxes = {}
     for n, cnam in enumerate(cnams):
         if n == 0:
-            axes = first_axes = fig.add_subplot(nrows, ncols, n + 1)
+            axes = first_axes = fig.add_subplot(
+                nrows, ncols, n + 1, animated=animated
+            )
             axes.set_aspect("equal", adjustable="box")
             axes.set_xlim(*xlim)
             axes.set_ylim(*ylim)
         else:
             # subsequent axes share the same x and y as the first
             axes = fig.add_subplot(
-                nrows, ncols, n + 1, sharex=first_axes, sharey=first_axes
+                nrows,
+                ncols,
+                n + 1,
+                sharex=first_axes,
+                sharey=first_axes,
+                animated=animated,
             )
             axes.set_aspect("equal")
 
