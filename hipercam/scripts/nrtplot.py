@@ -421,7 +421,6 @@ def nrtplot(args=None):
 
     # get the inputs
     with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
-
         # register parameters
         cl.register("source", Cline.GLOBAL, Cline.HIDE)
         cl.register("run", Cline.GLOBAL, Cline.PROMPT)
@@ -493,7 +492,7 @@ def nrtplot(args=None):
             "source",
             "data source [hs, hl, us, ul, hf, or <instrument>:local/<instrument>:server]",
             default_source,
-            lvals=available_instruments()
+            lvals=available_instruments(),
         )
 
         # set some flags
@@ -553,7 +552,7 @@ def nrtplot(args=None):
 
         cl.set_default("pause", 0.0)
         pause = cl.get_value(
-            "pause", "time delay to add between" " frame plots [secs]", 0.0, 0.0
+            "pause", "time delay to add between frame plots [secs]", 0.0, 0.0
         )
 
         tupdate = cl.get_value(
@@ -562,7 +561,7 @@ def nrtplot(args=None):
 
         cl.set_default("plotall", False)
         plotall = cl.get_value(
-            "plotall", "plot all frames," " regardless of status?", False
+            "plotall", "plot all frames, regardless of status?", False
         )
 
         # bias frame (if any)
@@ -673,7 +672,7 @@ def nrtplot(args=None):
 
         iset = cl.get_value(
             "iset",
-            "set intensity a(utomatically)," " d(irectly) or with p(ercentiles)?",
+            "set intensity a(utomatically), d(irectly) or with p(ercentiles)?",
             "a",
             lvals=["a", "d", "p"],
         )
@@ -734,18 +733,18 @@ def nrtplot(args=None):
         )
         shbox = cl.get_value(
             "shbox",
-            "half width of box for initial location" " of target [unbinned pixels]",
+            "half width of box for initial location of target [unbinned pixels]",
             11.0,
             2.0,
         )
         smooth = cl.get_value(
             "smooth",
-            "FWHM for smoothing for initial object" " detection [binned pixels]",
+            "FWHM for smoothing for initial object detection [binned pixels]",
             6.0,
         )
         fhbox = cl.get_value(
             "fhbox",
-            "half width of box for profile fit" " [unbinned pixels]",
+            "half width of box for profile fit [unbinned pixels]",
             21.0,
             3.0,
         )
@@ -829,7 +828,6 @@ def nrtplot(args=None):
     total_time = 0.0
     with spooler.data_source(source, resource, first, full=False) as spool:
         for n, mccd in enumerate(spool):
-
             if server_or_local:
                 # Handle the waiting game ...
                 # Includes some awkward stuff involving updating on a cycle
@@ -885,13 +883,13 @@ def nrtplot(args=None):
             if n == 0:
                 # crop the calibration frames on the first frame only
                 if bias is not None:
-                    bias = crop_calib_frame_to(mccd, bias, 'bias')
+                    bias = crop_calib_frame_to(mccd, bias, "bias")
                 if dark is not None:
-                    dark = crop_calib_frame_to(mccd, dark, 'dark')
+                    dark = crop_calib_frame_to(mccd, dark, "dark")
                 if flat is not None:
-                    flat = crop_calib_frame_to(mccd, flat, 'flat')
+                    flat = crop_calib_frame_to(mccd, flat, "flat")
                 if fmap is not None:
-                    fmap = crop_calib_frame_to(mccd, fmap, 'fmap')
+                    fmap = crop_calib_frame_to(mccd, fmap, "fmap")
                     fpair = fpair.crop(mccd, nhalf)
 
             if setup:
@@ -1078,16 +1076,12 @@ def nrtplot(args=None):
                     targ_data=targ_data,
                     defects=defects,
                     swindows=swindows,
-                    nx=nx,
-                    width=imwidth,
-                    height=imheight,
+                    ncols=nx,
                     iset=iset,
                     ilim=(plo, phi) if iset == "p" else (ilo, ihi),
-                    xlo=xlo,
-                    xhi=xhi,
-                    ylo=ylo,
-                    yhi=yhi,
+                    region=(xlo, xhi, ylo, yhi),
                     cmap=cmap,
+                    figsize=(imwidth, imheight),
                     shbox=shbox,
                     fwhm=fwhm,
                     beta=beta,
@@ -1133,12 +1127,9 @@ def nrtplot(args=None):
                     message += "none"
                     continue
 
-                # get vmin, vmax from the plot
-                # these are calculated in hcam.mpl.display_ccd, no need to repeat here
+                # accumulate string of image scalings
                 imgs = imanager.caxes[cnam].get_images()
                 vmin, vmax = imgs[0].get_clim()
-
-                # accumulate string of image scalings
                 message += f"{vmin:.1f} to {vmax:.1f}"
 
                 # add cosmic ray counts
@@ -1180,16 +1171,17 @@ def nrtplot(args=None):
                             fwhm_min=fwhm_min,
                             read=read,
                             gain=gain,
-                            thresh=thresh
+                            thresh=thresh,
                         )
                         print(f" target {ntarg}, {message}")
                         pfit_results[ntarg] = results
 
                 # if we have two (and only two) fitted targets,
                 # then find the angle between them
-                if (len(pfit_targets) == 2 and
-                    pfit_results[1] is not None and
-                    pfit_results[2] is not None
+                if (
+                    len(pfit_targets) == 2
+                    and pfit_results[1] is not None
+                    and pfit_results[2] is not None
                 ):
                     dx = pfit_targets[2].x - pfit_targets[1].x
                     dy = pfit_targets[2].y - pfit_targets[1].y
@@ -1223,8 +1215,7 @@ def nrtplot(args=None):
                             xlo=nframe - 1,
                             xhi=nframe + fwnmax + 1,
                             fwmax=fwymax,
-                            width=fwwidth,
-                            height=fwheight,
+                            figsize=(fwwidth, fwheight),
                         )
                         plt.show(block=False)
                         plt.pause(0.1)
@@ -1305,16 +1296,12 @@ class ImageManager:
         targ_data,
         defects,
         swindows,
-        nx,
-        width,
-        height,
+        ncols,
         iset,
         ilim,
-        xlo,
-        xhi,
-        ylo,
-        yhi,
+        region,
         cmap,
+        figsize,
         shbox,
         fwhm,
         beta,
@@ -1348,29 +1335,30 @@ class ImageManager:
             List of setup windows to plot on the frame,
             each tuple is (llxh, llyh, nxh, nyh)
 
-          nx : int
-             max number of panels in X
+        ncols : int
+            The number of columns in the grid of subplots
 
-          width : float
-             plot width [inches]
+        iset : str
+            How to set the intensity scale for the images:
+                'a' for automatic min/max range
+                'p' for percentiles (set using `ilim`)
+                'd' for direct values (set using `ilim`)
 
-          height : float
-             plot height [inches]
+        ilim : tuple[float, float] | None
+            Lower and upper limits for the intensity scaling.
 
-          xlo : float
-             left-hand limit of region to determine percentiles and for display
+        region : tuple[int, int, int, int] | None
+            The region to plot, values are (xmin, xmax, ymin, ymax)
+            If None, the entire CCD is displayed.
+            If iset='p', only this region is used to compute the percentiles for
+            intensity scaling.
 
-          xhi : float
-             right-hand limit of region to display
+        cmap : str  | None
+            Matplotlib colour map. None gives default
 
-          ylo : float
-             lower limit of region to display
-
-          yhi : float
-             upper limit of region to display
-
-          cmap : str  | None
-             Matplotlib colour map. None gives default
+        figsize : tuple[float, float] | None
+            The width and height of the figure, in inches.
+            If None, the default size is used.
 
         shbox, fwhm, beta, method, smooth, fhbox, hmin, fwhm_min, read,
         gain, thresh are profile fitting parameters described elsewhere.
@@ -1379,11 +1367,11 @@ class ImageManager:
         """
         # create empty figure and axes
         self.fig, self.caxes = hcam.mpl.create_figure(
-            cnams = ccd_data.keys(),
-            ncols=nx,
-            region=(xlo, xhi, ylo, yhi),
+            cnams=ccd_data.keys(),
+            ncols=ncols,
+            region=region,
             title="CCD display",
-            figsize=(width, height),
+            figsize=figsize,
             animated=True,
         )
 
@@ -1395,15 +1383,12 @@ class ImageManager:
         self.fig.canvas.mpl_connect("draw_event", self.on_draw)
 
         # inputs for the image plots
-        self.iset = iset
-        self.ilim = ilim
-        self.xlo = xlo
-        self.xhi = xhi
-        self.ylo = ylo
-        self.yhi = yhi
-        self.cmap = cmap
         self.defects = defects
         self.swindows = None  # will be set in update_images
+        self.iset = iset
+        self.ilim = ilim
+        self.region = region
+        self.cmap = cmap
 
         # print out instructions for the user
         print("\n(use the SpaceBar to select targets for one-off profile fits)\n")
@@ -1487,11 +1472,7 @@ class ImageManager:
         self.fig.canvas.flush_events()
 
     def update_images(self, ccd_data, swindows=None):
-        """Creates or updates the artists for each CCD with new data.
-
-        Note this is a separate function to call from __init__,
-        since self.update_images() would fail before we create the profile selector.
-        """
+        """Creates or updates the artists for each CCD with new data."""
         # handle any clicks queued while the frame was processed, while the
         # cursor selector still has the frame that was on display
         self.fig.canvas.flush_events()
@@ -1512,32 +1493,45 @@ class ImageManager:
                 # no new frame, just pass old artists through
                 new_artists[cnam] = self.img_artists[cnam]
             else:
-                # plot the CCD, return with the updated animated artists
+                # create/update the animated artists
                 axes = self.caxes[cnam]
                 ccd = ccd_data[cnam]
                 old_artists = self.img_artists[cnam]
+                new_artists[cnam] = {}
 
-                # get defects for this CCD, if any
-                if self.defects is not None and cnam in self.defects:
-                    defects = self.defects[cnam]
-                else:
-                    defects = None
+                # get scale limits
+                vmin, vmax = hcam.mpl.get_scale_limits(
+                    ccd,
+                    mode=self.iset,
+                    limits=self.ilim,
+                    region=self.region,
+                )
 
-                # create/update the animated artists
-                # the dict returned should have 'ccd' and 'defects' keys
-                new_artists[cnam] = hcam.mpl.display_ccd(
+                # plot the CCD
+                new_artists[cnam]["ccd"] = hcam.mpl.pCcd(
                     axes=axes,
                     ccd=ccd,
-                    cnam=cnam,
-                    defects=defects,
-                    msub=False,  # we already subtracted in the main loop
+                    vmin=vmin,
+                    vmax=vmax,
                     cmap=self.cmap,
-                    iset=self.iset,
-                    ilim=self.ilim,
-                    region=(self.xlo, self.xhi, self.ylo, self.yhi),
+                    tlabel=f"CCD {cnam}",
                     animated=True,
-                    artists=old_artists,
+                    artists=old_artists["ccd"] if old_artists is not None else None,
                 )
+
+                # plot the defects, if any
+                if self.defects is not None and cnam in self.defects:
+                    new_artists[cnam]["defects"] = hcam.mpl.pCcdDefect(
+                        axes,
+                        self.defects[cnam],
+                        animated=True,
+                        artists=(
+                            old_artists["defects"] if old_artists is not None else None
+                        ),
+                    )
+                else:
+                    new_artists[cnam]["defects"] = {}
+
                 # In this case we are setting up for the first time
                 # need to re-draw to avoid irritating distorted image
                 if old_artists is None:
@@ -1647,7 +1641,7 @@ class ImageManager:
 class FwhmManager:
     """Class to start and control the FWHM history animation"""
 
-    def __init__(self, fwhm_data, xlo, xhi, fwmax, width, height):
+    def __init__(self, fwhm_data, xlo, xhi, fwmax, figsize=None):
         """
         Initialises the FWHM history plot. Arguments:
 
@@ -1665,18 +1659,16 @@ class FwhmManager:
         fwmax : float
             maximum height for FWHM plot in pixels
 
-        width : float
-            plot width [inches]
-
-        height : float
-            plot height [inches]
+        figsize : tuple[float, float] | None
+            The width and height of the figure, in inches.
+            If None, the default size is used.
 
         """
         # create empty figure and axes
         self.fig = plt.figure()
         self.fig.canvas.manager.set_window_title("FWHM vs frame number")
-        if width > 0 and height > 0:
-            self.fig.set_size_inches(width, height)
+        if figsize is not None and figsize[0] > 0 and figsize[1] > 0:
+            self.fig.set_size_inches(figsize)
         self.axes = self.fig.add_subplot(animated=True)
 
         # grab the background on every draw
@@ -1700,7 +1692,6 @@ class FwhmManager:
         self.axes.set_xlabel("Frame number")
         self.axes.set_ylabel("FWHM [unbinned pixels]")
         self.axes.legend()
-
 
     def on_draw(self, event):
         """Callback to register with 'draw_event'."""

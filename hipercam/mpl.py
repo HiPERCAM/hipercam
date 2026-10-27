@@ -864,17 +864,17 @@ def get_scale_limits(ccd, mode, limits, region=None):
         mode : str
             How to set the intensity scale for the images:
                 'a' for automatic min/max range
-                'p' for percentiles (set using `limits`)
                 'd' for direct values (set using `limits`)
+                'p' for percentiles (set using `limits`)
 
         limits : tuple[float, float] | None
             Lower and upper limits for the intensity scaling:
-                If mode='p' these are the lower and upper percentiles
                 If mode='d' these are the lower and upper intensity limits
+                If mode='p' these are the lower and upper percentiles
                 If mode='a' this argument is ignored
             If None, default values are used:
-                (5.0, 95.0) if mode='p'
                 (0.0, 1000.0) if mode='d'
+                (5.0, 95.0) if mode='p'
 
         region : tuple[int, int, int, int] | None
             The region to consider for computing intensity limits,
@@ -895,8 +895,22 @@ def get_scale_limits(ccd, mode, limits, region=None):
         else:  # mode == "a"
             limits = (None, None)
 
-    if mode == "p":
+    if mode == "a":
+        # Set intensities from min/max range
+        vmin, vmax = ccd.min(), ccd.max()
+
+    elif mode == "d":
+        # Set intensities from direct values
+        if limits[0] > limits[1]:
+            raise ValueError("Lower limit must be less than or equal to upper limit.")
+        vmin, vmax = limits[0], limits[1]
+
+    elif mode == "p":
         # Set intensities from percentiles for the given region
+        if limits[0] > limits[1]:
+            raise ValueError("Lower limit must be less than or equal to upper limit.")
+        if limits[0] < 0.0 or limits[1] > 100.0:
+            raise ValueError("Percentile limits must be in the range [0, 100].")
         if region is not None:
             xlo, xhi, ylo, yhi = region
         else:
@@ -913,14 +927,6 @@ def get_scale_limits(ccd, mode, limits, region=None):
             pylo, pyhi = None, None
         vmin, vmax = ccd.percentile((limits[0], limits[1]), pxlo, pxhi, pylo, pyhi)
 
-    elif mode == "a":
-        # Set intensities from min/max range
-        vmin, vmax = ccd.min(), ccd.max()
-
-    elif mode == "d":
-        # Set intensities from direct values
-        vmin, vmax = limits[0], limits[1]
-
     return vmin, vmax
 
 
@@ -930,7 +936,7 @@ def create_figure(
     region: tuple[int, int, int, int] | None = None,
     title: str | None = None,
     figsize: tuple[float, float] | None = None,
-    animated: bool = False
+    animated: bool = False,
 ):
     """
     Sets up the figure and axes for plotting an MCCD.
@@ -980,7 +986,7 @@ def create_figure(
     if title is not None:
         fig.canvas.manager.set_window_title(title)
     if figsize is not None and figsize[0] > 0 and figsize[1] > 0:
-        fig.set_size_inches(figsize[0], figsize[1])
+        fig.set_size_inches(figsize)
 
     # Define the panel grid
     ncols = min(len(cnams), ncols) if len(cnams) > 1 else 1
@@ -990,9 +996,7 @@ def create_figure(
     caxes = {}
     for n, cnam in enumerate(cnams):
         if n == 0:
-            axes = first_axes = fig.add_subplot(
-                nrows, ncols, n + 1, animated=animated
-            )
+            axes = first_axes = fig.add_subplot(nrows, ncols, n + 1, animated=animated)
             axes.set_aspect("equal", adjustable="box")
             axes.set_xlim(*xlim)
             axes.set_ylim(*ylim)
@@ -1012,115 +1016,6 @@ def create_figure(
         caxes[cnam] = axes
 
     return fig, caxes
-
-
-def display_ccd(
-    axes: plt.Axes,
-    ccd: CCD,
-    cnam: str,
-    defects: CcdDefect | None = None,
-    msub: bool = False,
-    cmap: str = "Greys",
-    iset: str = "p",
-    ilim: tuple[float, float] | None = None,
-    region: tuple[int, int, int, int] | None = None,
-    animated: bool = False,
-    artists: dict | None = None,
-) -> dict:
-    """Displays a CCD on the given axes.
-
-    Arguments::
-        axes : matplotlib.pyplot.Axes
-            Axes object to plot onto
-
-        ccd : :class:`CCD`
-            the CCD to plot
-
-        cnam: str
-            name of the CCD, used for setting the axis title
-
-        defects: :class:`CcdDefect`, or None
-            group of defects to plot on the frame
-
-        msub : bool
-            Whether to subtract the median from each window before plotting
-
-        cmap: str or None
-            matplotlib colormap to use for the image plot
-
-        iset : str
-            How to set the intensity scale for the images:
-                'a' for automatic min/max range
-                'p' for percentiles (set using `ilim`)
-                'd' for direct values (set using `ilim`)
-
-        ilim : tuple[float, float] | None
-            Lower and upper limits for the intensity scaling.
-            See get_scale_limits for details on how these are used based on `iset`.
-
-        region : tuple[int, int, int, int] | None
-            The region to plot, values are (xmin, xmax, ymin, ymax)
-            If None, the entire CCD is displayed.
-            If iset='p', only this region is used to compute the percentiles for
-            intensity scaling.
-
-        animated : bool
-            whether to use animated artists or not.
-            If used for movie-style display, set animated=True.
-
-        artists : None | dict
-            If not None, should be a saved version of the dict of
-            returned from a previous call to this routine with
-            animated=True. In this case they are updated rather than re-created.
-
-    Returns a dictionary of artists plotted, depending on the arguments passed in:
-      'ccd' : dictionary as returned by pCcd, always present
-      'defects' : dictionary as returned by pCcdDefect, empty if defects is None
-
-    """
-    if region is None:
-        region = [None, None, None, None]
-    if artists is None:
-        artists = {
-            "ccd": None,
-            "defects": None,
-        }
-
-    # Subtract median from each window, if requested
-    if msub:
-        for wind in ccd.values():
-            wind -= wind.median()
-
-    # Get scale limits
-    vmin, vmax = get_scale_limits(
-        ccd,
-        mode=iset,
-        limits=ilim,
-        region=region,
-    )
-
-    # Plot the ccd
-    ccd_artists = pCcd(
-        axes,
-        ccd,
-        vmin=vmin,
-        vmax=vmax,
-        cmap=cmap,
-        tlabel=f"CCD {cnam}",
-        animated=animated,
-        artists=artists["ccd"],
-    )
-    artists["ccd"] = ccd_artists
-
-    # Plot the defects, if any
-    if defects is not None:
-        artists["defects"] = pCcdDefect(
-            axes, defects, animated, artists=artists["defects"]
-        )
-    else:
-        artists["defects"] = {}
-
-    return artists
 
 
 def plot_frame(
@@ -1165,17 +1060,16 @@ def plot_frame(
         iset : str
             How to set the intensity scale for the images:
                 'a' for automatic min/max range
-                'p' for percentiles (set using `ilim`)
                 'd' for direct values (set using `ilim`)
+                'p' for percentiles (set using `ilim`)
+            See :func:`get_scale_limits` for details.
 
         ilim : tuple[float, float] | None
             Lower and upper limits for the intensity scaling:
-                If iset='p' these are the lower and upper percentiles
                 If iset='d' these are the lower and upper intensity limits
+                If iset='p' these are the lower and upper percentiles
                 If iset='a' this argument is ignored
-            If None, default values are used:
-                (5.0, 95.0) if iset='p'
-                (0.0, 1000.0) if iset='d'
+            See :func:`get_scale_limits` for details.
 
         region : tuple[int, int, int, int] | None
             The region to plot, values are (xmin, xmax, ymin, ymax)
@@ -1208,19 +1102,32 @@ def plot_frame(
         cnams=cnams, ncols=ncols, region=region, title=title, figsize=figsize
     )
 
-    # Plot each CCD
+    # Plot each CCD on its axes
     for cnam, axes in caxes.items():
-        display_ccd(
-            axes=axes,
-            ccd=mccd[cnam],
-            cnam=cnam,
-            defects=defects[cnam] if defects is not None and cnam in defects else None,
-            msub=msub,
-            cmap=cmap,
-            iset=iset,
-            ilim=ilim,
+        ccd = mccd[cnam]
+
+        # Subtract median from each window, if requested
+        if msub:
+            for wind in ccd.values():
+                wind -= wind.median()
+
+        # Get scale limits
+        vmin, vmax = get_scale_limits(ccd, iset, ilim, region)
+
+        # Plot the ccd
+        pCcd(
+            axes,
+            ccd,
+            vmin=vmin,
+            vmax=vmax,
             region=region,
+            cmap=cmap,
+            tlabel=f"CCD {cnam}",
         )
+
+        # Plot the defects, if any
+        if defects is not None:
+            pCcdDefect(axes, defects)
 
     # Adjust the layout to prevent overlap
     fig.tight_layout()
