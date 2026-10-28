@@ -1,12 +1,4 @@
-import sys
-import os
-
 import numpy as np
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-
-from trm.pgplot import *
-
 from trm import cline
 from trm.cline import Cline
 

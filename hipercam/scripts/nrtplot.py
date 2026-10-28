@@ -1241,7 +1241,7 @@ def nrtplot(args=None):
 
     # At then end the plots will close automatically,
     # so block this by asking the user to confirm
-    reply = input("\nHit carriage return to close the plot(s): ")
+    input("\nHit carriage return to close the plot(s): ")
 
     if memory:
         cleanup.finish()

@@ -1,29 +1,24 @@
 #!/usr/bin/env python
-from __future__ import division
-from __future__ import print_function
-import sys
-import time
+from __future__ import division, print_function
+
 import os
+import time
 
 import matplotlib.pyplot as plt
-from matplotlib.ticker import NullFormatter
 import numpy as np
-from numpy.lib import recfunctions
-from sklearn.cluster import KMeans
 import scipy.interpolate as interpolate
 import scipy.spatial as sp
-import sep
-from astropy.stats import gaussian_fwhm_to_sigma, sigma_clip
-from astropy.convolution import Gaussian2DKernel
-
-from trm.pgplot import *
+from astropy.stats import sigma_clip
+from astropy.time import Time
+from matplotlib.ticker import NullFormatter
+from sklearn.cluster import KMeans
 from trm import cline
 from trm.cline import Cline
 
 import hipercam as hcam
 from hipercam import spooler
-from hipercam.extraction import findStars
 from hipercam.ccd import crop_calib_frame_to
+from hipercam.extraction import findStars
 from hipercam.instruments import available_instruments
 
 __all__ = [
@@ -101,106 +96,10 @@ def matchSpots(x, y, xref, yref):
     )
 
 
-def displayFWHM(xpos, ypos, xref, yref, fwhm, peak, fix_fwhm_scale=False, bins=20):
-
-    mask = ~sigma_clip(peak).mask
-    if len(mask) > 0 and len(mask) == len(xpos):
-        xpos = xpos[mask]
-        ypos = ypos[mask]
-        fwhm = fwhm[mask]
-        peak = peak[mask]
-
-    # remove correlation between flux and spot fwhm
-    fitOK = True
-    try:
-        f = np.poly1d(np.polyfit(peak, fwhm, 1))
-        meanF = np.mean(f(peak))
-        fwhm_prime = fwhm - f(peak) + meanF
-    except:
-        fitOK = False
-
-    imageOK = True
-    try:
-        xi = np.linspace(xpos.min(), xpos.max(), bins)
-        yi = np.linspace(ypos.min(), ypos.max(), bins)
-        xx, yy = np.meshgrid(xi, yi)
-        func = interpolate.Rbf(xpos, ypos, fwhm_prime, function="quintic")
-        image = func(xx, yy)
-    except:
-        imageOK = False
-
-    # definitions for the axes
-    left, width = 0.05, 0.38
-    bottom, height = 0.1, 0.5
-    right = left + width + 0.02
-    left_h = right + width + 0.02
-    bottom_h = bottom + height + 0.02
-
-    rect_im = [right, bottom, width, height]
-    rect_xcut = [right, bottom_h, width, 0.2]
-    rect_ycut = [left_h, bottom, 0.1, height]
-    rect_pos = [left, bottom, width, height]
-    rect_corr = [left, bottom_h + 0.1, width, 0.1]
-
-    axIm = plt.axes(rect_im)
-    axX = plt.axes(rect_xcut)
-    axY = plt.axes(rect_ycut)
-    axPos = plt.axes(rect_pos, sharex=axIm, sharey=axIm)
-    axCorr = plt.axes(rect_corr)
-
-    nullfmt = NullFormatter()
-    axY.yaxis.set_major_formatter(nullfmt)
-    axX.xaxis.set_major_formatter(nullfmt)
-    axX.yaxis.set_label_position("right")
-    axX.yaxis.tick_right()
-
-    if imageOK:
-        axIm.pcolormesh(xx, yy, image, cmap="magma")
-    axX.plot(xpos, fwhm, "r.")
-    axY.plot(fwhm, ypos, "r.")
-    if fitOK:
-        axX.plot(xpos, fwhm_prime, "b+")
-        axY.plot(fwhm_prime, ypos, "b+")
-        axCorr.plot(peak, fwhm, "r.")
-        idx = np.argsort(peak)
-        axCorr.plot(peak[idx], f(peak[idx]), "b--")
-
-    axPos.plot(xpos, ypos, "r.")
-    axPos.plot(xref, yref, "b+", alpha=0.5)
-
-    axPos.set_xlabel("x")
-    axPos.set_ylabel("y")
-    axIm.set_xlabel("x")
-    axX.set_ylabel("FWHM")
-    axY.set_xlabel("FWHM")
-    if fix_fwhm_scale:
-        axY.set_xlim(1.9, 2.8)
-        axX.set_ylim(1.9, 2.8)
-    theta, offset = matchSpots(xpos, ypos, xref, yref)
-    xoff, yoff = offset
-    textstr = r"$\theta = %.2f$; $\mathrm{xoff}=%.1f$, $\mathrm{yoff}=%.1f$" % (
-        theta,
-        xoff,
-        yoff,
-    )
-    props = dict(boxstyle="round", facecolor="wheat", alpha=0.5)
-    axPos.text(
-        left,
-        1.02,
-        textstr,
-        horizontalalignment="left",
-        verticalalignment="bottom",
-        bbox=props,
-        fontsize=10,
-        transform=axPos.transAxes,
-    )
-
-
-def measureSpots(mccd, ccdname, thresh, use_hfd=True):
+def measureSpots(ccd, thresh, use_hfd=True):
     """
     Detect spots in all windows of a ccd.
     """
-    ccd = mccd[ccdname]
     objects = np.concatenate(
         [findStars(wind, thresh, 3) for (wname, wind) in ccd.items()]
     )
@@ -303,6 +202,14 @@ def aligntool(args=None):
           e.g. '/xs', '1/xs' etc. At the moment only ones ending /xs are
           supported.
 
+        cmap : str [hidden]
+           The matplotlib colour map to use. "Greys" gives the usual greyscale.
+           "none" will give whatever the current default is. Many other choices:
+           "viridis", "jet", "hot", "Oranges", etc. Enter an invalid one and
+           the program will fail but return a huge list of possibles in the
+           process. Note that some will not work well with the colours used
+           to plot annotations.
+
         width   : (float) [hidden]
            plot width (inches). Set = 0 to let the program choose.
 
@@ -372,6 +279,7 @@ def aligntool(args=None):
         cl.register("small_spots", Cline.LOCAL, Cline.HIDE)
         cl.register("source", Cline.LOCAL, Cline.HIDE)
         cl.register("device", Cline.LOCAL, Cline.HIDE)
+        cl.register("cmap", Cline.LOCAL, Cline.HIDE)
         cl.register("width", Cline.LOCAL, Cline.HIDE)
         cl.register("height", Cline.LOCAL, Cline.HIDE)
         cl.register("run", Cline.GLOBAL, Cline.PROMPT)
@@ -419,8 +327,11 @@ def aligntool(args=None):
         server_or_local = source.endswith("s") or source.endswith("l")
         inst = source[0]
 
-        # plot device stuff
-        device = cl.get_value("device", "plot device", "1/xs")
+        # Some settings for the image plots
+        cmap = cl.get_value(
+            "cmap", "colour map to use ['none' for mpl default]", "Greys"
+        )
+        cmap = None if cmap == "none" else cmap
         width = cl.get_value("width", "plot width (inches)", 0.0)
         height = cl.get_value("height", "plot height (inches)", 0.0)
 
@@ -451,8 +362,8 @@ def aligntool(args=None):
         # get the labels and maximum dimensions and padding factors
         ccdinf = spooler.get_ccd_pars(source, resource)
         if len(ccdinf) > 1:
-            ccdnam = cl.get_value("ccd", "CCD to plot alignment of", "1")
-            rccdnam = cl.get_value("rccd", "CCD to use as reference", "5")
+            data_cnam = cl.get_value("ccd", "CCD to plot alignment of", "1")
+            ref_cnam = cl.get_value("rccd", "CCD to use as reference", "5")
 
         cl.set_default("pause", 0.0)
         pause = cl.get_value(
@@ -494,7 +405,7 @@ def aligntool(args=None):
             )
 
         # region to plot
-        nxtot, nytot, nxpad, nypad = ccdinf[ccdnam]
+        nxtot, nytot, nxpad, nypad = ccdinf[data_cnam]
         xmin, xmax = float(-nxpad), float(nxtot + nxpad + 1)
         ymin, ymax = float(-nypad), float(nytot + nypad + 1)
 
@@ -503,23 +414,17 @@ def aligntool(args=None):
         ylo = cl.get_value("ylo", "lower Y value", ymin, ymin, ymax)
         yhi = cl.get_value("yhi", "upper Y value", ymax, ymin, ymax)
 
-    # arguments defined, let's do something!
-    # open image plot device
-    imdev = hcam.pgp.Device(device)
-    if width > 0 and height > 0:
-        pgpap(width, height / width)
+    ################################################################
+    #
+    # all the inputs have now been obtained. Get on with doing stuff
 
-    pgsubp(1, 2)
-    for i in range(2):
-        pgsci(hcam.pgp.Params["axis.ci"])
-        pgsch(hcam.pgp.Params["axis.number.ch"])
-        pgenv(xlo, xhi, ylo, yhi, 1, 0)
-        pglab("X", "Y", ("reference", "data")[i])
+    # Initialise the plot managers to None, so we can create them on the first frame
+    imanager = None
+    fwhmmanager = None
 
-    total_time = 0  # time waiting for new frame
-
+    # Start the main loop
+    total_time = 0.0
     with spooler.data_source(source, resource, first) as spool:
-        # 'spool' is an iterable source of MCCDs
         for n, mccd in enumerate(spool):
 
             if server_or_local:
@@ -534,43 +439,67 @@ def aligntool(args=None):
                 elif try_again:
                     continue
 
-            # indicate progress
-            print(
-                "Frame {:d}, time = {:s}; ".format(
-                    mccd.head["NFRAME"], mccd.head["TIMSTAMP"]
-                ),
-                end="",
-            )
-
+            # first time setup
             if n == 0 and bias is not None:
                 # crop the bias on the first frame only
                 bias = crop_calib_frame_to(mccd, bias, "bias")
 
-            ccd = mccd[ccdnam]
-            ref_ccd = ref_mccd[rccdnam]
+            # get the right classes for the CCD names
+            ccd_data = {'reference': ref_mccd[ref_cnam], 'data': mccd[data_cnam]}
 
+            # calibration
             if bias is not None:
-                ccd -= bias[ccdnam]
-
+                ccd_data['data'] -= bias[data_cnam]
             if msub:
-                for wind in ccd.values():
+                for wind in ccd_data['data'].values():
                     wind -= wind.median()
-                for wind in ref_ccd.values():
+                for wind in ccd_data['reference'].values():
                     wind -= wind.median()
 
-            # plot images
-            message = ""
-            for i in range(2):
-                this_ccd = (ref_ccd, ccd)[i]
-                name = ("ref: ", "data: ")[i]
-                pgpanl(1, i + 1)
-                vmin, vmax = hcam.pgp.pCcd(this_ccd, iset, plo, phi, ilo, ihi)
-                message += " {:s}: {:.2f} to {:.2f}".format(name, vmin, vmax)
+            # We're ready to start plotting
+            if imanager is None:
+                # First time through, create the image plot manager
+                imanager = ImageManager(
+                    ccd_data=ccd_data,
+                    iset=iset,
+                    ilim=(plo, phi) if iset == "p" else (ilo, ihi),
+                    region=(xlo, xhi, ylo, yhi),
+                    cmap=cmap,
+                    figsize=(width, height),
+                )
+
+                # start live display
+                plt.show(block=False)
+                plt.pause(0.1)
+
+            # Update the image plot (done on every loop)
+            imanager.update(ccd_data)
+
+            # Now print progress indicators
+            nframe = mccd.head.get("NFRAME", n)
+            tstamp = Time(mccd.head["TIMSTAMP"], format="isot", precision=3)
+            tok = "ok" if mccd.head.get("GOODTIME", True) else "nok"
+            print(f"{nframe}, utc= {tstamp.iso} ({tok}), ", end="")
+
+            # Get statistics to print out
+            message = f"exp= {mccd.head['EXPTIME']:.4f}"
+            for cnam in ccd_data:
+                message += f", CCD {cnam}: "
+                if ccd_data[cnam] is None:
+                    # skipped due to nskip > 0, no data in this frame
+                    message += "none"
+                    continue
+
+                # accumulate string of image scalings
+                imgs = imanager.caxes[cnam].get_images()
+                vmin, vmax = imgs[0].get_clim()
+                message += f"{vmin:.1f} to {vmax:.1f}"
+
             print(message)
 
             # time for measurement of spots!
             try:
-                xpos, ypos, fwhm, flux = measureSpots(mccd, ccdnam, thresh)
+                xpos, ypos, fwhm, flux = measureSpots(ccd_data['data'], thresh)
                 lx, ly, lf, lp, bx, by, bf, bp = separateBigSmallSpots(
                     xpos, ypos, fwhm, flux
                 )
@@ -580,30 +509,408 @@ def aligntool(args=None):
                 else:
                     x, y, f, flux = lx, ly, lf, lp
             except Exception as err:
-                print("Failed to find spots in frame: ", end=" ")
-                print(str(err))
+                print(f"Failed to find spots in frame: {err}")
                 continue
 
             # also measure spots in reference image
             try:
-                xpos, ypos, fwhm, rflux = measureSpots(ref_mccd, rccdnam, thresh)
+                xpos, ypos, fwhm, rflux = measureSpots(ccd_data['reference'], thresh)
                 lx, ly, lf, lp, bx, by, bf, bp = separateBigSmallSpots(
                     xpos, ypos, fwhm, rflux
                 )
                 if not small_spots:
                     # use big spots
-                    xref, yref, fref = bx, by, bf
+                    xref, yref = bx, by
                 else:
-                    xref, yref, fref = lx, ly, lf
+                    xref, yref = lx, ly
             except Exception as err:
-                print("Failed to find spots in reference: ", end=" ")
-                print(str(err))
+                print(f"Failed to find spots in reference: {err}")
                 continue
 
-            plt.clf()
-            displayFWHM(x, y, xref, yref, f, flux, fix_fwhm_scale=False)
-            plt.draw()
-            plt.pause(0.05)
+            # We found spots in both images, so let's plot the FWHM and offsets
+            fwhm_data = {
+                "x": x,
+                "y": y,
+                "xref": xref,
+                "yref": yref,
+                "fwhm": f,
+                "flux": flux,
+            }
+            if fwhmmanager is None:
+                # First time through, create the FWHM plot manager
+                fwhmmanager = FwhmManager(
+                    fwhm_data,
+                    fix_fwhm_scale=False,
+                )
+                plt.show(block=False)
+                plt.pause(0.1)
 
-    plt.ioff()
-    plt.show()
+            # Update the FWHM plot (done on every loop)
+            fwhmmanager.update(fwhm_data)
+
+            if pause > 0.0:
+                time.sleep(pause)
+
+    # At then end the plots will close automatically,
+    # so block this by asking the user to confirm
+    input("\nHit carriage return to close the plot(s): ")
+
+
+class ImageManager:
+    """Class to control the image animation"""
+
+    def __init__(
+        self,
+        ccd_data,
+        iset,
+        ilim,
+        region,
+        cmap,
+        figsize,
+    ):
+        """Initialises and manages the plot.
+
+        Arguments:
+
+        ccd_data : dict of {'reference': :class:`CCD`|None, 'data': :class:`CCD`|None}
+            Contains the calibrated CCD, or None if the CCD is being skipped,
+            for both the reference and data frames.
+            Used to create the artists; later frames go through update_images.
+
+        ncols : int
+            The number of columns in the grid of subplots
+
+        iset : str
+            How to set the intensity scale for the images:
+                'a' for automatic min/max range
+                'p' for percentiles (set using `ilim`)
+                'd' for direct values (set using `ilim`)
+
+        ilim : tuple[float, float] | None
+            Lower and upper limits for the intensity scaling.
+
+        region : tuple[int, int, int, int] | None
+            The region to plot, values are (xmin, xmax, ymin, ymax)
+            If None, the entire CCD is displayed.
+            If iset='p', only this region is used to compute the percentiles for
+            intensity scaling.
+
+        cmap : str  | None
+            Matplotlib colour map. None gives default
+
+        figsize : tuple[float, float] | None
+            The width and height of the figure, in inches.
+            If None, the default size is used.
+
+        """
+        # create empty figure and axes
+        self.fig, self.caxes = hcam.mpl.create_figure(
+            cnams = ['reference', 'data'],
+            ncols=1,
+            region=region,
+            title="CCD display",
+            figsize=figsize,
+            animated=True,
+        )
+
+        # grab the background on every draw
+        self._bg = None
+        self.fig.canvas.mpl_connect("draw_event", self.on_draw)
+
+        # inputs for the image plots
+        self.iset = iset
+        self.ilim = ilim
+        self.region = region
+        self.cmap = cmap
+
+        # now actually create and update the artists
+        self.img_artists = {'reference': None, 'data': None}
+        self.update(ccd_data)
+
+        # adjust the layout to prevent overlap
+        # (can only do after the artists are created)
+        self.fig.tight_layout()
+
+    def on_draw(self, event):
+        """Callback to register with 'draw_event'."""
+        if event is not None and event.canvas != self.fig.canvas:
+            raise RuntimeError
+        self._bg = self.fig.canvas.copy_from_bbox(self.fig.bbox)
+        self._draw_animated()
+
+    def _draw_animated(self):
+        """Draw all of the animated artists."""
+        for cnam in self.caxes:
+            # Draw the axes before the content if you want to see anything!
+            self.fig.draw_artist(self.caxes[cnam])
+
+            if self.img_artists[cnam] is not None:
+                # 'ccd' has values which are all lists of artists
+                for artists in self.img_artists[cnam].values():
+                    for artist in artists:
+                        self.fig.draw_artist(artist)
+
+    def refresh(self):
+        """Redraws the animated artists without changing any data.
+
+        Safe to call repeatedly while waiting for a frame to arrive,
+        to keep the window responsive.
+        """
+        if self._bg is None:
+            self.on_draw(None)
+        else:
+            # restore the background
+            self.fig.canvas.restore_region(self._bg)
+            self._draw_animated()
+            self.fig.canvas.blit(self.fig.bbox)
+        self.fig.canvas.flush_events()
+
+    def update(self, ccd_data):
+        """Creates or updates the artists for each CCD with new data."""
+        new_artists = {}
+
+        # update CCD artists
+        for cnam in ccd_data:
+            if ccd_data[cnam] is None:
+                # no new frame, just pass old artists through
+                new_artists[cnam] = self.img_artists[cnam]
+            else:
+                # create/update the animated artists
+                axes = self.caxes[cnam]
+                ccd = ccd_data[cnam]
+                old_artists = self.img_artists[cnam]
+                new_artists[cnam] = {}
+
+                # get scale limits
+                vmin, vmax = hcam.mpl.get_scale_limits(
+                    ccd,
+                    mode=self.iset,
+                    limits=self.ilim,
+                    region=self.region,
+                )
+
+                # plot the CCD
+                new_artists[cnam] = hcam.mpl.pCcd(
+                    axes=axes,
+                    ccd=ccd,
+                    vmin=vmin,
+                    vmax=vmax,
+                    cmap=self.cmap,
+                    tlabel=cnam,
+                    animated=True,
+                    artists=old_artists,
+                )
+
+                # In this case we are setting up for the first time
+                # need to re-draw to avoid irritating distorted image
+                if old_artists is None:
+                    self.fig.canvas.draw()
+
+        # Finally, update the artists and refresh the display
+        self.img_artists = new_artists
+        self.refresh()
+
+
+class FwhmManager:
+    """Class to start and control the FWHM history animation"""
+
+    def __init__(self, data, fix_fwhm_scale=False, bins=20):
+        """Initialises the FWHM history plot."""
+        # create empty figure
+        self.fig = plt.figure()
+        self.fig.canvas.manager.set_window_title("FWHM plot")
+
+        # definitions for the axes
+        self.left = 0.05
+        self.bottom = 0.1
+        self.width = 0.38
+        self.height = 0.5
+        self.right = self.left + self.width + 0.02
+        self.left_h = self.right + self.width + 0.02
+        self.bottom_h = self.bottom + self.height + 0.02
+
+        rect_im = [self.right, self.bottom, self.width, self.height]
+        rect_xcut = [self.right, self.bottom_h, self.width, 0.2]
+        rect_ycut = [self.left_h, self.bottom, 0.1, self.height]
+        rect_pos = [self.left, self.bottom, self.width, self.height]
+        rect_corr = [self.left, self.bottom_h + 0.1, self.width, 0.1]
+
+        self.axes = {}
+        self.axes['im'] = self.fig.add_axes(rect_im, animated=True)
+        self.axes['x'] = self.fig.add_axes(rect_xcut, animated=True)
+        self.axes['y'] = self.fig.add_axes(rect_ycut, animated=True)
+        self.axes['pos'] = self.fig.add_axes(
+            rect_pos, sharex=self.axes['im'], sharey=self.axes['im'], animated=True
+        )
+        self.axes['corr'] = self.fig.add_axes(rect_corr, animated=True)
+
+        # grab the background on every draw
+        self._bg = None
+        self.fig.canvas.mpl_connect("draw_event", self.on_draw)
+
+        # params
+        self.fix_fwhm_scale = fix_fwhm_scale
+        self.bins = bins
+
+        # plot formatting
+        self.axes['y'].yaxis.set_major_formatter(NullFormatter())
+        self.axes['x'].xaxis.set_major_formatter(NullFormatter())
+        self.axes['x'].yaxis.set_label_position("right")
+        self.axes['x'].yaxis.tick_right()
+        self.axes['pos'].set_xlabel("x")
+        self.axes['pos'].set_ylabel("y")
+        self.axes['im'].set_xlabel("x")
+        self.axes['x'].set_ylabel("FWHM")
+        self.axes['y'].set_xlabel("FWHM")
+        if self.fix_fwhm_scale:
+            self.axes['y'].set_xlim(1.9, 2.8)
+            self.axes['x'].set_ylim(1.9, 2.8)
+
+        # plot artists
+        self.artists = {}
+        self.update(data)
+
+    def on_draw(self, event):
+        """Callback to register with 'draw_event'."""
+        if event is not None and event.canvas != self.fig.canvas:
+            raise RuntimeError
+        self._bg = self.fig.canvas.copy_from_bbox(self.fig.bbox)
+        self._draw_animated()
+
+    def _draw_animated(self):
+        """Draw all of the animated artists."""
+        # Draw the axes before the content if you want to see anything!
+        for ax in self.axes.values():
+            self.fig.draw_artist(ax)
+
+            # We also need to manually rescale the axes when animating
+            if not self.fix_fwhm_scale:
+                ax.relim()
+                ax.autoscale_view()
+
+        # Now draw the artists
+        for artist in self.artists.values():
+            if artist is not None:
+                self.fig.draw_artist(artist)
+
+    def refresh(self):
+        """Redraws the animated artists without changing any data.
+
+        Safe to call repeatedly while waiting for a frame to arrive,
+        to keep the window responsive.
+        """
+        if self._bg is None:
+            self.on_draw(None)
+        else:
+            # restore the background
+            self.fig.canvas.restore_region(self._bg)
+            self._draw_animated()
+            self.fig.canvas.blit(self.fig.bbox)
+        self.fig.canvas.flush_events()
+
+    def update(self, data):
+        """Displays the latest FWHM measurements."""
+        xpos = data["x"]
+        ypos = data["y"]
+        xref = data["xref"]
+        yref = data["yref"]
+        fwhm = data["fwhm"]
+        peak = data["flux"]
+
+        # remove outliers
+        mask = ~sigma_clip(peak).mask
+        if len(mask) > 0 and len(mask) == len(xpos):
+            xpos = xpos[mask]
+            ypos = ypos[mask]
+            fwhm = fwhm[mask]
+            peak = peak[mask]
+
+        # plot the FWHM as a function of position and flux
+        if self.artists.get('x') is None:
+            self.artists['x'] = self.axes['x'].plot(xpos, fwhm, "r.", animated=True)[0]
+            self.artists['y'] = self.axes['y'].plot(fwhm, ypos, "r.", animated=True)[0]
+        else:
+            self.artists['x'].set_data(xpos, fwhm)
+            self.artists['y'].set_data(fwhm, ypos)
+
+        try:
+            # remove correlation between flux and spot fwhm
+            f = np.poly1d(np.polyfit(peak, fwhm, 1))
+            meanF = np.mean(f(peak))
+            fwhm_prime = fwhm - f(peak) + meanF
+
+            # plot the corrected FWHM as a function of position and flux
+            if self.artists.get('x_corr') is None:
+                self.artists['x_corr'] = self.axes['x'].plot(
+                    xpos, fwhm_prime, "b+", animated=True
+                )[0]
+                self.artists['y_corr'] = self.axes['y'].plot(
+                    fwhm_prime, ypos, "b+", animated=True
+                )[0]
+            else:
+                self.artists['x_corr'].set_data(xpos, fwhm_prime)
+                self.artists['y_corr'].set_data(fwhm_prime, ypos)
+
+            # plot the correlation between flux and spot fwhm
+            idx = np.argsort(peak)
+            if self.artists.get('corr') is None:
+                self.artists['corr'] = self.axes['corr'].plot(
+                    peak, fwhm, "r.", animated=True
+                )[0]
+                self.artists['corr_f'] = self.axes['corr'].plot(
+                    peak[idx], f(peak[idx]), "b--", animated=True
+                )[0]
+            else:
+                self.artists['corr'].set_data(peak, fwhm)
+                self.artists['corr_f'].set_data(peak[idx], f(peak[idx]))
+
+            # plot the image of the FWHM as a function of position
+            xi = np.linspace(xpos.min(), xpos.max(), self.bins)
+            yi = np.linspace(ypos.min(), ypos.max(), self.bins)
+            xx, yy = np.meshgrid(xi, yi)
+            func = interpolate.Rbf(xpos, ypos, fwhm_prime, function="quintic")
+            image = func(xx, yy)
+            if self.artists.get('im') is None:
+                self.artists['im'] = self.axes['im'].pcolormesh(
+                    xx, yy, image, cmap="magma", animated=True
+                )
+            else:
+                self.artists['im'].set_array(image.ravel())
+
+        except:
+            # if the fitting or interpolation fails, just leave those plots empty
+            pass
+
+        # plot the positions of the spots in the data and reference images
+        if self.artists.get('pos') is None:
+            self.artists['pos'] = self.axes['pos'].plot(
+                xpos, ypos, "r.", animated=True
+            )[0]
+            self.artists['pos_ref'] = self.axes['pos'].plot(
+                xref, yref, "b+", alpha=0.5, animated=True
+            )[0]
+        else:
+            self.artists['pos'].set_data(xpos, ypos)
+            self.artists['pos_ref'].set_data(xref, yref)
+
+        # add text box with the alignment information
+        theta, offset = matchSpots(xpos, ypos, xref, yref)
+        xoff, yoff = offset
+        textstr = f"Θ = {theta:.2f}; xoff={xoff:.1f}, yoff={yoff:.1f}"
+        props = dict(boxstyle="round", facecolor="wheat", alpha=0.5)
+        if self.artists.get('pos_text') is None:
+            self.artists['pos_text'] = self.axes['pos'].text(
+                self.left,
+                1.02,
+                textstr,
+                horizontalalignment="left",
+                verticalalignment="bottom",
+                bbox=props,
+                fontsize=10,
+                transform=self.axes['pos'].transAxes,
+                animated=True
+            )
+        else:
+            self.artists['pos_text'].set_text(textstr)
+
+        self.refresh()
