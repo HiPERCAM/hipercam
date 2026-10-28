@@ -749,7 +749,7 @@ def pDefect(axes, dfct, animated=False, artists=None):
             ]
 
         else:
-            raise HipercamError("Did not recognise Defect")
+            raise HipercamError(f"Did not recognise Defect: {type(dfct)}")
 
     else:
         # update previously created artists
@@ -1105,30 +1105,27 @@ def plot_frame(
 
     # Plot each CCD on its axes
     for cnam, axes in caxes.items():
-        ccd = mccd[cnam]
-
         # Subtract median from each window, if requested
         if msub:
-            for wind in ccd.values():
+            for wind in mccd[cnam].values():
                 wind -= wind.median()
 
         # Get scale limits
-        vmin, vmax = get_scale_limits(ccd, iset, ilim, region)
+        vmin, vmax = get_scale_limits(mccd[cnam], iset, ilim, region)
 
         # Plot the ccd
         pCcd(
             axes,
-            ccd,
+            mccd[cnam],
             vmin=vmin,
             vmax=vmax,
-            region=region,
             cmap=cmap,
             tlabel=f"CCD {cnam}",
         )
 
         # Plot the defects, if any
         if defects is not None:
-            pCcdDefect(axes, defects)
+            pCcdDefect(axes, defects[cnam] if cnam in defects else None)
 
     # Adjust the layout to prevent overlap
     fig.tight_layout()
