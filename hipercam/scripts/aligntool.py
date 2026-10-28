@@ -491,8 +491,7 @@ def aligntool(args=None):
                     continue
 
                 # accumulate string of image scalings
-                imgs = imanager.caxes[cnam].get_images()
-                vmin, vmax = imgs[0].get_clim()
+                vmin, vmax = imanager.get_ilim(cnam)
                 message += f"{vmin:.1f} to {vmax:.1f}"
 
             print(message)
@@ -556,7 +555,7 @@ def aligntool(args=None):
     input("\nHit carriage return to close the plot(s): ")
 
 
-class ImageManager:
+class ImageManager(hcam.mpl.AnimationManager):
     """Class to control the image animation"""
 
     def __init__(
@@ -604,7 +603,7 @@ class ImageManager:
 
         """
         # create empty figure and axes
-        self.fig, self.caxes = hcam.mpl.create_figure(
+        self.fig, self.axes = hcam.mpl.create_figure(
             cnams = ['reference', 'data'],
             ncols=1,
             region=region,
@@ -613,9 +612,8 @@ class ImageManager:
             animated=True,
         )
 
-        # grab the background on every draw
-        self._bg = None
-        self.fig.canvas.mpl_connect("draw_event", self.on_draw)
+        # initialise the animation manager with the figure
+        super().__init__(self.fig)
 
         # inputs for the image plots
         self.iset = iset
@@ -623,76 +621,55 @@ class ImageManager:
         self.region = region
         self.cmap = cmap
 
-        # now actually create and update the artists
-        self.img_artists = {'reference': None, 'data': None}
+        # create and update the artists
+        self.artists = {axnam: None for axnam in self.axes}
         self.update(ccd_data)
 
         # adjust the layout to prevent overlap
         # (can only do after the artists are created)
         self.fig.tight_layout()
 
-    def on_draw(self, event):
-        """Callback to register with 'draw_event'."""
-        if event is not None and event.canvas != self.fig.canvas:
-            raise RuntimeError
-        self._bg = self.fig.canvas.copy_from_bbox(self.fig.bbox)
-        self._draw_animated()
-
-    def _draw_animated(self):
+    def draw_artists(self):
         """Draw all of the animated artists."""
-        for cnam in self.caxes:
-            # Draw the axes before the content if you want to see anything!
-            self.fig.draw_artist(self.caxes[cnam])
+        for cnam in self.axes:
+            # Draw the axes
+            self.fig.draw_artist(self.axes[cnam])
 
-            if self.img_artists[cnam] is not None:
+            # Draw the artists for this CCD, if they exist
+            if self.artists[cnam] is not None:
                 # 'ccd' has values which are all lists of artists
-                for artists in self.img_artists[cnam].values():
+                for artists in self.artists[cnam].values():
                     for artist in artists:
                         self.fig.draw_artist(artist)
 
-    def refresh(self):
-        """Redraws the animated artists without changing any data.
-
-        Safe to call repeatedly while waiting for a frame to arrive,
-        to keep the window responsive.
-        """
-        if self._bg is None:
-            self.on_draw(None)
-        else:
-            # restore the background
-            self.fig.canvas.restore_region(self._bg)
-            self._draw_animated()
-            self.fig.canvas.blit(self.fig.bbox)
-        self.fig.canvas.flush_events()
-
     def update(self, ccd_data):
-        """Creates or updates the artists for each CCD with new data."""
+        """Create or update the artists with new data."""
         new_artists = {}
 
         # update CCD artists
         for cnam in ccd_data:
             if ccd_data[cnam] is None:
                 # no new frame, just pass old artists through
-                new_artists[cnam] = self.img_artists[cnam]
+                new_artists[cnam] = self.artists[cnam]
             else:
                 # create/update the animated artists
-                axes = self.caxes[cnam]
-                ccd = ccd_data[cnam]
-                old_artists = self.img_artists[cnam]
+                old_artists = self.artists[cnam]
                 new_artists[cnam] = {}
 
                 # get scale limits
                 vmin, vmax = hcam.mpl.get_scale_limits(
-                    ccd,
+                    ccd_data[cnam],
                     mode=self.iset,
                     limits=self.ilim,
                     region=self.region,
                 )
 
                 # plot the CCD
+                # if old_artists is not None they will be updated and returned,
+                # otherwise new artists will be created
                 new_artists[cnam] = hcam.mpl.pCcd(
-                    axes=axes,
-                    ccd=ccd,
+                    axes=self.axes[cnam],
+                    ccd=ccd_data[cnam],
                     vmin=vmin,
                     vmax=vmax,
                     cmap=self.cmap,
@@ -707,11 +684,18 @@ class ImageManager:
                     self.fig.canvas.draw()
 
         # Finally, update the artists and refresh the display
-        self.img_artists = new_artists
+        self.artists = new_artists
         self.refresh()
 
+    def get_ilim(self, cnam):
+        """Returns the current intensity limits for the specified CCD."""
+        if self.artists[cnam] is None:
+            return None
+        imgs = self.axes[cnam].get_images()
+        return imgs[0].get_clim()  # for the first window, but should be the same
 
-class FwhmManager:
+
+class FwhmManager(hcam.mpl.AnimationManager):
     """Class to start and control the FWHM history animation"""
 
     def __init__(self, data, fix_fwhm_scale=False, bins=20):
@@ -719,6 +703,9 @@ class FwhmManager:
         # create empty figure
         self.fig = plt.figure()
         self.fig.canvas.manager.set_window_title("FWHM plot")
+
+        # initialise the animation manager with the figure
+        super().__init__(self.fig)
 
         # definitions for the axes
         self.left = 0.05
@@ -744,10 +731,6 @@ class FwhmManager:
         )
         self.axes['corr'] = self.fig.add_axes(rect_corr, animated=True)
 
-        # grab the background on every draw
-        self._bg = None
-        self.fig.canvas.mpl_connect("draw_event", self.on_draw)
-
         # params
         self.fix_fwhm_scale = fix_fwhm_scale
         self.bins = bins
@@ -766,20 +749,13 @@ class FwhmManager:
             self.axes['y'].set_xlim(1.9, 2.8)
             self.axes['x'].set_ylim(1.9, 2.8)
 
-        # plot artists
+        # create and update the artists
         self.artists = {}
         self.update(data)
 
-    def on_draw(self, event):
-        """Callback to register with 'draw_event'."""
-        if event is not None and event.canvas != self.fig.canvas:
-            raise RuntimeError
-        self._bg = self.fig.canvas.copy_from_bbox(self.fig.bbox)
-        self._draw_animated()
-
-    def _draw_animated(self):
+    def draw_artists(self):
         """Draw all of the animated artists."""
-        # Draw the axes before the content if you want to see anything!
+        # Draw the axes
         for ax in self.axes.values():
             self.fig.draw_artist(ax)
 
@@ -788,28 +764,13 @@ class FwhmManager:
                 ax.relim()
                 ax.autoscale_view()
 
-        # Now draw the artists
+        # Draw the artists
         for artist in self.artists.values():
             if artist is not None:
                 self.fig.draw_artist(artist)
 
-    def refresh(self):
-        """Redraws the animated artists without changing any data.
-
-        Safe to call repeatedly while waiting for a frame to arrive,
-        to keep the window responsive.
-        """
-        if self._bg is None:
-            self.on_draw(None)
-        else:
-            # restore the background
-            self.fig.canvas.restore_region(self._bg)
-            self._draw_animated()
-            self.fig.canvas.blit(self.fig.bbox)
-        self.fig.canvas.flush_events()
-
     def update(self, data):
-        """Displays the latest FWHM measurements."""
+        """Create or update the artists with new data."""
         xpos = data["x"]
         ypos = data["y"]
         xref = data["xref"]
@@ -913,4 +874,5 @@ class FwhmManager:
         else:
             self.artists['pos_text'].set_text(textstr)
 
+        # Finally, refresh the display
         self.refresh()

@@ -6,6 +6,7 @@ matplotlib plotting functions.
 from __future__ import annotations
 
 import os
+from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
 import matplotlib as mpl
@@ -1133,6 +1134,76 @@ def plot_frame(
     fig.tight_layout()
 
     return fig, caxes
+
+
+class AnimationManager(ABC):
+    """Abstract class to manage an animated matplotlib plot."""
+
+    def __init__(self, fig):
+        """Initialises the animated plot using the given figure."""
+        self.fig = fig  # ensure we have a reference to the figure
+
+        # register a callback to save the background when the figure is drawn
+        self._bg = None
+        self.fig.canvas.mpl_connect("draw_event", self.on_draw)
+
+    @abstractmethod
+    def draw_artists(self):
+        """Draw all of the animated axes and artists.
+
+        Must be implemented by subclasses to draw the specific artists
+        using `self.fig.draw_artist()`.
+
+        Note that includes the axes themselves, which are not automatically updated
+        when created with `animated=True`.
+        So you need to call `self.fig.draw_artist(ax)` for each axes you want to draw,
+        in addition to any other artists.
+        """
+        pass
+
+    def on_draw(self, event):
+        """Callback to register with 'draw_event'."""
+        if event is not None and event.canvas != self.fig.canvas:
+            raise RuntimeError
+        # save the background
+        self._bg = self.fig.canvas.copy_from_bbox(self.fig.bbox)
+        # redraw the animated artists on top of the background
+        self.draw_artists()
+
+    def refresh(self):
+        """Redraws the animated artists.
+
+        Safe to call repeatedly to keep the window responsive even if the data has
+        not changed.
+        """
+        if self._bg is None:
+            # no background saved yet, so just draw everything
+            self.on_draw(None)
+        else:
+            # restore the background
+            self.fig.canvas.restore_region(self._bg)
+            # draw the animated artists on top of the background
+            self.draw_artists()
+            # redraw the canvas with the updated artists
+            self.fig.canvas.blit(self.fig.bbox)
+
+        # flush events to keep the window responsive
+        self.fig.canvas.flush_events()
+
+    @abstractmethod
+    def update(self, *args, **kwargs):
+        """Create or update the animated artists.
+
+        Must be implemented by subclasses to update the data of the artists.
+
+        Normal usage is to create the artists if they do not exist yet,
+        and store references to them in the instance (e.g. in a dict or list called
+        `self.artists`), and then on subsequent calls update the data of the artists
+        using `set_data()` or similar methods.
+
+        After updating the data, you should call `self.refresh()` to redraw them.
+        """
+        pass
 
 
 def setup_plot(fig, disable_shortcuts=True):
