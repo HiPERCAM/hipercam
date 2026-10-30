@@ -2,6 +2,7 @@ import os
 import time
 
 import matplotlib.pyplot as plt
+from matplotlib.patches import Circle, Ellipse, Rectangle
 import numpy as np
 from astropy.io import fits
 from astropy.table import Table
@@ -10,10 +11,9 @@ from numpy.lib.recfunctions import append_fields
 from scipy import spatial
 from trm import cline
 from trm.cline import Cline
-from trm.pgplot import *
 
 import hipercam as hcam
-from hipercam import core, defect, spooler
+from hipercam import spooler
 from hipercam.ccd import crop_calib_frame_to
 from hipercam.extraction import findStars
 from hipercam.instruments import available_instruments
@@ -33,7 +33,7 @@ __all__ = [
 
 
 def ftargets(args=None):
-    """``ftargets [source device width height] (run first [twait tmax] |
+    """``ftargets [source width height] (run first [twait tmax] |
     flist) trim ([ncol nrow]) (ccd (nx)) [pause] thresh fwhm minpix
     output bias flat msub iset (ilo ihi | plo phi) xlo xhi ylo yhi``
 
@@ -80,11 +80,6 @@ def ftargets(args=None):
 
            Any instruments installed via plugins can be used as a source by
            specifying either ``<instrument>:local`` or ``<instrument>:server``.
-
-        device : string [hidden]
-          Plot device. PGPLOT is used so this should be a PGPLOT-style name,
-          e.g. '/xs', '1/xs' etc. At the moment only ones ending /xs are
-          supported.
 
         width : float [hidden]
            plot width (inches). Set = 0 to let the program choose.
@@ -233,7 +228,6 @@ def ftargets(args=None):
 
         # register parameters
         cl.register("source", Cline.GLOBAL, Cline.HIDE)
-        cl.register("device", Cline.LOCAL, Cline.HIDE)
         cl.register("cmap", Cline.LOCAL, Cline.HIDE)
         cl.register("width", Cline.LOCAL, Cline.HIDE)
         cl.register("height", Cline.LOCAL, Cline.HIDE)
@@ -283,8 +277,7 @@ def ftargets(args=None):
         # set some flags
         server_or_local = source.endswith("s") or source.endswith("l")
 
-        # plot device stuff
-        device = cl.get_value("device", "plot device", "1/xs")
+        # Some settings for the image plots
         cmap = cl.get_value(
             "cmap", "colour map to use ['none' for mpl default]", "Greys"
         )
@@ -440,24 +433,8 @@ def ftargets(args=None):
     #
     # all the inputs have now been obtained. Get on with doing stuff
 
-    # open image plot device
-    imdev = hcam.pgp.Device(device)
-    if width > 0 and height > 0:
-        pgpap(width, height / width)
-
-    # set up panels and axes
-    nccd = len(ccds)
-    ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
-
-    # slice up viewport
-    pgsubp(nx, ny)
-
-    # plot axes, labels, titles. Happens once only
-    for cnam in ccds:
-        pgsci(hcam.pgp.Params["axis.ci"])
-        pgsch(hcam.pgp.Params["axis.number.ch"])
-        pgenv(xlo, xhi, ylo, yhi, 1, 0)
-        pglab("X", "Y", "CCD {:s}".format(cnam))
+    # Initialise the plot manager to None, so we can create it on the first frame
+    imanager = None
 
     # ccd_data and object_data are long-lived
     # objects passed and stored by reference to plot updating classes
@@ -476,16 +453,21 @@ def ftargets(args=None):
     read = 5.5
     max_nfev = 100
 
-    thetas = np.linspace(0, 2 * np.pi, 100)
-
     # Start the main loop
     total_time = 0.0
     with spooler.data_source(source, resource, first, full=False) as spool:
         for n, mccd in enumerate(spool):
             if server_or_local:
                 # Handle the waiting game ...
+                # Includes some awkward stuff involving updating on a cycle
+                # faster than twait to make the plots more responsive,
+                # if twait is long.
+                updaters = []
+                if imanager is not None:
+                    updaters.append(imanager.refresh)
+
                 give_up, try_again, total_time = spooler.hang_about(
-                    mccd, twait, tmax, total_time
+                    mccd, twait, tmax, total_time, updaters, tupdate
                 )
 
                 if give_up:
@@ -512,17 +494,9 @@ def ftargets(args=None):
                 if flat is not None:
                     flat = crop_calib_frame_to(mccd, flat, "flat")
 
-                # compute maximum length of window name strings
-                lsmax = 0
-                for ccd in mccd.values():
-                    for wnam in ccd:
-                        lsmax = max(lsmax, len(wnam))
-
-            pgbbuf()
-
             # Process each of the CCDs
             object_messages = {}
-            for nc, cnam in enumerate(ccds):
+            for cnam in ccds:
                 ccd = mccd[cnam]
 
                 if not ccd.is_data():
@@ -576,65 +550,30 @@ def ftargets(args=None):
                 object_data[cnam] = objects
                 object_messages[cnam] = messages
 
-            # Finally we're ready to start plotting
-            for nc, cnam in enumerate(ccds):
-                ccd = mccd[cnam]
-                objs = object_data[cnam]
-
-                # set to the correct panel and then plot CCD
-                ix = (nc % nx) + 1
-                iy = nc // nx + 1
-                pgpanl(ix, iy)
-                vmin, vmax = hcam.pgp.pCcd(
-                    ccd,
-                    iset,
-                    plo,
-                    phi,
-                    ilo,
-                    ihi,
-                    xlo=xlo,
-                    xhi=xhi,
-                    ylo=ylo,
-                    yhi=yhi,
+            # We're ready to start plotting
+            if imanager is None:
+                # First time through, create the image plot manager
+                imanager = ImageManager(
+                    ccd_data=ccd_data,
+                    object_data=object_data,
+                    ncols=nx,
+                    iset=iset,
+                    ilim=(plo, phi) if iset == "p" else (ilo, ihi),
+                    region=(xlo, xhi, ylo, yhi),
+                    cmap=cmap,
+                    figsize=(width, height),
+                    rmin=rmin,
                 )
 
-                if objs is not None and len(objs) > 0:
-                    # Plot targets found
+                # start live display
+                plt.show(block=False)
+                plt.pause(0.1)
 
-                    pgsci(core.CNAMS["red"])
-                    As, Bs, Thetas, Xs, Ys = (
-                        objs["a"],
-                        objs["b"],
-                        objs["theta"],
-                        objs["x"],
-                        objs["y"],
-                    )
-                    for a, b, theta0, x, y in zip(As, Bs, Thetas, Xs, Ys):
-                        xs = x + 3 * a * np.cos(thetas + theta0)
-                        ys = y + 3 * b * np.sin(thetas + theta0)
-                        pgline(xs, ys)
+            # Update the image plot (done on every loop)
+            imanager.update(ccd_data, object_data)
 
-                    pgsci(core.CNAMS["green"])
-                    for xmin, xmax, ymin, ymax in zip(
-                        objs["xmin"], objs["xmax"], objs["ymin"], objs["ymax"]
-                    ):
-                        xs = [xmin, xmax, xmax, xmin, xmin]
-                        ys = [ymin, ymin, ymax, ymax, ymin]
-                        pgline(xs, ys)
-
-                    pgsci(core.CNAMS["blue"])
-                    for obj in [o for o in objs if o["selected"]]:
-                        x = obj["x"]
-                        y = obj["y"]
-                        xs = [x - rmin, x + rmin, x + rmin, x - rmin, x - rmin]
-                        ys = [y - rmin, y - rmin, y + rmin, y + rmin, y - rmin]
-                        pgline(xs, ys)
-
-            # end of CCD display loop
-            pgebuf()
-
-            # save to file
-            for nc, cnam in enumerate(ccds):
+            # Save objects to file
+            for cnam in ccds:
                 ccd = mccd[cnam]
                 objs = object_data[cnam]
                 if objs is None or not len(objs):
@@ -664,6 +603,7 @@ def ftargets(args=None):
                 )
 
                 # open the output file for results
+                # TODO: very inefficient
                 if os.path.exists(output):
                     with fits.open(output) as hdul:
                         if cnam not in hdul:
@@ -700,7 +640,8 @@ def ftargets(args=None):
                     continue
 
                 # add the image limits
-                message += f"{vmin:.1f} to {vmax:.1f}, "  # TODO
+                vmin, vmax = imanager.get_ilim(cnam)
+                message += f"{vmin:.1f} to {vmax:.1f}, "
 
                 # add results of the detection and fitting
                 nsel = len([o for o in object_data[cnam] if o["selected"]])
@@ -718,7 +659,17 @@ def ftargets(args=None):
 
             if pause > 0.0:
                 # pause between frames
-                time.sleep(pause)
+                if pause > 2 * tupdate:
+                    # run the updaters if pause is a little long.
+                    # designed to make the plot more responsive
+                    nupdate = int(pause / tupdate)
+                    for _ in range(nupdate):
+                        time.sleep(pause / nupdate)
+                        if imanager is not None:
+                            imanager.refresh()
+                else:
+                    # just pause because the updates will come
+                    time.sleep(pause)
 
     # At then end the plots will close automatically,
     # so block this by asking the user to confirm
@@ -914,3 +865,255 @@ def find_objects(
         all_objects.append(objects)
 
     return np.concatenate(all_objects), messages
+
+
+class ImageManager(hcam.mpl.AnimationManager):
+    """Class to control the image animation."""
+
+    def __init__(
+        self,
+        ccd_data,
+        object_data,
+        ncols,
+        iset,
+        ilim,
+        region,
+        cmap,
+        figsize,
+        rmin,
+    ):
+        """Initialises and manages the plot.
+
+        Arguments:
+
+        ccd_data : dict of {str: :class:`CCD` | None}
+            one entry per CCD being displayed, keys are CCD names.
+            Contains the calibrated CCD, or None if the CCD is being skipped.
+            Used to create the artists; later data should be passed to `update`.
+
+        object_data : dict of {str: `np.ndarray` | None}
+            one entry per CCD being displayed, keys are CCD names.
+            Contains an array with object details (see `extraction.findStars`),
+            or None if no objects were found in that CCD.
+            Used to create the artists; later data should be passed to `update`.
+
+        ncols : int
+            The number of columns in the grid of subplots
+
+        iset : str
+            How to set the intensity scale for the images:
+                'a' for automatic min/max range
+                'p' for percentiles (set using `ilim`)
+                'd' for direct values (set using `ilim`)
+
+        ilim : tuple[float, float] | None
+            Lower and upper limits for the intensity scaling.
+
+        region : tuple[int, int, int, int] | None
+            The region to plot, values are (xmin, xmax, ymin, ymax)
+            If None, the entire CCD is displayed.
+            If iset='p', only this region is used to compute the percentiles for
+            intensity scaling.
+
+        cmap : str  | None
+            Matplotlib colour map. None gives default
+
+        figsize : tuple[float, float] | None
+            The width and height of the figure, in inches.
+            If None, the default size is used.
+
+        rmin : float
+            Minimum distance to consider a neighbour when selecting objects.
+
+        """
+        # create empty figure and axes
+        self.fig, self.caxes = hcam.mpl.create_figure(
+            cnams=ccd_data.keys(),
+            ncols=ncols,
+            region=region,
+            title="CCD display",
+            figsize=figsize,
+            animated=True,
+        )
+
+        # initialise the animation manager with the figure
+        super().__init__(self.fig)
+
+        # inputs for the image plots
+        self.iset = iset
+        self.ilim = ilim
+        self.region = region
+        self.cmap = cmap
+
+        # object parameters
+        self.rmin = rmin
+
+        # create and update the artists
+        self.img_artists = {cnam: None for cnam in ccd_data}
+        self.object_artists = {cnam: None for cnam in object_data}
+        self.update(ccd_data, object_data)
+
+        # adjust the layout to prevent overlap
+        # (can only do after the artists are created)
+        self.fig.tight_layout()
+
+    def draw_artists(self):
+        """Draw all of the animated artists."""
+        for cnam in self.caxes:
+            # Draw the axes
+            self.fig.draw_artist(self.caxes[cnam])
+
+            # Draw the CCD artists
+            if self.img_artists[cnam] is not None:
+                for artists in self.img_artists[cnam].values():
+                    for artist in artists:
+                        self.fig.draw_artist(artist)
+
+            # Draw the object artists
+            if self.object_artists[cnam] is not None:
+                for artists in self.object_artists[cnam]:
+                    for artist in artists:
+                        self.fig.draw_artist(artist)
+
+    def update(self, ccd_data, object_data):
+        """Create or update the artists with new data."""
+        # Update the CCD artists
+        self._update_images(ccd_data)
+
+        # Update the object artists
+        self._update_objects(object_data)
+
+        # Finally, refresh the display
+        self.refresh()
+
+    def _update_images(self, ccd_data):
+        """Create or update the CCD artists."""
+        new_artists = {}
+        for cnam in ccd_data:
+            if ccd_data[cnam] is None:
+                # no new frame, just pass old artists through
+                new_artists[cnam] = self.img_artists[cnam]
+            else:
+                # create/update the animated artists
+                old_artists = self.img_artists[cnam]
+                new_artists[cnam] = {}
+
+                # get scale limits
+                vmin, vmax = hcam.mpl.get_scale_limits(
+                    ccd_data[cnam],
+                    mode=self.iset,
+                    limits=self.ilim,
+                    region=self.region,
+                )
+
+                # plot the CCD
+                new_artists[cnam] = hcam.mpl.pCcd(
+                    axes=self.caxes[cnam],
+                    ccd=ccd_data[cnam],
+                    vmin=vmin,
+                    vmax=vmax,
+                    cmap=self.cmap,
+                    tlabel=f"CCD {cnam}",
+                    animated=True,
+                    artists=old_artists,
+                )
+
+                # In this case we are setting up for the first time
+                # need to re-draw to avoid irritating distorted image
+                if old_artists is None:
+                    self.fig.canvas.draw()
+
+        # Finally, update the artists
+        self.img_artists = new_artists
+
+    def _plot_object(self, ax, obj_data):
+        """Plot a single object on the specified axes."""
+        # plot the ellipse of 3-sigma size
+        elipse = Ellipse(
+            (obj_data["x"], obj_data["y"]),
+            3 * obj_data["a"],
+            3 * obj_data["b"],
+            angle=np.rad2deg(obj_data["theta"]),
+            edgecolor="c",
+            facecolor="none",
+            lw=1.0,
+            alpha=0.5,
+        )
+        ax.add_artist(elipse)
+
+        # plot the bounding box of the object
+        rect = Rectangle(
+            (obj_data["xmin"], obj_data["ymin"]),
+            obj_data["xmax"] - obj_data["xmin"],
+            obj_data["ymax"] - obj_data["ymin"],
+            edgecolor="c",
+            facecolor="none",
+            lw=1.0,
+            alpha=0.5,
+        )
+        ax.add_artist(rect)
+
+        if obj_data["selected"]:
+            # plot the search box
+            sbox = Rectangle(
+                (obj_data["x"] - self.rmin, obj_data["y"] - self.rmin),
+                2 * self.rmin,
+                2 * self.rmin,
+                edgecolor="b",
+                facecolor="none",
+                lw=1.0,
+            )
+            ax.add_artist(sbox)
+
+            # plot the target position
+            dot, = ax.plot(
+                obj_data["x"], obj_data["y"],
+                color="g" if obj_data["nfev"] > 0 else "r",
+                marker="o",
+            )
+
+            # plot the FWHM circle
+            circ = Circle(
+                (obj_data["x"], obj_data["y"]),
+                obj_data["fwhm"],
+                color="g" if obj_data["nfev"] > 0 else "r",
+                fill=False,
+                lw=1.0,
+            )
+            ax.add_artist(circ)
+
+            return [elipse, rect, sbox, dot, circ]
+        else:
+            return [elipse, rect]
+
+    def _update_objects(self, object_data):
+        """Create or update the object artists."""
+        new_artists = {}
+        for cnam in object_data:
+            # We can have different numbers of objects in each frame,
+            # so each time we have to delete the old artists and create new ones.
+            old_artists = self.object_artists[cnam]
+            if old_artists is not None:
+                for artists in old_artists:
+                    for artist in artists:
+                        artist.remove()
+
+            oartists = []
+            if object_data[cnam] is None:
+                # no windows to plot, so just keep an empty list
+                pass
+            else:
+                for obj_data in object_data[cnam]:
+                    oartists.append(self._plot_object(self.caxes[cnam], obj_data))
+
+            new_artists[cnam] = oartists
+
+        # Finally, update the artists
+        self.object_artists = new_artists
+
+    def get_ilim(self, cnam):
+        """Returns the current intensity limits for the specified CCD."""
+        if self.img_artists[cnam] is None:
+            return None
+        imgs = self.caxes[cnam].get_images()
+        return imgs[0].get_clim()  # for the first window, but should be the same

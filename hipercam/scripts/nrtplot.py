@@ -1167,31 +1167,22 @@ def nrtplot(args=None):
 
             # Get statistics to print out
             message = f"exp= {mccd.head['EXPTIME']:.4f}"
-            skipped = True
             for cnam in ccds:
-                ccd = mccd[cnam]
-
                 message += f", CCD {cnam}: "
                 if ccd_data[cnam] is None:
                     # skipped due to nskip > 0, no data in this frame
                     message += "none"
                     continue
 
-                # accumulate string of image scalings
-                imgs = imanager.caxes[cnam].get_images()
-                vmin, vmax = imgs[0].get_clim()
+                # add the image limits
+                vmin, vmax = imanager.get_ilim(cnam)
                 message += f"{vmin:.1f} to {vmax:.1f}"
 
                 # add cosmic ray counts
                 if fcosmic:
                     message += f", nc: {ncosmic[cnam]}"
 
-                skipped = False
-
             # Print messages
-            if skipped:
-                # we skipped every CCD in the frame!
-                message += " - skipped"
             print(message)
             for emessage in emessages:
                 print(emessage)
@@ -1448,11 +1439,17 @@ class ImageManager(hcam.mpl.AnimationManager):
 
     def update(self, ccd_data, targ_data=None, swindows=None):
         """Create or update the artists with new data."""
-        self.update_images(ccd_data, swindows)
-        if targ_data is not None:
-            self.update_targets(targ_data)
+        # Update the artists for the CCDs and setup windows
+        self._update_images(ccd_data, swindows)
 
-    def update_images(self, ccd_data, swindows=None):
+        # Update the artists for the targets, if any
+        if targ_data is not None:
+            self._update_targets(targ_data)
+
+        # Refresh the display
+        self.refresh()
+
+    def _update_images(self, ccd_data, swindows=None):
         """Create or update the CCD artists."""
         # handle any clicks queued while the frame was processed, while the
         # cursor selector still has the frame that was on display
@@ -1571,11 +1568,10 @@ class ImageManager(hcam.mpl.AnimationManager):
         # save the current windows for comparison next time
         self.swindows = swindows
 
-        # Finally, update the artists and refresh the display
+        # Finally, update the artists
         self.img_artists = new_artists
-        self.refresh()
 
-    def update_targets(self, targ_data):
+    def _update_targets(self, targ_data):
         """Create or update the target artists."""
         new_artists = {}
         for ntarg, pfit in targ_data.items():
@@ -1611,13 +1607,19 @@ class ImageManager(hcam.mpl.AnimationManager):
                         )
                         new_artists[ntarg] = (dot, circ, sbox)
 
-        # Finally, update the artists and refresh the display
+         # Finally, update the artists
         self.targ_artists = new_artists
-        self.refresh()
+
+    def get_ilim(self, cnam):
+        """Returns the current intensity limits for the specified CCD."""
+        if self.artists[cnam] is None:
+            return None
+        imgs = self.axes[cnam].get_images()
+        return imgs[0].get_clim()  # for the first window, but should be the same
 
 
 class FwhmManager(hcam.mpl.AnimationManager):
-    """Class to start and control the FWHM history animation"""
+    """Class to start and control the FWHM history animation."""
 
     def __init__(self, fwhm_data, xlo, xhi, fwmax, figsize=None):
         """

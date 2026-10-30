@@ -55,7 +55,7 @@ def hplot(args=None):
          many others. Typing an incorrect one will give a list. "none"
          for matplotlib default.
 
-      hsbox : int [if device = '/mpl'; hidden]
+      hsbox : int [hidden]
          half-width in binned pixels of stats box as offset from central pixel
          hsbox = 1 gives a 3x3 box; hsbox = 2 gives 5x5 etc.
 

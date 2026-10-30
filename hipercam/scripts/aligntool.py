@@ -197,11 +197,6 @@ def aligntool(args=None):
            Any instruments installed via plugins can be used as a source by
            specifying either ``<instrument>:local`` or ``<instrument>:server``.
 
-        device  : (string) [hidden]
-          Plot device. PGPLOT is used so this should be a PGPLOT-style name,
-          e.g. '/xs', '1/xs' etc. At the moment only ones ending /xs are
-          supported.
-
         cmap : str [hidden]
            The matplotlib colour map to use. "Greys" gives the usual greyscale.
            "none" will give whatever the current default is. Many other choices:
@@ -233,8 +228,18 @@ def aligntool(args=None):
         tmax    : (float) [if source == 's'; hidden]
            maximum time to wait between attempts to find a new exposure, seconds.
 
-        pause   : (float) [hidden]
-           seconds to pause between frames (defaults to 0)
+        pause : float [hidden]
+           seconds to pause between frames (defaults to 0). This is in addition
+           to any time taken per frame to read and display it, so is just to slow
+           things not to set an exact rate.
+
+        tupdate : float [hidden]
+           target number of seconds between plot updates. This is to
+           make the plots more responsive and get round issues with
+           plots freezing until the next frame comes through which can
+           be especially annoying with virtual desktops. Experiments
+           with ULTRACAM@NTT indicated 0.2 to 0.6 secs or so works OK.
+           Main impact seems to be on drpc CPU.
 
         ccd     : (string)
            CCD to measure aligment of.
@@ -278,7 +283,6 @@ def aligntool(args=None):
         cl.register("thresh", Cline.LOCAL, Cline.PROMPT)
         cl.register("small_spots", Cline.LOCAL, Cline.HIDE)
         cl.register("source", Cline.LOCAL, Cline.HIDE)
-        cl.register("device", Cline.LOCAL, Cline.HIDE)
         cl.register("cmap", Cline.LOCAL, Cline.HIDE)
         cl.register("width", Cline.LOCAL, Cline.HIDE)
         cl.register("height", Cline.LOCAL, Cline.HIDE)
@@ -290,6 +294,7 @@ def aligntool(args=None):
         cl.register("ccd", Cline.LOCAL, Cline.PROMPT)
         cl.register("rccd", Cline.LOCAL, Cline.PROMPT)
         cl.register("pause", Cline.LOCAL, Cline.HIDE)
+        cl.register("tupdate", Cline.LOCAL, Cline.HIDE)
         cl.register("bias", Cline.GLOBAL, Cline.PROMPT)
         cl.register("msub", Cline.GLOBAL, Cline.PROMPT)
         cl.register("iset", Cline.GLOBAL, Cline.PROMPT)
@@ -370,6 +375,10 @@ def aligntool(args=None):
             "pause", "time delay to add between frame plots [secs]", 0.0, 0.0
         )
 
+        tupdate = cl.get_value(
+            "tupdate", "target time between plot updates [secs]", 0.2, 0.01
+        )
+
         # bias frame (if any)
         bias = cl.get_value(
             "bias",
@@ -429,8 +438,17 @@ def aligntool(args=None):
 
             if server_or_local:
                 # Handle the waiting game ...
+                # Includes some awkward stuff involving updating on a cycle
+                # faster than twait to make the plots more responsive,
+                # if twait is long.
+                updaters = []
+                if imanager is not None:
+                    updaters.append(imanager.refresh)
+                if fwhmmanager is not None:
+                    updaters.append(fwhmmanager.refresh)
+
                 give_up, try_again, total_time = spooler.hang_about(
-                    mccd, twait, tmax, total_time
+                    mccd, twait, tmax, total_time, updaters, tupdate
                 )
 
                 if give_up:
@@ -485,15 +503,17 @@ def aligntool(args=None):
             message = f"exp= {mccd.head['EXPTIME']:.4f}"
             for cnam in ccd_data:
                 message += f", CCD {cnam}: "
+
                 if ccd_data[cnam] is None:
                     # skipped due to nskip > 0, no data in this frame
                     message += "none"
                     continue
 
-                # accumulate string of image scalings
+                # add the image limits
                 vmin, vmax = imanager.get_ilim(cnam)
                 message += f"{vmin:.1f} to {vmax:.1f}"
 
+            # Print messages
             print(message)
 
             # time for measurement of spots!
@@ -548,7 +568,20 @@ def aligntool(args=None):
             fwhmmanager.update(fwhm_data)
 
             if pause > 0.0:
-                time.sleep(pause)
+                # pause between frames
+                if pause > 2 * tupdate:
+                    # run the updaters if pause is a little long.
+                    # designed to make the plot more responsive
+                    nupdate = int(pause / tupdate)
+                    for _ in range(nupdate):
+                        time.sleep(pause / nupdate)
+                        if imanager is not None:
+                            imanager.refresh()
+                        if fwhmmanager is not None:
+                            fwhmmanager.refresh()
+                else:
+                    # just pause because the updates will come
+                    time.sleep(pause)
 
     # At then end the plots will close automatically,
     # so block this by asking the user to confirm
@@ -556,7 +589,7 @@ def aligntool(args=None):
 
 
 class ImageManager(hcam.mpl.AnimationManager):
-    """Class to control the image animation"""
+    """Class to control the image animation."""
 
     def __init__(
         self,
@@ -696,7 +729,7 @@ class ImageManager(hcam.mpl.AnimationManager):
 
 
 class FwhmManager(hcam.mpl.AnimationManager):
-    """Class to start and control the FWHM history animation"""
+    """Class to start and control the FWHM history animation."""
 
     def __init__(self, data, fix_fwhm_scale=False, bins=20):
         """Initialises the FWHM history plot."""
