@@ -1,24 +1,25 @@
-import sys
 import os
 import time
 
+import matplotlib.pyplot as plt
 import numpy as np
-from numpy.lib.recfunctions import append_fields
-import fitsio
-from scipy import spatial
-
+from astropy.io import fits
+from astropy.table import Table
 from astropy.time import Time
-import sep
-
-from trm.pgplot import *
+from numpy.lib.recfunctions import append_fields
+from scipy import spatial
 from trm import cline
 from trm.cline import Cline
+from trm.pgplot import *
 
 import hipercam as hcam
-from hipercam import core, spooler, defect
+from hipercam import core, defect, spooler
 from hipercam.ccd import crop_calib_frame_to
 from hipercam.extraction import findStars
 from hipercam.instruments import available_instruments
+
+# import warnings
+# warnings.filterwarnings("error")
 
 __all__ = [
     "ftargets",
@@ -131,7 +132,17 @@ def ftargets(args=None):
            number of panels across to display.
 
         pause : float [hidden]
-           seconds to pause between frames (defaults to 0)
+           seconds to pause between frames (defaults to 0). This is in addition
+           to any time taken per frame to read and display it, so is just to slow
+           things not to set an exact rate.
+
+        tupdate : float [hidden]
+           target number of seconds between plot updates. This is to
+           make the plots more responsive and get round issues with
+           plots freezing until the next frame comes through which can
+           be especially annoying with virtual desktops. Experiments
+           with ULTRACAM@NTT indicated 0.2 to 0.6 secs or so works OK.
+           Main impact seems to be on drpc CPU.
 
         thresh : float
            threshold (mutiple of RMS) to use for object detection. Typical
@@ -223,6 +234,7 @@ def ftargets(args=None):
         # register parameters
         cl.register("source", Cline.GLOBAL, Cline.HIDE)
         cl.register("device", Cline.LOCAL, Cline.HIDE)
+        cl.register("cmap", Cline.LOCAL, Cline.HIDE)
         cl.register("width", Cline.LOCAL, Cline.HIDE)
         cl.register("height", Cline.LOCAL, Cline.HIDE)
         cl.register("run", Cline.GLOBAL, Cline.PROMPT)
@@ -236,6 +248,7 @@ def ftargets(args=None):
         cl.register("ccd", Cline.LOCAL, Cline.PROMPT)
         cl.register("nx", Cline.LOCAL, Cline.PROMPT)
         cl.register("pause", Cline.LOCAL, Cline.HIDE)
+        cl.register("tupdate", Cline.LOCAL, Cline.HIDE)
         cl.register("thresh", Cline.LOCAL, Cline.PROMPT)
         cl.register("fwhm", Cline.LOCAL, Cline.PROMPT)
         cl.register("minpix", Cline.LOCAL, Cline.PROMPT)
@@ -244,8 +257,7 @@ def ftargets(args=None):
         cl.register("pmax", Cline.LOCAL, Cline.PROMPT)
         cl.register("emax", Cline.LOCAL, Cline.PROMPT)
         cl.register("nmax", Cline.LOCAL, Cline.PROMPT)
-        cl.register("gain", Cline.LOCAL, Cline.PROMPT)
-        cl.register("rej", Cline.LOCAL, Cline.PROMPT)
+        cl.register("rejthresh", Cline.LOCAL, Cline.PROMPT)
         cl.register("bias", Cline.GLOBAL, Cline.PROMPT)
         cl.register("flat", Cline.GLOBAL, Cline.PROMPT)
         cl.register("output", Cline.LOCAL, Cline.PROMPT)
@@ -273,6 +285,9 @@ def ftargets(args=None):
 
         # plot device stuff
         device = cl.get_value("device", "plot device", "1/xs")
+        cmap = cl.get_value(
+            "cmap", "colour map to use ['none' for mpl default]", "Greys"
+        )
         width = cl.get_value("width", "plot width (inches)", 0.0)
         height = cl.get_value("height", "plot height (inches)", 0.0)
 
@@ -331,6 +346,10 @@ def ftargets(args=None):
             "pause", "time delay to add between" " frame plots [secs]", 0.0, 0.0
         )
 
+        tupdate = cl.get_value(
+            "tupdate", "target time between plot updates [secs]", 0.2, 0.01
+        )
+
         thresh = cl.get_value("thresh", "source detection threshold [RMS]", 3.0)
         fwhm = cl.get_value("fwhm", "FWHM for source detection [binned pixels]", 4.0)
         minpix = cl.get_value("minpix", "minimum number of pixels above threshold", 3)
@@ -346,10 +365,9 @@ def ftargets(args=None):
         emax = cl.get_value(
             "emax", "maximum elongation (a/b) for profile fits", 1.2, 1.0
         )
-        nmax = cl.get_value("nmax", "maximum number of profile fits", 10, 1)
-        gain = cl.get_value("gain", "CCD gain [electrons/ADU]", 1.0, 0.0)
-        rej = cl.get_value(
-            "rej", "rejection threshold for profile fits [RMS]", 6.0, 2.0
+        nmax = cl.get_value("nmax", "maximum number of profile fits per window", 10, 1)
+        rejthresh = cl.get_value(
+            "rejthresh", "RMS rejection threshold for sky fitting", 4.0
         )
 
         # bias frame (if any)
@@ -441,364 +459,270 @@ def ftargets(args=None):
         pgenv(xlo, xhi, ylo, yhi, 1, 0)
         pglab("X", "Y", "CCD {:s}".format(cnam))
 
-    # initialisations. 'last_ok' is used to store the last OK frames of each
-    # CCD for retrieval when coping with skipped data.
+    # ccd_data and object_data are long-lived
+    # objects passed and stored by reference to plot updating classes
+    ccd_data = {cnam: None for cnam in ccds}
+    object_data = {cnam: None for cnam in ccds}
 
-    total_time = 0  # time waiting for new frame
+    # values of various parameters - fixed for now?
+    method = 'm'
+    fwhm_min = 2.0
+    fwhm_fix=False
+    beta = 4.0
+    beta_min = 1.5
+    beta_max = 10.0
+    beta_fix=False
+    gain = 1.1
+    read = 5.5
+    max_nfev = 100
 
-    nhdu = len(ccds) * [0]
     thetas = np.linspace(0, 2 * np.pi, 100)
 
-    # values of various parameters
-    fwhm_min, beta, beta_min, beta_max, readout, max_nfev = (
-        2.0,
-        4.0,
-        1.5,
-        10.0,
-        5.5,
-        100,
-    )
-
-    # number of failed fits
-    nfail = 0
-
-    # open the output file for results
-    with fitsio.FITS(output, "rw", clobber=True) as fout:
-
-        # plot images
-        with spooler.data_source(source, resource, first, full=False) as spool:
-
-            # 'spool' is an iterable source of MCCDs
-            n = 0
-            for nf, mccd in enumerate(spool):
-
-                if server_or_local:
-                    # Handle the waiting game ...
-                    give_up, try_again, total_time = spooler.hang_about(
-                        mccd, twait, tmax, total_time
-                    )
-
-                    if give_up:
-                        print("ftargets stopped")
-                        break
-                    elif try_again:
-                        continue
-
-                # Trim the frames: ULTRACAM windowed data has bad columns
-                # and rows on the sides of windows closest to the readout
-                # which can badly affect reduction. This option strips
-                # them.
-                if trim:
-                    hcam.ccd.trim_ultracam(mccd, ncol, nrow)
-
-                # indicate progress
-                tstamp = Time(mccd.head["TIMSTAMP"], format="isot", precision=3)
-                print(
-                    "{:d}, utc= {:s} ({:s}), ".format(
-                        mccd.head["NFRAME"],
-                        tstamp.iso,
-                        "ok" if mccd.head.get("GOODTIME", True) else "nok",
-                    ),
-                    end="",
+    # Start the main loop
+    total_time = 0.0
+    with spooler.data_source(source, resource, first, full=False) as spool:
+        for n, mccd in enumerate(spool):
+            if server_or_local:
+                # Handle the waiting game ...
+                give_up, try_again, total_time = spooler.hang_about(
+                    mccd, twait, tmax, total_time
                 )
 
-                # accumulate errors
-                emessages = []
+                if give_up:
+                    print("ftargets stopped")
+                    break
+                elif try_again:
+                    continue
 
-                if n == 0:
-                    if bias is not None:
-                        # crop the bias on the first frame only
-                        bias = crop_calib_frame_to(mccd, bias, "bias")
+            # We have a frame!
+            nframe = mccd.head.get("NFRAME", n)
 
-                    if flat is not None:
-                        # crop the flat on the first frame only
-                        flat = crop_calib_frame_to(mccd, flat, "flat")
+            # Trim the frames: ULTRACAM windowed data has bad columns
+            # and rows on the sides of windows closest to the readout
+            # which can badly affect reduction. This option strips
+            # them.
+            if trim:
+                hcam.ccd.trim_ultracam(mccd, ncol, nrow)
 
-                    # compute maximum length of window name strings
-                    lsmax = 0
-                    for ccd in mccd.values():
-                        for wnam in ccd:
-                            lsmax = max(lsmax, len(wnam))
+            # First time setup
+            if n == 0:
+                # crop the calibration frames on the first frame only
+                if bias is not None:
+                    bias = crop_calib_frame_to(mccd, bias, "bias")
+                if flat is not None:
+                    flat = crop_calib_frame_to(mccd, flat, "flat")
 
-                # display the CCDs chosen
-                message = ""
-                pgbbuf()
-                for nc, cnam in enumerate(ccds):
-                    ccd = mccd[cnam]
+                # compute maximum length of window name strings
+                lsmax = 0
+                for ccd in mccd.values():
+                    for wnam in ccd:
+                        lsmax = max(lsmax, len(wnam))
 
-                    if ccd.is_data():
-                        # this should be data as opposed to a blank frame
-                        # between data frames that occur with nskip > 0
+            pgbbuf()
 
-                        # subtract the bias
-                        if bias is not None:
-                            ccd -= bias[cnam]
+            # Process each of the CCDs
+            object_messages = {}
+            for nc, cnam in enumerate(ccds):
+                ccd = mccd[cnam]
 
-                        # divide out the flat
-                        if flat is not None:
-                            ccd /= flat[cnam]
+                if not ccd.is_data():
+                    # this is a junk frame from nskip > 0
+                    ccd_data[cnam] = None
+                    continue
 
-                        # Where the fancy stuff happens ...
-                        # estimate sky background, look for stars
-                        objs, dofwhms = [], []
-                        nobj = 0
-                        for wnam in ccd:
-                            try:
-                                # chop window, find objects
-                                wind = ccd[wnam].window(xlo, xhi, ylo, yhi)
-                                wind.data = wind.data.astype("float")
-                                objects, bkg = findStars(wind, thresh, fwhm, True)
+                # subtract the bias
+                if bias is not None:
+                    ccd -= bias[cnam]
 
-                                # subtract background from frame for display
-                                # purposes.
-                                bkg.subfrom(wind.data)
-                                ccd[wnam] = wind
+                # divide out the flat
+                if flat is not None:
+                    ccd /= flat[cnam]
 
-                                # remove targets with too few pixels
-                                objects = objects[objects["tnpix"] >= minpix]
+                # Where the fancy stuff happens ...
+                # estimate sky background, look for stars
+                objects, messages = find_objects(
+                    ccd,
+                    xlo,
+                    xhi,
+                    ylo,
+                    yhi,
+                    minpix,
+                    rmin,
+                    pmax,
+                    pmin,
+                    emax,
+                    nmax,
+                    thresh,
+                    method,
+                    beta,
+                    beta_min,
+                    beta_max,
+                    beta_fix,
+                    fwhm,
+                    fwhm_min,
+                    fwhm_fix,
+                    rejthresh,
+                    max_nfev,
+                    read,
+                    gain,
+                )
 
-                                # run nearest neighbour search on all
-                                # objects, but select only a subset
-                                # with right count levels for FWHM
-                                # measurement, and which are not too
-                                # elongated
-                                results = isolated(objects["x"], objects["y"], rmin)
+                # tack on frame number
+                frames = (nframe) * np.ones(len(objects), dtype=np.int32)
+                objects = append_fields([objects], ("nframe"), (frames))
 
-                                peaks = objects["peak"]
-                                ok = (
-                                    (peaks < pmax)
-                                    & (peaks > pmin * objects["thresh"])
-                                    & (objects["a"] < emax * objects["b"])
-                                )
-                                dfwhms = np.array(
-                                    [
-                                        i
-                                        for i in range(len(results))
-                                        if ok[i] and len(results[i]) == 1
-                                    ], dtype=int
-                                )
+                # store the data and objects for plotting
+                ccd_data[cnam] = ccd
+                object_data[cnam] = objects
+                object_messages[cnam] = messages
 
-                                # pick the brightest. 'dfwhms' are the
-                                # indices of the selected targets for
-                                # FWHM measurement
-                                if len(dfwhms):
-                                    fluxes = objects["flux"][dfwhms]
-                                    isort = np.argsort(fluxes)[::-1]
-                                    dfwhms = dfwhms[isort[:nmax]]
+            # Finally we're ready to start plotting
+            for nc, cnam in enumerate(ccds):
+                ccd = mccd[cnam]
+                objs = object_data[cnam]
 
-                                # buffer for storing the FWHMs, including NaNs
-                                # for the ones thet are skipped
-                                fwhms = np.zeros_like(peaks, dtype=np.float32)
-                                betas = np.zeros_like(peaks, dtype=np.float32)
-                                nfevs = np.zeros_like(peaks, dtype=np.int32)
+                # set to the correct panel and then plot CCD
+                ix = (nc % nx) + 1
+                iy = nc // nx + 1
+                pgpanl(ix, iy)
+                vmin, vmax = hcam.pgp.pCcd(
+                    ccd,
+                    iset,
+                    plo,
+                    phi,
+                    ilo,
+                    ihi,
+                    xlo=xlo,
+                    xhi=xhi,
+                    ylo=ylo,
+                    yhi=yhi,
+                )
 
-                                for i, (x, y, peak, fwhm) in enumerate(
-                                        zip(
-                                            objects["x"],
-                                            objects["y"],
-                                            peaks,
-                                            objects["fwhm"],
-                                        )
-                                ):
-                                    # fit FWHMs of selected targets
+                if objs is not None and len(objs) > 0:
+                    # Plot targets found
 
-                                    if i in dfwhms:
+                    pgsci(core.CNAMS["red"])
+                    As, Bs, Thetas, Xs, Ys = (
+                        objs["a"],
+                        objs["b"],
+                        objs["theta"],
+                        objs["x"],
+                        objs["y"],
+                    )
+                    for a, b, theta0, x, y in zip(As, Bs, Thetas, Xs, Ys):
+                        xs = x + 3 * a * np.cos(thetas + theta0)
+                        ys = y + 3 * b * np.sin(thetas + theta0)
+                        pgline(xs, ys)
 
-                                        try:
-                                            # extract fit Window
-                                            fwind = wind.window(
-                                                x - rmin, x + rmin, y - rmin, y + rmin
-                                            )
+                    pgsci(core.CNAMS["green"])
+                    for xmin, xmax, ymin, ymax in zip(
+                        objs["xmin"], objs["xmax"], objs["ymin"], objs["ymax"]
+                    ):
+                        xs = [xmin, xmax, xmax, xmin, xmin]
+                        ys = [ymin, ymin, ymax, ymax, ymin]
+                        pgline(xs, ys)
 
-                                            # fit profile
-                                            ofwhm = fwhm
-                                            obeta = beta
-                                            (
-                                                (sky, height, x, y, fwhm, beta),
-                                                epars,
-                                                (
-                                                    wfit,
-                                                    X,
-                                                    Y,
-                                                    sigma,
-                                                    chisq,
-                                                    nok,
-                                                    nrej,
-                                                    npar,
-                                                    nfev,
-                                                ),
-                                            ) = hcam.fitting.fitMoffat(
-                                                fwind,
-                                                None,
-                                                peak,
-                                                x,
-                                                y,
-                                                fwhm,
-                                                2.0,
-                                                False,
-                                                beta,
-                                                beta_max,
-                                                False,
-                                                readout,
-                                                gain,
-                                                rej,
-                                                1,
-                                                max_nfev,
-                                            )
-                                            fwhms[i] = fwhm
-                                            betas[i] = beta
-                                            nfevs[i] = nfev
+                    pgsci(core.CNAMS["blue"])
+                    for obj in [o for o in objs if o["selected"]]:
+                        x = obj["x"]
+                        y = obj["y"]
+                        xs = [x - rmin, x + rmin, x + rmin, x - rmin, x - rmin]
+                        ys = [y - rmin, y - rmin, y + rmin, y + rmin, y - rmin]
+                        pgline(xs, ys)
 
-                                            # keep value of beta for next round under control
-                                            beta = min(beta_max, max(beta_min, beta))
+            # end of CCD display loop
+            pgebuf()
 
-                                        except hcam.HipercamError as err:
-                                            emessages.append(
-                                                " >> Targ {:d}: fit failed ***: {!s}".format(
-                                                    i, err
-                                                )
-                                            )
-                                            fwhms[i] = np.nan
-                                            betas[i] = np.nan
-                                            nfevs[i] = 0
-                                            nfail += 1
-                                    else:
-                                        # skip this one
-                                        fwhms[i] = np.nan
-                                        betas[i] = np.nan
-                                        nfevs[i] = 0
+            # save to file
+            for nc, cnam in enumerate(ccds):
+                ccd = mccd[cnam]
+                objs = object_data[cnam]
+                if objs is None or not len(objs):
+                    continue
 
-                                # tack on frame number & window name
-                                frames = (nf + first) * np.ones(
-                                    len(objects), dtype=np.int32
-                                )
-                                wnams = np.array(
-                                    len(objects) * [wnam], dtype="U{:d}".format(lsmax)
-                                )
-                                objects = append_fields(
-                                    objects,
-                                    ("ffwhm", "beta", "nfev", "nframe", "wnam"),
-                                    (fwhms, betas, nfevs, frames, wnams),
-                                )
+                # remove some less useful fields to save a
+                # bit more space prior to saving to disk
+                objs = remove_field_names(
+                    objs,
+                    (
+                        "x2",
+                        "y2",
+                        "xy",
+                        "cxx",
+                        "cxy",
+                        "cyy",
+                        "hfd",
+                        "cflux",
+                        "cpeak",
+                        "xcpeak",
+                        "ycpeak",
+                        "xmin",
+                        "xmax",
+                        "ymin",
+                        "ymax",
+                    ),
+                )
 
-                                # save the objects and the
-                                objs.append(objects)
-                                dofwhms.append(dfwhms + nobj)
-                                print(dfwhms,nobj,dofwhms)
-                                nobj += len(objects)
-
-                            except hcam.HipercamError:
-                                # window may have no overlap with xlo, xhi
-                                # ylo, yhi
-                                pass
-
-                        if len(objs):
-                            # Plot targets found
-
-                            # concatenate results of all Windows
-                            objs = np.concatenate(objs)
-                            dofwhms = np.concatenate(dofwhms)
-
-                            # set to the correct panel and then plot CCD
-                            ix = (nc % nx) + 1
-                            iy = nc // nx + 1
-                            pgpanl(ix, iy)
-                            vmin, vmax = hcam.pgp.pCcd(
-                                ccd,
-                                iset,
-                                plo,
-                                phi,
-                                ilo,
-                                ihi,
-                                xlo=xlo,
-                                xhi=xhi,
-                                ylo=ylo,
-                                yhi=yhi,
-                            )
-
-                            pgsci(core.CNAMS["red"])
-                            As, Bs, Thetas, Xs, Ys = (
-                                objs["a"],
-                                objs["b"],
-                                objs["theta"],
-                                objs["x"],
-                                objs["y"],
-                            )
-                            for a, b, theta0, x, y in zip(As, Bs, Thetas, Xs, Ys):
-                                xs = x + 3 * a * np.cos(thetas + theta0)
-                                ys = y + 3 * b * np.sin(thetas + theta0)
-                                pgline(xs, ys)
-
-                            pgsci(core.CNAMS["green"])
-                            for xmin, xmax, ymin, ymax in zip(
-                                objs["xmin"], objs["xmax"], objs["ymin"], objs["ymax"]
-                            ):
-                                xs = [xmin, xmax, xmax, xmin, xmin]
-                                ys = [ymin, ymin, ymax, ymax, ymin]
-                                pgline(xs, ys)
-
-                            pgsci(core.CNAMS["blue"])
-                            if len(dofwhms):
-                                print(dofwhms)
-                                for x, y in zip(objs["x"][dofwhms], objs["y"][dofwhms]):
-                                    xs = [x - rmin, x + rmin, x + rmin, x - rmin, x - rmin]
-                                    ys = [y - rmin, y - rmin, y + rmin, y + rmin, y - rmin]
-                                    pgline(xs, ys)
-
-                            # remove some less useful fields to save a
-                            # bit more space prior to saving to disk
-                            objs = remove_field_names(
-                                objs,
-                                (
-                                    "x2",
-                                    "y2",
-                                    "xy",
-                                    "cxx",
-                                    "cxy",
-                                    "cyy",
-                                    "hfd",
-                                    "cflux",
-                                    "cpeak",
-                                    "xcpeak",
-                                    "ycpeak",
-                                    "xmin",
-                                    "xmax",
-                                    "ymin",
-                                    "ymax",
-                                ),
-                            )
-
-                            # save to disk
-                            if nhdu[nc]:
-                                fout[nhdu[nc]].append(objs)
-                            else:
-                                fout.write(objs)
-                                nhdu[nc] = nc + 1
-
-                        # accumulate string of image scalings
-                        if nc:
-                            message += ", ccd {:s}: {:.1f}, {:.1f}, exp: {:.4f}".format(
-                                cnam, vmin, vmax, mccd.head["EXPTIME"]
-                            )
+                # open the output file for results
+                if os.path.exists(output):
+                    with fits.open(output) as hdul:
+                        if cnam not in hdul:
+                            # file exists, but first time for this CCD
+                            hdul.append(fits.BinTableHDU(objs, name=cnam))
                         else:
-                            message += "ccd {:s}: {:.1f}, {:.1f}, exp: {:.4f}".format(
-                                cnam, vmin, vmax, mccd.head["EXPTIME"]
+                            # append to existing table
+                            existing_table = Table(hdul[cnam].data)
+                            combined_table = Table(
+                                np.hstack((existing_table, objs))
                             )
+                            hdul[cnam].data = combined_table.as_array()
+                        hdul.writeto(output, overwrite=True)
+                else:
+                    # file doesn't exist, create it
+                    hdul = fits.HDUList()
+                    hdul.append(fits.PrimaryHDU())
+                    hdul.append(fits.BinTableHDU(objs, name=cnam))
+                    hdul.writeto(output, overwrite=True)
 
-                pgebuf()
-                # end of CCD display loop
-                print(message)
-                for emessage in emessages:
-                    print(emessage)
+            # Now print progress indicators
+            tstamp = Time(mccd.head["TIMSTAMP"], format="isot", precision=3)
+            tok = "ok" if mccd.head.get("GOODTIME", True) else "nok"
+            print(f"{nframe}, utc= {tstamp.iso} ({tok}), ", end="")
 
-                if pause > 0.0:
-                    # pause between frames
-                    time.sleep(pause)
+            # Get statistics to print out
+            message = f"exp= {mccd.head['EXPTIME']:.4f}"
+            for cnam in ccds:
+                message += f"\n  CCD {cnam}: "
 
-                # update the frame number
-                n += 1
+                if ccd_data[cnam] is None:
+                    # skipped due to nskip > 0, no data in this frame
+                    message += "none"
+                    continue
 
-    print("Number of failed fits =", nfail)
+                # add the image limits
+                message += f"{vmin:.1f} to {vmax:.1f}, "  # TODO
+
+                # add results of the detection and fitting
+                nsel = len([o for o in object_data[cnam] if o["selected"]])
+                nfail = len([o for o in object_data[cnam] if o["nfev"] == -1])
+                message += f"found={len(object_data[cnam])}, selected={nsel}"
+                message += f", fit={nsel-nfail}, failed={nfail}"
+
+                # add the message for each selected target
+                # TODO: this adds a lot of noise, could be optional?
+                for nobj in object_messages[cnam]:
+                    message += f"\n    targ {nobj}: {object_messages[cnam][nobj]}"
+
+            # Print messages
+            print(message)
+
+            if pause > 0.0:
+                # pause between frames
+                time.sleep(pause)
+
+    # At then end the plots will close automatically,
+    # so block this by asking the user to confirm
+    input("\nHit carriage return to close the plot(s): ")
 
 
 def remove_field_names(a, names):
@@ -813,11 +737,180 @@ def remove_field_names(a, names):
     return b
 
 
-def isolated(xs, ys, rmin):
-    """
-    Returns lists of near-neighbours of a set of points as long as they are
-    within a distance rmin. Used to look for isolated points.
+def get_neighbour_count(xs, ys, rmin):
+    """Returns number of near-neighbours of a set of points.
+
+    Arguments:
+        xs : array
+            x-coordinates of points
+        ys : array
+            y-coordinates of points
+        rmin : float
+            minimum distance to consider a neighbour
     """
     points = np.c_[xs, ys]
     tree = spatial.KDTree(points)
-    return tree.query_ball_tree(tree, rmin, eps=0.1)
+    neighbours = tree.query_ball_tree(tree, rmin, eps=0.1)
+    return [len(n) for n in neighbours]
+
+
+def find_objects(
+    ccd,
+    xlo,
+    xhi,
+    ylo,
+    yhi,
+    minpix,
+    rmin,
+    pmax,
+    pmin,
+    emax,
+    nmax,
+    thresh,
+    method,
+    beta,
+    beta_min,
+    beta_max,
+    beta_fix,
+    fwhm,
+    fwhm_min,
+    fwhm_fix,
+    rejthresh,
+    max_nfev,
+    read,
+    gain,
+):
+    """Finds objects in a CCD, and fits FWHMs to the selected ones.
+
+    Arguments:
+        ccd : :class:`hipercam.CCD`
+            CCD to search for objects in
+        xlo, xhi, ylo, yhi : float
+            limits of the region to search for objects in
+    """
+    all_objects = []
+    messages = {}
+    nobj = 1  # start object numbering at 1
+    for wnam in ccd:
+        try:
+            wind = ccd[wnam].window(xlo, xhi, ylo, yhi)
+        except hcam.HipercamError:
+            # window may have no overlap with xlo, xhi, ylo, yhi
+            continue
+
+        # find objects and background
+        wind.data = wind.data.astype("float")
+        objects, bkg = findStars(wind, thresh, fwhm, return_bkg=True)
+
+        # assign IDs to the objects across all windows
+        objects = append_fields(
+            [objects], ("id"), (np.arange(len(objects)) + nobj)
+        )
+        nobj += len(objects)
+
+        # subtract background from frame for display purposes.
+        bkg.subfrom(wind.data)
+        ccd[wnam] = wind
+
+        # remove targets with too few pixels
+        objects = objects[objects["tnpix"] >= minpix]
+
+        # run nearest neighbour search on all objects,
+        # to find those with no neighbours within rmin
+        neighbours = get_neighbour_count(objects["x"], objects["y"], rmin)
+        objects = append_fields([objects], ("neighbours"), (neighbours))
+
+        # select only a subset of isolated objects, with right count levels for FWHM
+        # measurement, and which are not too elongated
+        selected = np.array(
+            [
+                (
+                    (obj["peak"] < pmax)
+                    and (obj["peak"] > pmin * obj["thresh"])
+                    and (obj["a"] < emax * obj["b"])
+                    and (obj["neighbours"] == 1)
+                )
+                for obj in objects
+            ],
+            dtype=bool,
+        )
+
+        # limit selections to `nmax` brightest
+        if sum(selected) > nmax:
+            # sort by flux and take the brightest `nmax`
+            isort = np.argsort(objects["flux"])[::-1]
+            mask = np.zeros(len(objects), dtype=bool)
+            mask[isort[:nmax]] = True
+            selected = selected & mask
+        objects = append_fields([objects], ("selected"), (selected))
+
+        # buffer for storing the FWHMs, including NaNs for the ones that are skipped
+        fwhms = np.zeros(len(objects), dtype=np.float32)
+        betas = np.zeros(len(objects), dtype=np.float32)
+        nfevs = np.zeros(len(objects), dtype=np.int32)
+
+        # fit FWHMs of selected targets
+        for i, obj in enumerate(objects):
+            if not obj["selected"]:
+                # skip this one
+                fwhms[i] = np.nan
+                betas[i] = np.nan
+                nfevs[i] = 0
+                continue
+
+            try:
+                # extract fit Window
+                fwind = wind.window(
+                    obj["x"] - rmin, obj["x"] + rmin, obj["y"] - rmin, obj["y"] + rmin
+                )
+
+                # uncertainties
+                sigma = np.sqrt(read**2 + np.maximum(0, fwind.data) / gain)
+
+                # fit profile
+                (
+                    (sky, height, x, y, fwhm, beta),
+                    (esky, eheight, ex, ey, efwhm, ebeta),
+                    (wfit, X, Y, chisq, nok, nrej, npar, nfev, message),
+                ) = hcam.fitting.combFit(
+                    wind=fwind,
+                    sigma=sigma,
+                    method=method,
+                    sky=None,
+                    height=obj["peak"],
+                    x=obj["x"],
+                    y=obj["y"],
+                    fwhm=obj["fwhm"],
+                    fwhm_min=fwhm_min,
+                    fwhm_fix=fwhm_fix,
+                    beta=beta,
+                    beta_max=beta_max,
+                    beta_fix=beta_fix,
+                    thresh=rejthresh,
+                    max_nfev=max_nfev,
+                )
+                fwhms[i] = fwhm
+                betas[i] = beta
+                nfevs[i] = nfev
+
+                # keep value of beta for next round under control
+                beta = min(beta_max, max(beta_min, beta))
+
+                # store message
+                messages[obj["id"]] = message
+
+            except hcam.HipercamError as err:
+                messages[obj["id"]] = f"fit failed: {err}"
+                fwhms[i] = np.nan
+                betas[i] = np.nan
+                nfevs[i] = -1
+
+        # save the fit results and window name
+        wnams = np.array([wnam] * len(objects), dtype=str)
+        objects = append_fields(
+            [objects], ("ffwhm", "beta", "nfev", "wnam"), (fwhms, betas, nfevs, wnams),
+        )
+
+        all_objects.append(objects)
+
+    return np.concatenate(all_objects), messages
