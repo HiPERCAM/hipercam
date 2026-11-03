@@ -2,9 +2,9 @@
 This contains code used in common by the script reduce.py
 """
 
-from collections import OrderedDict
 import sys
 import warnings
+from collections import OrderedDict
 
 import numpy as np
 from trm.pgplot import (
@@ -175,6 +175,8 @@ class Rfile(OrderedDict):
             rfile.method = "m"
         elif apsec["fit_method"] == "gaussian":
             rfile.method = "g"
+        elif apsec["fit_method"] == "fast":
+            rfile.method = "f"
         else:
             raise hcam.HipercamError(
                 "apertures.fit_method = {:s} not recognised".format(apsec["fit_method"])
@@ -3763,7 +3765,8 @@ class LogWriter:
 
     def write_header(self):
         # first, a general description
-        self.log.write("""#
+        self.log.write(
+            """#
 # This is a logfile produced by the HiPERCAM pipeline command 'reduce'. It consists
 # of one line per reduced CCD per exposure. Each line contains all the information
 # from all apertures defined for the CCD. The column names are defined just before
@@ -3774,7 +3777,8 @@ class LogWriter:
 # of the HiPERCAM reduction software, and was generated using the following
 # command-line inputs to 'reduce':
 #
-""".format(hipercam_version=self.hipercam_version))
+""".format(hipercam_version=self.hipercam_version)
+        )
 
         # second, list the command-line inputs to the logfile
         for line in self.plist:
