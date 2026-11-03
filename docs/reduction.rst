@@ -245,6 +245,8 @@ The approach has always been to try to avoid them in the first place.
 We do so through plotting of files of defects during acqusition.
 See :doc:`files` for pre-prepared files.
 
+.. _aperture_files:
+
 Aperture files
 ==============
 
@@ -304,6 +306,8 @@ targets, or those, which like the one shown here, have close-by
 objects that can confuse the re-positioning code.  See the sections on
 :ref:`linked apertures <linked_apertures>` and :ref:`aperture
 positioning <aperture_positioning>` for more details.
+
+.. _reduce_files
 
 Reduction files
 ===============

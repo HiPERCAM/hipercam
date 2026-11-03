@@ -23,5 +23,6 @@ underlying principles, which contains further tips on good practice.
    telescope
    reduction
    photometry
+   stacking
    organisation
    checklists
