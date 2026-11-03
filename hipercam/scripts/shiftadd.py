@@ -186,8 +186,15 @@ def shiftadd(args=None):
                 | 'exact': the slowest but most accurate, only available
                   if the input data contains WCS info (currently HiPERCAM only)
 
-            The default is 'adaptive'.
-            See https://reproject.readthedocs.io for details.
+            The default is 'adaptive'. Note that both adaptive and exact methods
+            will resample the data and hence introduce some blurring. This can
+            wash out the signal from faint sources. If you are particularly
+            interested in looking for faint sources, you want to apply integer
+            pixel shifts only. This can be acheived by using the `interp` method
+            with `reprorder=0`.
+
+            See https://reproject.readthedocs.io for more details about resampling
+            algorithms.
 
         reprorder : int [if reprmethod is 'interp'; hidden]
             Order of interpolation to use. 0 is nearest neighbour, 1 is
