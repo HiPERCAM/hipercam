@@ -1,0 +1,737 @@
+hipercam.hcam
+=============
+
+.. py:module:: hipercam.hcam
+
+.. autoapi-nested-parse::
+
+   Section for handling the raw HiPERCAM data files. These are FITS files
+   with a single HDU containing header information on the window format amonst
+   other things with the data in a "FITS cube" of unusual nature in that it has
+   dimensions of nframe x 1 x lots, where "lots" contains all pixels of all
+   windows of all CCDs plus timing bytes at the end. The pixels come in an odd
+   order (pixel 1 of each window and then the same for each CCD etc), and the
+   main work of the code is in disentangling them to produce :class:MCCD objects.
+
+   ..
+       !! processed by numpydoc !!
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   hipercam.hcam.HCM_NPSCAN
+   hipercam.hcam.HCM_NOSCAN
+   hipercam.hcam.IendError
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   hipercam.hcam.Rhead
+   hipercam.hcam.Rdata
+   hipercam.hcam.Rtbytes
+   hipercam.hcam.Rtime
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   hipercam.hcam.get_ccd_pars
+
+
+Module Contents
+---------------
+
+.. py:data:: HCM_NPSCAN
+   :value: 50
+
+
+.. py:data:: HCM_NOSCAN
+   :value: 8
+
+
+.. py:class:: Rhead(fname, server=False, full=True)
+
+   
+   Reads an interprets header information from a HiPERCAM run (3D FITS file)
+   and generates the window formats needed to interpret the data. The file is
+   kept open while the Rhead exists. The file can be on the local disk or
+   obtained via the fileserver.
+
+   The following attributes are set::
+
+      cheads : list of Header objects
+          the headers for each CCD which contain any info needed per CCD, above
+          all the 'skip' numbers, which are used when creating MCCD frames.
+
+      clear, dummy, oscan, prescan  : bool
+          flags to say whether or not the following were enabled:
+              clears between exposures
+              dummy output
+              overscan (extra pixels in Y)
+              prescan (extra pixels in X)
+
+      fname : string
+          the file name
+
+      header : astropy.io.fits.Header
+          the header of the FITS file.
+
+      mode : string
+          the readout mode used, read from 'ESO DET READ CURNAME'
+
+      nskips : tuple
+          the NSKIP parameters for each CCD (5 of them)
+
+      ntbytes : int
+          number of timing bytes, deduced from the dimensions of the FITS cube
+          (NAXIS1 contains all pixels and timing bytes) compared to the window
+          dimensions.
+
+      nwins : tuple
+          integer indices of the windows for any one quadrant. This is (0,) for
+          one window modes, (0,1) for two window modes.
+
+      tdead, tdelta, toff1, toff2, toff3, toff4 : float
+          set of parameters used to calculate exact times. tdead is the
+          dead time between exposures; tdelta is used to multiply NSKIP
+          for each CCD; toff1 etc are offsets and lengths used to get the
+          mid-exposure times and exposure durations.
+
+      thead : Header
+          the top-level header that will be used to create MCCDs.
+
+      windows : list of list of list of (Winhead, flip) tuples
+          windows[nccd][nquad][nwin] returns the Winhead and set of axes for
+          window nwin of quadrant nquad of CCD nccd. nwin indexes the windows
+          of a given quadrant (at most there are 2, so nwin = 0 or 1). nquad
+          indexes the quadrants in EFGH order. nccd index the 5 CCDs. 'flip'
+          is a tuple of axes to be flipped using numpy.flip to account for
+          where the CCD is read and reflections. These are not in the end the
+          final windows that will end in the MCCD because if there are pre-scan
+          or over-scan present, we need to split them off making more windows.
+
+      wforms : tuple of strings
+          formats of each set of windows as strings designed to match the input
+          expected for hdriver.
+
+      xbin : int
+          X-binning factor
+
+      ybin : int
+          Y-binning factor
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:attribute:: fname
+
+
+   .. py:attribute:: server
+      :value: False
+
+
+
+   .. py:attribute:: full
+      :value: True
+
+
+
+   .. py:attribute:: _bscale
+
+
+   .. py:attribute:: _bzero
+
+
+   .. py:attribute:: thead
+
+
+   .. py:attribute:: mode
+
+
+   .. py:attribute:: drift
+
+
+   .. py:attribute:: clear
+
+
+   .. py:attribute:: dummy
+
+
+   .. py:attribute:: oscan
+
+
+   .. py:attribute:: pscan
+
+
+   .. py:attribute:: nskips
+
+
+   .. py:attribute:: xbin
+
+
+   .. py:attribute:: ybin
+
+
+   .. py:attribute:: rotate
+      :value: []
+
+
+
+   .. py:attribute:: windows
+      :value: []
+
+
+
+   .. py:attribute:: wforms
+      :value: []
+
+
+
+   .. py:attribute:: ntbytes
+
+
+   .. py:attribute:: cheads
+      :value: []
+
+
+
+   .. py:method:: ntotal()
+
+      
+      Returns the total number of complete frames.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: tinfo()
+
+      
+      Returns with timing info for the run used to create the Rhead, namely the
+      exposure times for each CCD appropriate for a "standard" exposure
+      (i.e. not the first), the offsets to get to the mid-exposure from a
+      timestamp, again for a "standard" exposure, the cycle length for each
+      CCD (NSUB+1) and the dead time between frames. This is intended for
+      use in generating logs.
+
+      Returns (texps, toffs, ncycs, tdead) where texps, toffs and ncycs are
+      5-element tuples representing the "standard" exposure times, the
+      offsets from the timestamp, and the integer cycle lengths for each,
+      and tdead is the deadtime. The times are all in seconds. For standard
+      exposure in which a CCD is read out every time it can be, NCYC=1.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: timing(nframe, nccd)
+
+      
+      Returns timing data for a particular CCD and frame.
+
+      Arguments::
+
+         nframe : int
+            the frame number starting at 1.
+
+         nccd : int
+            the CCD number, starting at 0
+
+      Returns: (tmid, exptime, flag) where 'tmid' is the offset to
+      be applied to the time stamp (in days) to get to the
+      mid-exposure pointof the CCD, 'exptime' is the exposure time
+      in seconds, and 'flag' is a bool to indicate whether the time
+      is thought good or not.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __del__()
+
+      
+      Destructor closes the file or web socket
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __enter__()
+
+
+   .. py:method:: __exit__(*args)
+
+
+.. py:class:: Rdata(fname, nframe=1, server=False, full=True)
+
+   Bases: :py:obj:`Rhead`
+
+
+   
+   Callable, iterable object to represent HiPERCAM raw data files.
+
+   The idea is to instantiate an Rdata from a HiPERCAM FITS file and then the
+   object generated can be used to deliver MCCD objects by specifying a frame
+   number e.g.::
+
+     >> rdat = Rdata('run045.fits')
+     >> fr10 = rdat(10)
+     >> fr11 = rdat()
+
+   reads frame number 10 and then 11 in from 'run045.fits', or sequentially::
+
+     >> for mccd in Rdata('run045.fits'):
+     >>    print('nccd = ',len(mccd))
+
+   which just prints out the number of CCDs from every exposure in the file
+   (=5 in all cases).
+
+   Note: this casts all incoming data into 32-bit floats. This is perhaps
+   inefficient memory-wise but it is safer than leaving a 2-bytes ints which
+   can bite you.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:attribute:: last
+
+
+   .. py:attribute:: ffirst
+      :value: 1
+
+
+
+   .. py:attribute:: first
+      :value: True
+
+
+
+   .. py:method:: __iter__()
+
+
+   .. py:method:: __next__()
+
+
+   .. py:method:: __call__(nframe=None)
+
+      
+      Reads one exposure from the run the :class:`Rdata` is attached to. If
+      `nframe` is None, then it will read the frame it is positioned at. If
+      nframe is an integer > 0, it will try to read that particular frame;
+      if nframe == 0, it reads the last complete frame. nframe == 1 gives
+      the first frame. If all works, an MCCD object is returned. It raises
+      an HendError if it reaches the end of a local disk file. If it fails
+      to read from the server it returns None, but does not raise an
+      Exception in order to allow continued attempts as reading from what
+      might be a growing file.
+
+      It maintains an attribute 'nframe' corresponding to the frame that the
+      file pointer is positioned to read next (most relevant to reading of a
+      local file). If it is set to read the last file and that file doesn't
+      change it returns None as a sign of failure.
+
+      Parameters:
+
+         nframe : int
+            frame number to get, starting at 1. 0 for the last (complete)
+            frame. 'None' indicates that the next frame is wanted, unless
+            self.nframe = 0 in which case it will try to get the most recent
+            frame, whatever that is.
+
+      Apart from reading the raw bytes, the main job of this routine is to
+      divide up and re-package the bytes read into Windows suitable for
+      constructing CCD objects.
+
+      If access via a server is requested, it is assumed that the file being
+      accessed could be being added to.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: seek_frame(n)
+
+      
+      Moves pointer position to the start of frame n and
+      updates the 'nframe' attribute appropriately.
+
+      This is not implemented for the server.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: seek_last()
+
+      
+      In the case of a local file, this sets the pointer position
+      to the start of the final complete frame, and updates the 'nframe'
+      attribute appropriately. This is not implemented for the server.
+      It returns the number of the frame it moves to
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+.. py:class:: Rtbytes(fname, nframe=1, server=False)
+
+   Bases: :py:obj:`Rhead`
+
+
+   
+   Callable, iterable object to returns timing bytes from HiPERCAM raw
+   data files.
+
+   This is similar to Rdata except it only reads the timing data
+   and does no processing at all, just returning the bytes.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:attribute:: nframe
+      :value: 1
+
+
+
+   .. py:attribute:: reset
+      :value: False
+
+
+
+   .. py:method:: __iter__()
+
+
+   .. py:method:: __next__()
+
+
+   .. py:method:: __call__(nframe=None)
+
+      
+      Reads the timing data of one frame from the run the :class:`Rtime`
+      is attached to. If `nframe` is None, then it will read the frame it is
+      positioned at. If nframe is an integer > 0, it will try to read that
+      particular frame; if nframe == 0, it reads the last complete frame.
+      nframe == 1 gives the first frame.
+
+      Arguments::
+
+         nframe : int | None
+            frame number to get, starting at 1. 0 for the last (complete)
+            frame. 'None' indicates that the next frame is wanted.
+
+      Returns:: the timing bytes of the frame
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: set(nframe=1)
+
+      
+      Resets the position so that we are just about to read
+      the timing data of nframe, but does not read them unlike
+      __call__. Set the internal "reset" flag if needed.
+
+      Arguments::
+
+         nframe : int | None
+            frame number to get, starting at 1. 0 for the last (complete)
+            frame. 'None' indicates just read whatever is the next frame.
+
+      Returns:: the frame number of entry
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+.. py:class:: Rtime(fname, nframe=1, server=False)
+
+   Bases: :py:obj:`Rtbytes`
+
+
+   
+   Callable, iterable object to generate timing data only from HiPERCAM raw data files.
+
+   This is the same as Rtbytes except it interprets the bytes.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:method:: __call__(nframe=None)
+
+      
+      Reads the timing data of one frame from the run the :class:`Rtime`
+      is attached to. If `nframe` is None, then it will read the frame it is
+      positioned at. If nframe is an integer > 0, it will try to read that
+      particular frame; if nframe == 0, it reads the last complete frame.
+      nframe == 1 gives the first frame.
+
+      Arguments::
+
+         nframe : int | none
+            frame number to get, starting at 1. 0 for the last (complete)
+            frame. 'None' indicates that the next frame is wanted.
+
+      Returns:: (tstamp, tinfo, tflag) or None if you try to read a non-existent
+      frame (useful if you are waiting from frames to be added). Here
+      'tstamp' is an astropy.time.Time equivalent to the GPS timestamp
+      associated with the frame, with no correction, while 'tinfo' is a
+      5-elements tuple, one for each CCD listing for each one the MJD at
+      mid-exposure, an exposure time in seconds and a flag to indicate
+      whether the time is thought reliable, which is only the case if
+      real data comes with the frame. The final tflag reflects whether
+      there were any satellites and the GPS had been synced
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+.. py:data:: IendError
+
+.. py:function:: get_ccd_pars(resource, server=False)
+
+   
+   Return CCD geometry parameters for HiPERCAM.
+
+   The CCD dimensions are fixed for all HiPERCAM runs; neither *resource*
+   nor *server* is used. Both parameters are present so that this function
+   satisfies the uniform ``InstrumentModuleProtocol`` interface expected of
+   all instrument modules registered under the ``hipercam.instruments``
+   entry-point group.
+
+   :Parameters:
+
+       **resource** : str
+           Run name (unused for HiPERCAM).
+
+       **server** : bool
+           Server flag (unused for HiPERCAM).
+
+
+
+   :Returns:
+
+       collections.OrderedDict
+           Mapping CCD label (``'1'``–``'5'``) to
+           ``(nxmax, nymax, nxpad, nypad)``.
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+

@@ -1,0 +1,436 @@
+hipercam.psf_reduction
+======================
+
+.. py:module:: hipercam.psf_reduction
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   hipercam.psf_reduction.NaN
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   hipercam.psf_reduction.MoffatPSF
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   hipercam.psf_reduction.create_psf_model
+   hipercam.psf_reduction.extractFluxPSF
+
+
+Module Contents
+---------------
+
+.. py:data:: NaN
+
+.. py:class:: MoffatPSF(*, flux=flux.default, x_0=x_0.default, y_0=y_0.default, x_fwhm=x_fwhm.default, y_fwhm=y_fwhm.default, beta=beta.default, theta=theta.default, bbox_factor=15.5, **kwargs)
+
+   Bases: :py:obj:`astropy.modeling.Fittable2DModel`
+
+
+   
+   Standard Moffat model, but with parameter names that work with photutils
+
+   Different FWHM parameters apply in x and y, the fwhm property gives
+   the average of both.
+
+   :Parameters:
+
+       **flux** : float, optional
+           Total integrated flux over the entire PSF.
+
+       **x_0** : float, optional
+           Position of the peak along the x axis.
+
+       **y_0** : float, optional
+           Position of the peak along the y axis.
+
+       **x_fwhm** : float, optional
+           Full-Width at Half-Maximum of profile in x
+
+       **y_fwhm** : float, optional
+           Full-Width at Half-Maximum of profile in y
+
+       **beta** : float, optional
+           Beta parameter of Moffat profile
+
+       **theta** : float, optional
+           The counterclockwise rotation angle either as a float (in
+           degrees) or a `~astropy.units.Quantity` angle (optional).
+
+       **bbox_factor** : float, optional
+           The multiple of the FWHM used to define the bounding box limits.
+
+
+
+
+
+
+
+
+
+
+
+   .. rubric:: Notes
+
+   This model is evaluated according to the following formula:
+
+       .. math::
+           f(x, y) =  F \frac{beta - 1}{\pi \alpha^2}
+               \left[1 + a(x-x_0)**2 + +b(x-x_0)(y-y_0) + c(y-y_0)**2 \right]**(-beta)
+
+   where :math:`F` is the total integrated flux, :math:`(x_{0},
+   y_{0})` is the position of the peak. Note that :math:`beta` must be
+   greater than 1.
+
+   The parameters :math:`a`, :math:`b` and :math:`c` are given by:
+
+       .. math::
+           a = \cos(\theta)^2 / \alpha_x^2 + \sin(\theta)^2 / \alpha_y^2
+           b = \sin(2\theta) / \alpha_x^2 - \sin(2\theta) / \alpha_y^2
+           c = \sin(\theta)^2 / \alpha_x^2 + \cos(\theta)^2 / \alpha_y^2
+
+   where :math:`\alpha_x` and :math:`\alpha_y` are chosen to given the correct
+   FWHM in the x and y directions respectively. :math:`\theta` is the anti-clockwise
+   rotation of the PSF. :math:`alpha` is the geometric mean of :math:`\alpha_x` and
+   :math:`\alpha_y`. The FWHM of the Moffat profile is given by:
+
+   .. math::
+
+       \rm{FWHM} = 2 \alpha \sqrt{2^{1 / beta} - 1}
+
+   The model is normalized such that, for :math:`beta > 1`:
+
+   .. math::
+
+       \int_{-\infty}^{\infty} \int_{-\infty}^{\infty} f(x, y)
+           \,dx \,dy = F
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:attribute:: flux
+
+
+   .. py:attribute:: x_0
+
+
+   .. py:attribute:: y_0
+
+
+   .. py:attribute:: x_fwhm
+
+
+   .. py:attribute:: y_fwhm
+
+
+   .. py:attribute:: beta
+
+
+   .. py:attribute:: theta
+
+
+   .. py:attribute:: bbox_factor
+      :value: 15.5
+
+
+
+   .. py:property:: fwhm
+
+
+   .. py:method:: _calc_bounding_box(factor=5.5)
+
+      
+      Calculate a bounding box defining the limits of the model.
+
+      The limits are adjusted for rotation.
+
+      :Parameters:
+
+          **factor** : float, optional
+              The multiple of the x and y standard deviations (sigma) used
+              to define the limits.
+
+
+
+      :Returns:
+
+          **bbox** : tuple
+              A bounding box defining the ((y_min, y_max), (x_min, x_max))
+              limits of the model.
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:property:: bounding_box
+
+      
+      The bounding box of the model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      .. rubric:: Examples
+
+      >>> from hipercam.psf_reduction import MoffatPSF
+      >>> model = MoffatPSF(x_0=0, y_0=0, x_fwhm=5, y_fwhm=3, theta=20)
+      >>> model.bounding_box  # doctest: +FLOAT_CMP
+      ModelBoundingBox(
+          intervals={
+              x: Interval(lower=-11.232523683597986, upper=11.232523683597986)
+              y: Interval(lower=-7.701096862895421, upper=7.701096862895421)
+          }
+          model=MoffatPSF(inputs=('x', 'y'))
+          order='C'
+      )
+      >>> model.bbox_factor = 7
+      >>> model.bounding_box  # doctest: +FLOAT_CMP
+      ModelBoundingBox(
+          intervals={
+              x: Interval(lower=-14.295939233670163, upper=14.295939233670163)
+              y: Interval(lower=-9.801396007321445, upper=9.801396007321445)
+          }
+          model=MoffatPSF(inputs=('x', 'y'))
+          order='C'
+      )
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: evaluate(x, y, flux, x_0, y_0, x_fwhm, y_fwhm, beta, theta)
+
+      
+      Calculate the value of the 2D Moffat model at the input
+      coordinates for the given model parameters.
+
+
+      :Parameters:
+
+          **x, y** : float or array_like
+              The x and y coordinates at which to evaluate the model.
+
+          **flux** : float
+              Total integrated flux over the entire PSF.
+
+          **x_0, y_0** : float
+              Position of the peak along the x and y axes.
+
+          **x_fwhm, y_fwhm** : float
+              FWHM of the Gaussian along the x and y axes.
+
+          **beta** : float, optional
+              Beta parameter of Moffat profile
+
+          **theta** : float
+              The counterclockwise rotation angle either as a float (in
+              degrees) or a `~astropy.units.Quantity` angle (optional).
+
+
+
+      :Returns:
+
+          **result** : `~numpy.ndarray`
+              The value of the model evaluated at the input coordinates.
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: fit_deriv(x, y, flux, x_0, y_0, x_fwhm, y_fwhm, beta, theta)
+      :staticmethod:
+
+
+      
+      Calculate the partial derivatives of the 2D Moffat function
+      with respect to the parameters.
+
+
+      :Parameters:
+
+          **x, y** : float or array_like
+              The x and y coordinates at which to evaluate the model.
+
+          **flux** : float
+              Total integrated flux over the entire PSF.
+
+          **x_0, y_0** : float
+              Position of the peak along the x and y axes.
+
+          **x_fwhm, y_fwhm** : float
+              FWHM of the Gaussian along the x and y axes.
+
+          **beta** : float, optional
+              Beta parameter of Moffat profile
+
+          **theta** : float
+              The counterclockwise rotation angle either as a float (in
+              degrees) or a `~astropy.units.Quantity` angle (optional).
+
+
+
+      :Returns:
+
+          **result** : list of `~numpy.ndarray`
+              The list of partial derivatives with respect to each
+              parameter.
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+.. py:function:: create_psf_model(photom_results, method, fixed_positions=False)
+
+   
+   Creates a PSF model with fixed FWHM and beta from the photometry results of the reference stars.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: extractFluxPSF(cnam, ccd, bccd, rccd, read, gain, ccdwin, rfile, store)
+
+   
+   This extracts the flux of all apertures of a given CCD.
+
+   The steps are (1) creation of PSF model, (2) PSF fitting, (3)
+   flux extraction. The apertures are assumed to be correctly positioned.
+
+   It returns the results as a dictionary keyed on the aperture label. Each
+   entry returns a list:
+
+   [x, ex, y, ey, fwhm, efwhm, beta, ebeta, counts, countse, sky, esky,
+   nsky, nrej, flag, cmax]
+
+   flag = bitmask. See hipercam.core to see all the options which are
+   referred to by name in the code e.g. ALL_OK. The various flags can
+   signal that there no sky pixels (NO_SKY), the sky aperture was off
+   the edge of the window (SKY_AT_EDGE), etc.
+
+   This code::
+
+      >> bset = flag & TARGET_SATURATED
+
+   determines whether the data saturation flag is set for example.
+
+   .. note::
+       not all arguments are used by this routine, but the call signature is
+       fixed to be a drop-in replacement for the normal and optimal photometry
+       function called by reduce
+
+   Arguments::
+
+      cnam : string
+         CCD identifier label
+
+      ccd : CCD
+          the fully processed CCD (debiassed, dark-corrected, flat-fielded, fringe-corrected)
+
+      bccd : CCD
+          debiassed-only CCD. Used in variance computation.
+
+      rccd : CCD
+         corresponding raw CCD, used to work out whether data are
+         saturated in target aperture.
+
+      read : CCD
+          readnoise divided by the flat-field
+
+      gain : CCD
+          gain multiplied by the flat field
+
+      ccdwin : dictionary of strings
+          the Window label corresponding to each Aperture
+
+      rfile : Rfile
+          reduce file configuration parameters
+
+      store : dict of dicts
+          see moveApers for what this contains.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+

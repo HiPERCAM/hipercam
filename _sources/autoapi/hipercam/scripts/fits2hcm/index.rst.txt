@@ -1,0 +1,90 @@
+hipercam.scripts.fits2hcm
+=========================
+
+.. py:module:: hipercam.scripts.fits2hcm
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   hipercam.scripts.fits2hcm.fits2hcm
+
+
+Module Contents
+---------------
+
+.. py:function:: fits2hcm(args=None)
+
+   
+   ``fits2hcm flist origin``
+
+   This routine converts "foreign" data into a format suitable for the
+   pipeline. |hiper|'s hcm files are in fact FITS-format so this is mostly
+   a case of re-organising the files.
+
+   Parameters:
+
+     flist : str
+        name of list of input FITS-format files.  'flist' should end
+        '.lis'. The output file names will have the same rootname as
+        the input files (but without any leading directories) but end
+        in '.hcm'
+
+     origin : str
+        origin of the data. Currently recognised:
+
+          HICKS :
+            University of Sheffield 16" Hicks Telescope
+            SBIG ST10-XME CCD
+
+          INTWFC :
+            Wide field Camera on the INT. Just operates on a single CCD's-worth
+            of data.
+
+          LCOGT :
+            Las Cumbres Observatory, based on some FTN data taken in 2019.
+
+          LTIO :
+            Liverpool Telescope IO camera.
+
+          LTRISE :
+            Liverpool Telescope RISE camera. I don't know how general my
+            code is in this case. I assume XBIN=YBIN=2.
+
+          PT5M :
+            University of Sheffield/Durham pt5m telescope on La Palma
+            QSI 532 CCD
+
+          ROSA :
+            University of Sheffield 10" Hicks Telescope
+            ATIK ONE 6.0 CCD
+
+          WHTCAM :
+            Camera used by Richard Ashley in Feb 2021.
+
+          OSIRIS+ : 
+            Imager and spectrograph on the GTC. Added by Alex Brown in Nov 2023. 
+            Only tested with 2x2 binning and full frame
+
+     overwrite : bool
+        overwrite files on output
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+

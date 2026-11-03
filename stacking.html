@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Stacking data with shiftadd &#8212; HiPERCAM pipeline 1.7.2.dev7+g414ca9f94 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="_static/bootstrap-astropy.css?v=f8405dd2" />
+    <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
+    
+    <script src="_static/documentation_options.js?v=8d117156"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script type="text/javascript" src="_static/sidebar.js"></script>
+    <script type="text/javascript" src="_static/copybutton.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="File organisation" href="organisation.html" />
+    <link rel="prev" title="Principles" href="photometry.html" />
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="index.html"><span id="logotext1">astro</span><span id="logotext2"></span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="genindex.html">Index</a></li>
+    <li><a title="Module Index" href="py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="organisation.html" title="File organisation">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="photometry.html" title="Principles">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="index.html">HiPERCAM pipeline 1.7.2.dev7+g414ca9f94 documentation</a>
+	 &#187;
+      </li>
+      <li><a href="observers.html" accesskey="U">Observer’s guide</a> &#187;</li>
+      
+      <li>Stacking data with shiftadd</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="stacking-data-with-shiftadd">
+<h1>Stacking data with shiftadd<a class="headerlink" href="#stacking-data-with-shiftadd" title="Link to this heading">¶</a></h1>
+<p>Very often one wants to combine a number of frames together to improve the
+signal-to-noise of faint sources. Whilst <a class="reference internal" href="commands.html#hipercam.scripts.averun" title="hipercam.scripts.averun"><code class="xref py py-func docutils literal notranslate"><span class="pre">averun</span></code></a> can be used to do this,
+it simply combines the frames without any attempt to align them. For very
+deep images, usually one wants to align the frames first, and this is what
+<a class="reference internal" href="commands.html#hipercam.scripts.shiftadd" title="hipercam.scripts.shiftadd"><code class="xref py py-func docutils literal notranslate"><span class="pre">shiftadd</span></code></a> does. This page discusses the usage of <a class="reference internal" href="commands.html#hipercam.scripts.shiftadd" title="hipercam.scripts.shiftadd"><code class="xref py py-func docutils literal notranslate"><span class="pre">shiftadd</span></code></a> and provides
+some tips on how to get the best results.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>TLDR: For those in a hurry, stacking frames with <a class="reference internal" href="commands.html#hipercam.scripts.shiftadd" title="hipercam.scripts.shiftadd"><code class="xref py py-func docutils literal notranslate"><span class="pre">shiftadd</span></code></a> requires the following steps:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p>Create a low signal-to-noise stack using <a class="reference internal" href="commands.html#hipercam.scripts.averun" title="hipercam.scripts.averun"><code class="xref py py-func docutils literal notranslate"><span class="pre">averun</span></code></a>.</p></li>
+<li><p>Create an aperture file using <a class="reference internal" href="commands.html#hipercam.scripts.setaper" title="hipercam.scripts.setaper"><code class="xref py py-func docutils literal notranslate"><span class="pre">setaper</span></code></a> and define reference apertures.</p></li>
+<li><p>Set parameters for aperture positioning and image calibration using <a class="reference internal" href="commands.html#hipercam.scripts.genred" title="hipercam.scripts.genred"><code class="xref py py-func docutils literal notranslate"><span class="pre">genred</span></code></a>.</p></li>
+<li><p>Run <a class="reference internal" href="commands.html#hipercam.scripts.shiftadd" title="hipercam.scripts.shiftadd"><code class="xref py py-func docutils literal notranslate"><span class="pre">shiftadd</span></code></a> to align and stack the frames.</p></li>
+</ol>
+</div></blockquote>
+</div>
+<nav class="contents local" id="contents">
+<p class="topic-title">Contents</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#aligning-images" id="id6">Aligning images</a></p></li>
+<li><p><a class="reference internal" href="#reduction-file-for-parameter-setting" id="id7">Reduction file for parameter setting</a></p></li>
+<li><p><a class="reference internal" href="#calibrating-images" id="id8">Calibrating images</a></p></li>
+<li><p><a class="reference internal" href="#stacking-images" id="id9">Stacking images</a></p>
+<ul>
+<li><p><a class="reference internal" href="#exact-pixel-shifts" id="id10">Exact pixel shifts</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#instrument-specific-issues" id="id11">Instrument specific issues</a></p></li>
+</ul>
+</nav>
+<section id="aligning-images">
+<span id="id1"></span><h2><a class="toc-backref" href="#id6" role="doc-backlink">Aligning images</a><a class="headerlink" href="#aligning-images" title="Link to this heading">¶</a></h2>
+<p>The first step in stacking images is to find the offsets between the frames.
+Rather than re-write the machinery for doing this from scratch, <a class="reference internal" href="commands.html#hipercam.scripts.shiftadd" title="hipercam.scripts.shiftadd"><code class="xref py py-func docutils literal notranslate"><span class="pre">shiftadd</span></code></a>
+uses the same code used for finding the positions of stars during the photometry.
+Therefore, the first step is to proceed as if you are performing a
+<a class="reference internal" href="reduction.html"><span class="doc">data reduction</span></a>.</p>
+<p>In particular, you will want to create an <a class="reference internal" href="reduction.html#aperture-files"><span class="std std-ref">aperture file</span></a>
+using <a class="reference internal" href="commands.html#hipercam.scripts.setaper" title="hipercam.scripts.setaper"><code class="xref py py-func docutils literal notranslate"><span class="pre">setaper</span></code></a> and define some <strong>reference apertures</strong> using the <cite>r</cite> keyboard
+shortcut. These positions of these reference apertures in each frame will be
+used to determine the offsets between the frames. You need to place at least one
+reference aperture for every CCD that you want to align. <a class="reference internal" href="commands.html#hipercam.scripts.shiftadd" title="hipercam.scripts.shiftadd"><code class="xref py py-func docutils literal notranslate"><span class="pre">shiftadd</span></code></a> does not
+rotate frames (only applying linear shifts), so the primary advantage of using
+multiple apertures is to improve the accuracy of the offsets.</p>
+</section>
+<section id="reduction-file-for-parameter-setting">
+<span id="id2"></span><h2><a class="toc-backref" href="#id7" role="doc-backlink">Reduction file for parameter setting</a><a class="headerlink" href="#reduction-file-for-parameter-setting" title="Link to this heading">¶</a></h2>
+<p>There are many parameters that control how apertures are <a class="reference internal" href="photometry.html#aperture-positioning"><span class="std std-ref">positioned</span></a>.
+Because these are also common with the parameters used in photometry, we create a
+<span class="xref std std-ref">reduction file</span> to hold these parameters. This is done using the <a class="reference internal" href="commands.html#hipercam.scripts.genred" title="hipercam.scripts.genred"><code class="xref py py-func docutils literal notranslate"><span class="pre">genred</span></code></a>
+command.</p>
+</section>
+<section id="calibrating-images">
+<span id="id3"></span><h2><a class="toc-backref" href="#id8" role="doc-backlink">Calibrating images</a><a class="headerlink" href="#calibrating-images" title="Link to this heading">¶</a></h2>
+<p>Before stacking images, we usually want to apply the usual calibration steps to
+remove instrumental effects. This includes bias subtraction, flat fielding and fringe removal.
+<a class="reference internal" href="commands.html#hipercam.scripts.genred" title="hipercam.scripts.genred"><code class="xref py py-func docutils literal notranslate"><span class="pre">genred</span></code></a> will prompt you for the relevant calibration files to use in these steps.</p>
+</section>
+<section id="stacking-images">
+<span id="id4"></span><h2><a class="toc-backref" href="#id9" role="doc-backlink">Stacking images</a><a class="headerlink" href="#stacking-images" title="Link to this heading">¶</a></h2>
+<p>The actual stacking of images is done using <a class="reference external" href="https://reproject.readthedocs.io/en/stable/">reproject</a>
+as an engine. The documentation for the reproject package is the best place to look for the details
+of the various algorithms used to resample the data. Here we only outline a few issues which are
+worth considering for different use cases.</p>
+<section id="exact-pixel-shifts">
+<h3><a class="toc-backref" href="#id10" role="doc-backlink">Exact pixel shifts</a><a class="headerlink" href="#exact-pixel-shifts" title="Link to this heading">¶</a></h3>
+<p>For very faint sources, you may want to avoid any resampling of the data, which can wash out the signal.
+In this case, you can use set the <cite>reprmethod=interp</cite> parameter with <cite>reprorder=0</cite> to apply integer pixel
+shifts only.  For almost all other cases you want to use <cite>reprmethod=adaptive</cite> or <cite>reprmethod=exact</cite>
+as these methods guarantee conservation of flux and can provide better resampling for brighter sources.</p>
+</section>
+</section>
+<section id="instrument-specific-issues">
+<span id="id5"></span><h2><a class="toc-backref" href="#id11" role="doc-backlink">Instrument specific issues</a><a class="headerlink" href="#instrument-specific-issues" title="Link to this heading">¶</a></h2>
+<p>There are some peculiarities of <a class="reference internal" href="commands.html#hipercam.scripts.shiftadd" title="hipercam.scripts.shiftadd"><code class="xref py py-func docutils literal notranslate"><span class="pre">shiftadd</span></code></a> that should be noted when used on ULTRA(CAM|SPEC) or HiPERCAM data.
+These instruments have multiple CCDs, and each CCD has two or more output amplifiers with different
+gains, bias levels and readout noise. The output amplifiers naturally divide the CCD into multiple
+regions (2 in the case of ULTRACAM and 4 in the case of HiPERCAM). In addition, the observer can define
+<em>windows</em> which fill some, or all, of these regions.</p>
+<p>The <a class="reference internal" href="commands.html#hipercam.scripts.shiftadd" title="hipercam.scripts.shiftadd"><code class="xref py py-func docutils literal notranslate"><span class="pre">shiftadd</span></code></a> command treats data from each region/window as entirely separate. Data from one region/window
+is never combined with data from another when stacking data.</p>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><h3>Table of Contents</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="news.html">HiPERCAM pipeline news</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="observers.html">Observer’s guide</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="telescope.html">At the telescope</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reduction.html">Reduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="photometry.html">Principles</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Stacking data with shiftadd</a></li>
+<li class="toctree-l2"><a class="reference internal" href="organisation.html">File organisation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="checklists.html">Observing checklists</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="commands.html">HiPERCAM commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/api.html">The API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Getting the software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="files.html">Useful files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="plugins.html">Writing an instrument plugin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/bugs.html">Reporting problems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="makingmovies.html">Making HiPERCAM movies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="phaseII.html">HiPERCAM Phase II</a></li>
+<li class="toctree-l1"><a class="reference internal" href="autoapi/index.html">API Reference</a></li>
+</ul>
+
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="photometry.html"
+                          title="previous chapter">Principles</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="organisation.html"
+                          title="next chapter">File organisation</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/stacking.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<form action="search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="_sources/stacking.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2017, T.R. Marsh.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 9.1.1. &nbsp;
+  </p>
+</footer>
+  </body>
+</html>

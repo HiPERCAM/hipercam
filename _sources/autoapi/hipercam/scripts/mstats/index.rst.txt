@@ -1,0 +1,86 @@
+hipercam.scripts.mstats
+=======================
+
+.. py:module:: hipercam.scripts.mstats
+
+.. autoapi-nested-parse::
+
+   Command line script to list simple stats of multiple images
+
+   ..
+       !! processed by numpydoc !!
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   hipercam.scripts.mstats.mstats
+
+
+Module Contents
+---------------
+
+.. py:function:: mstats(args=None)
+
+   
+   ``mstats [source] run [temp] (ndigit) first last [twait tmax] bias
+   [dtype]``
+
+   This downloads a sequence of images from a raw data file and writes 
+   out stats (min, max, mean, median, rms) for each window to a file
+
+   Parameters:
+
+      source  : string [hidden]
+          Data source, four options:
+
+             | 'hs' : HiPERCAM server
+             | 'hl' : local HiPERCAM FITS file
+             | 'us' : ULTRACAM server
+             | 'ul' : local ULTRACAM .xml/.dat files
+
+      run     : string
+          run name to access
+
+      first   : int
+          First frame to access
+
+      last    : int
+          Last frame to access, 0 for the lot
+
+      twait   : float [hidden]
+          time to wait between attempts to find a new exposure, seconds.
+
+      tmax    : float [hidden]
+          maximum time to wait between attempts to find a new exposure,
+          seconds.
+
+      bias    : string
+          Name of bias frame to subtract, 'none' to ignore.
+
+      format  : string
+          output format for numbers. e.g. the default '9.3f'
+          might give 12345.678 (9 characters, 3 digits after d.p.)
+
+      outfile : string
+          file for output (extension .stats)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+

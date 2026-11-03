@@ -1,0 +1,1189 @@
+hipercam.ccd
+============
+
+.. py:module:: hipercam.ccd
+
+.. autoapi-nested-parse::
+
+   Classes & methods to represent CCDs and multi-CCDs
+
+   A :class:`CCD` is built as a :class:`Group` of :class:`Window`
+   objects, while a multi-CCD of :class:`MCCD` is built as a
+   :class:`Group` of :class:`CCD` objects. These classes allow
+   handling of CCD data.
+
+   ..
+       !! processed by numpydoc !!
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   hipercam.ccd.CCD
+   hipercam.ccd.MCCD
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   hipercam.ccd.get_ccd_info
+   hipercam.ccd.trim_ultracam
+
+
+Module Contents
+---------------
+
+.. py:class:: CCD(winds, nxtot, nytot, nxpad=0, nypad=0, copy=False)
+
+   Bases: :py:obj:`hipercam.group.Agroup`
+
+
+   
+   Represents a single CCD as a :class:`Group` of :class:`Window`.
+
+   :class:`CCD` objects support a few operations such as returning
+   the mean value, arithematic operations, and file I/O to/from FITS
+   files. Header information is passed via the Windows. The first of
+   these is assumed to be the location for any data pertaining to the
+   CCD as a whole.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:attribute:: nxtot
+
+
+   .. py:attribute:: nytot
+
+
+   .. py:attribute:: nxpad
+      :value: 0
+
+
+
+   .. py:attribute:: nypad
+      :value: 0
+
+
+
+   .. py:method:: __reduce__()
+
+      
+      This is to overcome a problem with pickling CCDs. The arguments for init
+      don't get picked up for some reason so this must return them in the
+      second element of the tuple
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: flatten()
+
+      
+      Returns all data of a CCD as a single 1D array, analogous to
+      numpy.flatten
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: min()
+
+      
+      Returns the minimum value of the :class:`CCD`, i.e. the minimum of
+      all the minimum values of all the :class:`Window`
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: max()
+
+      
+      Returns the maximum value of the :class:`CCD`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: mean()
+
+      
+      Returns the mean value of the :class:`CCD`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: median()
+
+      
+      Returns the median value of the :class:`CCD`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: percentile(q, xlo=None, xhi=None, ylo=None, yhi=None)
+
+      
+      Computes percentile(s) of the :class:`CCD`.
+
+      Arguments::
+
+        q : float or sequence of floats
+          Percentile(s) to use, in range [0,100]
+
+        xlo : int | None
+          To restrict range of pixels
+
+        xhi : int | None
+          To restrict range of pixels
+
+        ylo : int | None
+          To restrict range of pixels
+
+        yhi : int | None
+          To restrict range of pixels
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: whdul(hdul=None, cnam=None, xoff=0, yoff=0)
+
+      
+      Write the :class:`CCD` as a series of HDUs, one per
+      :class:`Window`, adding to and returning an :class:`HDUList`.
+
+      Arguments::
+
+          hdul : astropy.io.fits.HDUList
+             The HDUList to add to.
+
+          cnam : string | None
+             CCD name.
+
+          xoff : int [if cname is not None]
+             X-offset for mosaicing in ds9. Ignored if cnam is None.
+
+      Returns:: an :class:`HDUList`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: rhdul(hdul, cnam=None)
+      :classmethod:
+
+
+      
+      Builds a single :class:`CCD` from an :class:`HDUList`.
+
+      If cnam is None, it is assumed that each HDU represents a Window.
+      Each data HDU will be searched for a header parameter 'WINDOW' to label
+      the :class:`Window`, but the routine will attempt to generate a
+      sequential label if WINDOW is not found. If the auto-generated label
+      conflicts with one already found, then a KeyError will be raised.
+
+      If cnam is not None, cnam is taken to be the label of a CCD to be
+      extracted from the :class:`HDUList` which may contain multiple
+      CCDs. It is assumed in this case that the CCD of interest has a
+      continguous set of HDUs all containing the keyword CCD set equal to
+      cnam. This allows individual CCDs to be read from hcm MCCD files.
+
+      Arguments::
+
+        hdul  : :class:`HDUList`
+             each HDU will be read as sub-window of the :class:`CCD`
+
+        cnam  : (None | string)
+             if cnam is not None, the routine will try to find and return a
+             :class:CCD built from a contiguous subset of HDUs that matches
+             cnam (the keyword CCD is used)
+
+      Returns a :class:`CCD`. Data are converted to float32 unless they are
+      read in as float64.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: rmhdul(hdul)
+      :classmethod:
+
+
+      
+      Builds a :class:`CCD` from an :class:`HDUList` potentially containing
+      multiple CCDs, i.e. an MCCD object. This function acts as a generator
+      to allow the CCDs to be returned in successive calls. It is assumed
+      that hdul is positioned at the start of the CCDs (i.e. with the
+      initial data-less primary HDU removed).
+
+      Arguments::
+
+        hdul  : :class:`HDUList`
+             each ImageHDU will be read as a sub-window of the :class:`CCD`
+
+      Returns::
+
+        A series of (label, :class:`CCD`) 2-element tuples to be used as
+        as follows::
+
+          >> for label, ccd in CCD.rmhdul(hdul, True):
+          >>    ... do something
+
+      Data are converted to float32 unless they are read in as float64.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: write(fname, overwrite=False)
+
+      
+      Writes out the CCD to a FITS file.
+
+      Arguments::
+
+          fname : (string)
+               Name of file to write to.
+
+          overwrite : (bool)
+               True to overwrite pre-existing files
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: read(fname, cnam=None)
+      :classmethod:
+
+
+      
+      Builds a :class:`CCD` from a FITS file. Expects a primary HDU,
+      containing no data, followed by a series of HDUs each containing data
+      for a series of non-overlapping windows.
+
+      This can also be applied to extract a particular CCD, labelled 'cnam'
+      from an MCCD hcm file, on the assumption that all HDUs for a given CCD
+      come in a contiguous block with each one labelled with the keyword
+      'CCD'.
+
+      Data are converted to float32 unless they are read in as float64.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: matches(ccd)
+
+      
+      Check that the :class:`CCD` matches another, which in this case means
+      checking that each window of the same label matches the equivalent in
+      the other `CCD`.
+
+      There will be no match if there any windows present in one `CCD` but
+      not the other and the windows must have identical location, size and
+      binning.
+
+      Raises KeyError or ValueError exception depending on the problem.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: copy(memo=None)
+
+      
+      Make a copy of the :class:`CCD`
+
+      copy.copy and copy.deepcopy of a `CCD` use this method
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: float32()
+
+      
+      Applies :class:Window.float32 to all Windows of a CCD
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: float64()
+
+      
+      Applies :class:Window.float64 to all Windows of a CCD
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: uint16()
+
+      
+      Applies :class:Window.uint16 to all Windows of a CCD
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: set_const(val)
+
+      
+      Sets all Windows to a constant value
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: inside(x, y, dmin)
+
+      
+      Tests whether a point x,y lies within any Window of a CCD, at
+      least dmin from its outer edge. It returns with the Window label
+      or None if the point is not inside any Window
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: crop(ccd)
+
+      
+      Given a template :class:`CCD` called `ccd`, this tries to modify
+      the format of the :class:`CCD`, returning a new
+      :class:`CCD`. This is often needed e.g. prior to applying a
+      full frame flat field. In general this operation requires
+      re-labelling of the :class:`Window` composing the CCD. It
+      raises a :class:`HipercamError` if it fails.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:property:: head
+
+      
+      Returns the first Window or an empty fits.Header if there is
+      no first Window. The header of the first Window is where general
+      header items of the CCD are stored.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: is_data()
+
+      
+      Returns True / False according to whether the frame is thought
+      to contain data. Uses DSTATUS keyword if present, else returns True
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __repr__()
+
+      
+      Return repr(self).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+.. py:class:: MCCD(ccds, head=None, copy=False)
+
+   Bases: :py:obj:`hipercam.group.Agroup`
+
+
+   
+   Class representing a multi-CCD as a Group of CCD objects plus a FITS
+   header. It supports arithematic operations and file I/O to/from FITS
+   files.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:attribute:: head
+      :value: None
+
+
+
+   .. py:method:: __reduce__()
+
+      
+      This is to overcome a problem with pickling MCCDs. The arguments for
+      init don't get picked up for some reason so this must return them in
+      the second element of the tuple
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: write(fname, overwrite=False, xgap=200, ygap=200)
+
+      
+      Writes out the MCCD to a FITS file.
+
+      Arguments::
+
+          fname : string or file-like object
+              Name of file to write to. Can also be a file, opened in
+              writeable binary mode.
+
+          overwrite : bool
+              True to overwrite pre-existing files
+
+          xgap  : int
+             X-gap used to space CCDs for ds9 mosaicing (unbinned pixels)
+
+          ygap  : int
+             Y-gap used to space CCDs for ds9 mosaicing (unbinned pixels)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: read(fname)
+      :classmethod:
+
+
+      
+      Builds an :class:`MCCD` from a FITS file. Expects a primary HDU, containing
+      general headers and the first HDU, followed by a series of HDU blocks
+      for each CCD with the first one of each containing some general
+      per-CCD header items.
+
+      Data are converted to float32 unless they are read in as float64.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: rhdul(hdul)
+      :classmethod:
+
+
+      
+      Builds an :class:`MCCD` from an :class:`HDUList`.
+
+      This will usually be passed the :class:`HDUList` from a
+      file. The header from the first (primary) HDU will be used to
+      create the header for the :class:`MCCD`. It is then assumed
+      that the data for each :class:`CCD` is contained in blocks of
+      HDUs after the first. The data from all HDUs will be read into
+      the :class:`Window` objects that make up the CCD. Each HDU
+      will be searched for a header parameter WINDOW to label the
+      :class:`Window`, but the code will attempt to generate a
+      sequential label if WINDOW is not found.
+
+      Arguments::
+
+        hdul : :class:`HDUList`
+             each ImageHDU will be read as sub-window of the :class:`CCD`
+
+      Data are converted to float32 unless they are read in as float64.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: copy(memo=None)
+
+      
+      Make a copy of the :class:`MCCD`
+
+      copy.copy and copy.deepcopy of an `MCCD` use this method
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: matches(mccd)
+
+      
+      Check that the :class:`MCCD` matches another, which in this means checking
+      that each CCD of the same label matches the equivalent in the other
+      `MCCD`.
+
+      There will be no match if there any CCDs present in one `MCCD` which are
+      not in the other.
+
+      Raises KeyError or ValueError exception depending on the problem.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: crop(mccd)
+
+      
+      Crops the :class:MCCD to the same format as a template,
+      `mccd`. Returns the new version. Will raise a HipercamError if
+      it fails.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __repr__()
+
+      
+      Return repr(self).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: float32()
+
+      
+      Applies :class:Window.float32 to all Windows of an MCCD
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: float64()
+
+      
+      Applies :class:Window.float64 to all Windows of an MCCD
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: uint16()
+
+      
+      Applies :class:Window.uint16 to all Windows of an MCCD
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: set_const(val)
+
+      
+      Sets all CCDs to a constant value
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+.. py:function:: get_ccd_info(fname)
+
+   
+   Routine to return some useful basic information from an MCCD file without
+   reading the whole thing in. It returns an OrderedDict keyed on the CCD
+   label which returns the maximum X and Y dimensions of the CCD and X and Y
+   padding as a 4-element tuple. If no CCD label [header parameter 'CCD'] is
+   found, the routine assigns a label of '1' on the assumption that the file
+   cotains a single CCD.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: trim_ultracam(mccd, ncol, nrow)
+
+   
+   Trims columns and rows from an MCCD. The rows and columns are trimmed
+   from each nearest to the readout amplifier as indicated by the value of
+   the "outamp" attribute. e.g. if outamp='LL' then the rows and columns
+   are stripped from the bottom and the left of the window respectively. This
+   is useful because for ULTRACAM and ULTRASPEC these rows and columns can
+   suffer from ringing effects.
+
+   Arguments::
+
+      mccd : MCCD
+        the MCCD to be trimmed. Modified in place, i.e. it's changed on
+        output.
+
+      ncol : int
+        number of columns to be trimmed.
+
+      nrow : int
+        number of rows to be trimmed
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
