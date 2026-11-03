@@ -1105,8 +1105,257 @@ dgaussian(py::array_t<double> x, py::array_t<double> y, double sky,
   return result;
 }
 
+namespace {
+
+// Solves the weighted linear least squares problem for the fast Gaussian
+// fitting (FGF) method of Wan et al. 2018, Sensors 18, 2836. For a symmetric
+// Gaussian, ln(I) = ln(A) - m*((x-xc)**2 + (y-yc)**2), so that
+//
+//   I*(ln(I) + m*(x**2 + y**2) + p*x + q*y + k) = 0
+//
+// with p = -2*m*xc, q = -2*m*yc and k = m*(xc**2 + yc**2) - ln(A), which is
+// linear in the unknowns. The unknowns are (m, p, q, k) or just (p, q, k) if
+// m is held fixed (npar = 4 or 3). Each equation is divided by sigma. The
+// normal matrix is returned in `cov` after inversion. Returns false if the
+// system is singular.
+bool fgf_solve(const std::vector<double> &xs, const std::vector<double> &ys,
+               const std::vector<double> &is, const std::vector<double> &ss,
+               const std::vector<std::size_t> &sel, bool fix_m, double m_fixed,
+               double *theta, double *cov) {
+  const int npar = fix_m ? 3 : 4;
+  const int off = fix_m ? 0 : 1;
+  if (sel.size() < static_cast<std::size_t>(npar)) {
+    return false;
+  }
+
+  double ata[16] = {0.0};
+  double atb[4] = {0.0};
+  for (std::size_t idx : sel) {
+    const double x = xs[idx], y = ys[idx], val = is[idx];
+    const double w = val / ss[idx];
+    double row[4];
+    if (!fix_m) {
+      row[0] = w * (x * x + y * y);
+    }
+    row[off] = w * x;
+    row[off + 1] = w * y;
+    row[off + 2] = w;
+    double rhs = -w * std::log(val);
+    if (fix_m) {
+      rhs -= w * m_fixed * (x * x + y * y);
+    }
+    for (int i = 0; i < npar; ++i) {
+      atb[i] += row[i] * rhs;
+      for (int j = 0; j < npar; ++j) {
+        ata[i * 4 + j] += row[i] * row[j];
+      }
+    }
+  }
+
+  // Gauss-Jordan elimination on [ata | identity] to get solution and inverse
+  double aug[4][8] = {{0.0}};
+  for (int i = 0; i < npar; ++i) {
+    for (int j = 0; j < npar; ++j) {
+      aug[i][j] = ata[i * 4 + j];
+    }
+    aug[i][npar + i] = 1.0;
+  }
+  for (int c = 0; c < npar; ++c) {
+    int piv = c;
+    for (int r = c + 1; r < npar; ++r) {
+      if (std::fabs(aug[r][c]) > std::fabs(aug[piv][c])) {
+        piv = r;
+      }
+    }
+    if (!(std::fabs(aug[piv][c]) > 1e-300)) {
+      return false;
+    }
+    if (piv != c) {
+      for (int j = 0; j < 2 * npar; ++j) {
+        std::swap(aug[piv][j], aug[c][j]);
+      }
+    }
+    const double d = aug[c][c];
+    for (int j = 0; j < 2 * npar; ++j) {
+      aug[c][j] /= d;
+    }
+    for (int r = 0; r < npar; ++r) {
+      if (r != c) {
+        const double f = aug[r][c];
+        for (int j = 0; j < 2 * npar; ++j) {
+          aug[r][j] -= f * aug[c][j];
+        }
+      }
+    }
+  }
+  for (int i = 0; i < npar; ++i) {
+    double t = 0.0;
+    for (int j = 0; j < npar; ++j) {
+      t += aug[i][npar + j] * atb[j];
+      cov[i * 4 + j] = aug[i][npar + j];
+    }
+    theta[i] = t;
+  }
+  return true;
+}
+
+} // namespace
+
+// Fast Gaussian fitting of a symmetric 2D Gaussian after Wan et al. 2018,
+// Sensors 18, 2836. The sky is held fixed and subtracted. A first closed-form
+// fit to the brightest pixels is used to estimate the noise and hence the SNR
+// of each pixel, then a second closed-form fit is made to all pixels with
+// SNR > snr_min. Returns a vector of 4 + 16 values: the fitted (height, xcen,
+// ycen, fwhm) followed by their 4x4 covariance matrix (row-major, unscaled
+// apart from the input sigmas). If fix_fwhm, the fwhm row/column of the
+// covariance is zero.
+std::vector<double> fast_gaussian_fit(
+    py::array_t<double> x, py::array_t<double> y, py::array_t<double> data,
+    py::array_t<double> sigma, py::array_t<std::int64_t> ok_indices,
+    double sky, double xcen, double ycen, double fwhm, bool fix_fwhm,
+    double snr_min) {
+  py::buffer_info xi = x.request(), yi = y.request(), di = data.request(),
+                  si = sigma.request(), oi = ok_indices.request();
+  check_matching_shapes({&xi, &yi, &di, &si});
+  check_ok_indices_1d(oi);
+  const std::size_t npix = static_cast<std::size_t>(xi.size);
+  const std::size_t nok = static_cast<std::size_t>(oi.shape[0]);
+  const auto *ok_ptr = static_cast<const std::int64_t *>(oi.ptr);
+  check_ok_indices_range(ok_ptr, nok, npix);
+  if (!(fwhm > 0.0)) {
+    throw std::runtime_error("fwhm must be positive");
+  }
+
+  const double *xp = static_cast<const double *>(xi.ptr);
+  const double *yp = static_cast<const double *>(yi.ptr);
+  const double *dp = static_cast<const double *>(di.ptr);
+  const double *sp = static_cast<const double *>(si.ptr);
+
+  // Positive-signal pixels only, in coordinates relative to (xcen, ycen)
+  std::vector<double> xs, ys, is, ss;
+  std::vector<std::size_t> pos;
+  for (std::size_t n = 0; n < nok; ++n) {
+    const std::size_t idx = static_cast<std::size_t>(ok_ptr[n]);
+    const double val = dp[idx] - sky;
+    if (val > 0.0) {
+      pos.push_back(xs.size());
+      xs.push_back(xp[idx] - xcen);
+      ys.push_back(yp[idx] - ycen);
+      is.push_back(val);
+      ss.push_back(std::fabs(sp[idx]));
+    }
+  }
+
+  const double m_fixed = 4.0 * std::log(2.0) / (fwhm * fwhm);
+  const int npar = fix_fwhm ? 3 : 4;
+  if (pos.size() < static_cast<std::size_t>(npar) + 1) {
+    throw std::runtime_error("too few positive pixels for fast Gaussian fit");
+  }
+
+  double theta[4], cov[16];
+
+  // Step 1: five brightest pixels
+  std::vector<std::size_t> sel = pos;
+  const std::size_t nbright = std::min<std::size_t>(5, sel.size());
+  std::partial_sort(sel.begin(), sel.begin() + nbright, sel.end(),
+                    [&](std::size_t a, std::size_t b) { return is[a] > is[b]; });
+  sel.resize(nbright);
+  if (!fgf_solve(xs, ys, is, ss, sel, fix_fwhm, m_fixed, theta, cov)) {
+    throw std::runtime_error("singular matrix in fast Gaussian fit");
+  }
+
+  auto unpack = [&](double &m, double &p, double &q, double &k) {
+    if (fix_fwhm) {
+      m = m_fixed;
+      p = theta[0];
+      q = theta[1];
+      k = theta[2];
+    } else {
+      m = theta[0];
+      p = theta[1];
+      q = theta[2];
+      k = theta[3];
+    }
+  };
+
+  double m, p, q, k;
+  unpack(m, p, q, k);
+  if (!(m > 0.0)) {
+    throw std::runtime_error("non-positive width in first fast Gaussian fit");
+  }
+
+  // Step 2: estimate SNR of every pixel from the first fit, then refit
+  const double lnA = (p * p + q * q) / (4.0 * m) - k;
+  std::vector<std::size_t> sel2;
+  const double xc1 = -p / (2.0 * m), yc1 = -q / (2.0 * m);
+  for (std::size_t j : pos) {
+    const double dx = xs[j] - xc1, dy = ys[j] - yc1;
+    const double s = std::exp(lnA - m * (dx * dx + dy * dy));
+    const double noise = is[j] - s;
+    if (std::fabs(s) > snr_min * std::fabs(noise)) {
+      sel2.push_back(j);
+    }
+  }
+  if (sel2.size() < static_cast<std::size_t>(npar) + 1) {
+    sel2 = sel;
+  }
+  if (!fgf_solve(xs, ys, is, ss, sel2, fix_fwhm, m_fixed, theta, cov)) {
+    throw std::runtime_error("singular matrix in fast Gaussian fit");
+  }
+  unpack(m, p, q, k);
+  if (!(m > 0.0)) {
+    throw std::runtime_error("non-positive width in fast Gaussian fit");
+  }
+
+  const double xc = -p / (2.0 * m), yc = -q / (2.0 * m);
+  const double lnA2 = (p * p + q * q) / (4.0 * m) - k;
+  const double A = std::exp(lnA2);
+  const double fw = std::sqrt(4.0 * std::log(2.0) / m);
+
+  // Jacobian of (A, xc, yc, fwhm) w.r.t. the solved parameters
+  const int off = fix_fwhm ? 0 : 1;
+  double jac[4][4] = {{0.0}};
+  if (!fix_fwhm) {
+    jac[0][0] = -A * (p * p + q * q) / (4.0 * m * m);
+    jac[1][0] = p / (2.0 * m * m);
+    jac[2][0] = q / (2.0 * m * m);
+    jac[3][0] = -fw / (2.0 * m);
+  }
+  jac[0][off] = A * p / (2.0 * m);
+  jac[0][off + 1] = A * q / (2.0 * m);
+  jac[0][off + 2] = -A;
+  jac[1][off] = -1.0 / (2.0 * m);
+  jac[2][off + 1] = -1.0 / (2.0 * m);
+
+  std::vector<double> result(20, 0.0);
+  result[0] = A;
+  result[1] = xcen + xc;
+  result[2] = ycen + yc;
+  result[3] = fw;
+  const int nth = fix_fwhm ? 3 : 4;
+  for (int a = 0; a < 4; ++a) {
+    for (int b = 0; b < 4; ++b) {
+      double s = 0.0;
+      for (int i = 0; i < nth; ++i) {
+        for (int j = 0; j < nth; ++j) {
+          s += jac[a][i] * cov[i * 4 + j] * jac[b][j];
+        }
+      }
+      result[4 + a * 4 + b] = s;
+    }
+  }
+  return result;
+}
+
 PYBIND11_MODULE(_fitting_cpp, m) {
   m.doc() = "C++ implementation of profile fitting functions";
+
+  m.def("fast_gaussian_fit", &fast_gaussian_fit,
+        "Closed-form fast Gaussian fit (Wan et al. 2018, Sensors 18, 2836)",
+        py::arg("x"), py::arg("y"), py::arg("data"), py::arg("sigma"),
+        py::arg("ok_indices"), py::arg("sky"), py::arg("xcen"),
+        py::arg("ycen"), py::arg("fwhm"), py::arg("fix_fwhm"),
+        py::arg("snr_min"));
 
   m.def("moffat", &moffat, "C++ implementation of Moffat profile", py::arg("x"),
         py::arg("y"), py::arg("sky"), py::arg("height"), py::arg("xcen"),
