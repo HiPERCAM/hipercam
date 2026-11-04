@@ -106,23 +106,17 @@ class TestFastGaussianOutliers(unittest.TestCase):
         x, y = np.meshgrid(np.arange(nx) + 1.0, np.arange(ny) + 1.0)
         model = gaussian(x, y, t["sky"], t["height"], t["x"], t["y"], t["fwhm"], 1, 1, 0)
         sigma = np.sqrt(model + 25.0)
-        nfail = 0
         for _ in range(30):
             data = model + sigma * rng.standard_normal(model.shape)
             for _ in range(3):
                 data[rng.integers(0, ny), rng.integers(0, nx)] += 2000.0
             wind = Window(Winhead(1, 1, nx, ny, 1, 1, "LL"), data)
-            try:
-                pars, _, _ = fitFastGaussian(
-                    wind, sigma.copy(), 95.0, 400.0, 15.0, 16.0, 3.5, 1.0, False, 4.0, 0
-                )
-            except Exception:
-                nfail += 1
-                continue
+            pars, _, _ = fitFastGaussian(
+                wind, sigma.copy(), 95.0, 400.0, 15.0, 16.0, 3.5, 1.0, False, 4.0, 0
+            )
             self.assertAlmostEqual(pars[2], t["x"], delta=0.3)
             self.assertAlmostEqual(pars[3], t["y"], delta=0.3)
             self.assertAlmostEqual(pars[4], t["fwhm"], delta=0.8)
-        self.assertLessEqual(nfail, 1)
 
 
 if __name__ == "__main__":
