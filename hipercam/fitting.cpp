@@ -1412,16 +1412,39 @@ std::vector<double> fast_gaussian_fit(
   if (fix_sky) {
     res = fgf_at_sky(d, sky);
   } else {
+    // large finite sentinel: infinities are unsafe under -ffast-math
+    const double kInfeasible = 1.0e300;
     auto f = [&](double c) {
       FgfResult r = fgf_at_sky(d, c);
-      return r.ok ? r.chisq : std::numeric_limits<double>::infinity();
+      return r.ok ? r.chisq : kInfeasible;
     };
+    // Coarse scan to bracket the minimum among feasible skies, because the
+    // pixel selection changes with the sky and f can be infinite or jumpy.
+    const int ngrid = 21;
+    const double step = 2.0 * sky_range / (ngrid - 1);
+    int ibest = -1;
+    double fbest = kInfeasible;
+    for (int i = 0; i < ngrid; ++i) {
+      const double fi = f(sky - sky_range + i * step);
+      if (fi < fbest) {
+        fbest = fi;
+        ibest = i;
+      }
+    }
+    if (ibest < 0) {
+      throw std::runtime_error("fast Gaussian fit failed");
+    }
+
     const double gr = 0.5 * (std::sqrt(5.0) - 1.0);
-    double a = sky - sky_range, b = sky + sky_range;
+    double a = sky - sky_range + std::max(ibest - 1, 0) * step;
+    double b = sky - sky_range + std::min(ibest + 1, ngrid - 1) * step;
     double c1 = b - gr * (b - a), c2 = a + gr * (b - a);
     double f1 = f(c1), f2 = f(c2);
+    const double xbest = sky - sky_range + ibest * step;
     for (int it = 0; it < 100 && (b - a) > sky_tol; ++it) {
-      if (f1 < f2) {
+      // if both are infeasible, move towards the best grid point
+      const bool left = (f1 >= kInfeasible && f2 >= kInfeasible) ? (xbest < c2) : f1 < f2;
+      if (left) {
         b = c2;
         c2 = c1;
         f2 = f1;
@@ -1442,7 +1465,7 @@ std::vector<double> fast_gaussian_fit(
     const double h = std::max(sky_tol, 0.05 * sky_range);
     const double fp = f(best + h), fm = f(best - h);
     const double curv = (fp - 2.0 * res.chisq + fm) / (h * h);
-    if (std::isfinite(curv) && curv > 0.0) {
+    if (fp < kInfeasible && fm < kInfeasible && curv > 0.0) {
       sky_var = 2.0 / curv;
     }
   }
