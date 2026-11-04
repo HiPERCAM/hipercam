@@ -1217,12 +1217,15 @@ struct FgfData {
   std::vector<double> xs, ys, raw, sg; // all OK pixels
   bool fix_fwhm = false;
   double m_fixed = 0.0;
-  double snr_min = 3.0;
+  double snr_min = 5.0;
+  bool direct_snr = true; // select pixels using data/sigma, single pass
 };
 
 // Two-step FGF of Wan et al. 2018 at sky level `sky`. Step 1 fits the five
 // brightest pixels to estimate each pixel's SNR; step 2 fits all pixels with
-// SNR > snr_min.
+// SNR > snr_min. If d.direct_snr, the SNR is instead taken directly as
+// (data - sky)/sigma, so pixels are selected with no preliminary fit and a
+// single closed-form solve is made.
 FgfResult fgf_at_sky(const FgfData &d, double sky) {
   FgfResult res;
   const std::size_t n = d.xs.size();
@@ -1261,24 +1264,32 @@ FgfResult fgf_at_sky(const FgfData &d, double sky) {
     }
   };
 
-  if (!fgf_solve(d.xs, d.ys, is, d.sg, sel, d.fix_fwhm, d.m_fixed, theta,
-                 cov)) {
-    return res;
-  }
   double m, p, q, k;
-  unpack(m, p, q, k);
-  if (!(m > 0.0)) {
-    return res;
-  }
-
-  const double lnA1 = (p * p + q * q) / (4.0 * m) - k;
-  const double xc1 = -p / (2.0 * m), yc1 = -q / (2.0 * m);
   std::vector<std::size_t> sel2;
-  for (std::size_t j : pos) {
-    const double dx = d.xs[j] - xc1, dy = d.ys[j] - yc1;
-    const double s = std::exp(lnA1 - m * (dx * dx + dy * dy));
-    if (std::fabs(s) > d.snr_min * std::fabs(is[j] - s)) {
-      sel2.push_back(j);
+  if (d.direct_snr) {
+    for (std::size_t j : pos) {
+      if (is[j] > d.snr_min * d.sg[j]) {
+        sel2.push_back(j);
+      }
+    }
+  } else {
+    if (!fgf_solve(d.xs, d.ys, is, d.sg, sel, d.fix_fwhm, d.m_fixed, theta,
+                   cov)) {
+      return res;
+    }
+    unpack(m, p, q, k);
+    if (!(m > 0.0)) {
+      return res;
+    }
+
+    const double lnA1 = (p * p + q * q) / (4.0 * m) - k;
+    const double xc1 = -p / (2.0 * m), yc1 = -q / (2.0 * m);
+    for (std::size_t j : pos) {
+      const double dx = d.xs[j] - xc1, dy = d.ys[j] - yc1;
+      const double s = std::exp(lnA1 - m * (dx * dx + dy * dy));
+      if (std::fabs(s) > d.snr_min * std::fabs(is[j] - s)) {
+        sel2.push_back(j);
+      }
     }
   }
   if (sel2.size() < static_cast<std::size_t>(npar) + 1) {
@@ -1360,7 +1371,8 @@ std::vector<double> fast_gaussian_fit(
     py::array_t<double> x, py::array_t<double> y, py::array_t<double> data,
     py::array_t<double> sigma, py::array_t<std::int64_t> ok_indices,
     double sky, bool fix_sky, double sky_range, double sky_tol, double xcen,
-    double ycen, double fwhm, bool fix_fwhm, double snr_min) {
+    double ycen, double fwhm, bool fix_fwhm, double snr_min,
+    bool direct_snr) {
   py::buffer_info xi = x.request(), yi = y.request(), di = data.request(),
                   si = sigma.request(), oi = ok_indices.request();
   check_matching_shapes({&xi, &yi, &di, &si});
@@ -1385,6 +1397,7 @@ std::vector<double> fast_gaussian_fit(
   d.fix_fwhm = fix_fwhm;
   d.m_fixed = 4.0 * std::log(2.0) / (fwhm * fwhm);
   d.snr_min = snr_min;
+  d.direct_snr = direct_snr;
   for (std::size_t n = 0; n < nok; ++n) {
     const std::size_t idx = static_cast<std::size_t>(ok_ptr[n]);
     d.xs.push_back(xp[idx] - xcen);
@@ -1457,7 +1470,7 @@ PYBIND11_MODULE(_fitting_cpp, m) {
         py::arg("ok_indices"), py::arg("sky"), py::arg("fix_sky"),
         py::arg("sky_range"), py::arg("sky_tol"), py::arg("xcen"),
         py::arg("ycen"), py::arg("fwhm"), py::arg("fix_fwhm"),
-        py::arg("snr_min"));
+        py::arg("snr_min") = 5.0, py::arg("direct_snr") = true);
 
   m.def("moffat", &moffat, "C++ implementation of Moffat profile", py::arg("x"),
         py::arg("y"), py::arg("sky"), py::arg("height"), py::arg("xcen"),

@@ -1234,7 +1234,8 @@ def fitFastGaussian(
     ndiv,
     max_nfev=None,
     ls_tol=1e-8,
-    snr_min=3.0,
+    snr_min=5.0,
+    direct_snr=True,
 ):
     """Fits the profile of one target in a Window with a symmetric 2D Gaussian
     plus a constant using the closed-form "fast Gaussian fitting" (FGF) method
@@ -1243,15 +1244,26 @@ def fitFastGaussian(
     subtracted) data is fitted with a quadratic using weighted linear least
     squares, which needs no iteration or starting values.
 
-    Two passes are needed because the log transform distorts the noise: a
-    pixel with signal S and noise N has ln(I) - ln(S) = ln(1 + N/S), which has
-    an error far larger than N/S when S is small. Weighting by I makes the
-    pixel errors approximately uniform, but only for pixels with high SNR
-    where ln(1 + N/S) ~ N/S, and the SNR is unknown until a model exists. So
-    a first fit to only the five brightest pixels (high SNR) gives a rough
+    Pixels must be selected by SNR because the log transform distorts the
+    noise: a pixel with signal S and noise N has ln(I) - ln(S) = ln(1 + N/S),
+    which has an error far larger than N/S when S is small. Weighting by I
+    makes the pixel errors approximately uniform, but only for pixels with
+    high SNR where ln(1 + N/S) ~ N/S. The paper therefore uses two passes: a
+    first fit to only the five brightest pixels (high SNR) gives a rough
     model from which the SNR of every pixel is estimated, then a second fit
     uses all pixels with SNR > `snr_min`. Much faster than
     :func:`fitGaussian`.
+
+    By default (`direct_snr` = True) the first pass is skipped and the SNR of
+    each pixel is taken directly from the data and the supplied
+    uncertainties, i.e. (data - sky)/sigma, so a single closed-form fit is
+    made. Because bright outliers have huge leverage on the log fit, the input
+    profile is used as the model for the first rejection pass (instead of a
+    fit), so gross outliers are clipped before the first solve; later
+    passes clip against the fitted model as usual. The method is vulnerable
+    to poorly estimated `sigma`, and in simulations it needs
+    `snr_min` of about 5 or more: at 3 the selection biases the fit. Set
+    `direct_snr` = False for the paper's two-pass method.
 
     The paper's method has no sky term, so here the sky is added by a 1D
     golden-section search on chi**2 around the closed-form fits. The search
@@ -1315,7 +1327,12 @@ def fitFastGaussian(
             unused; kept for consistency with :func:`fitGaussian`.
 
         snr_min : float
-            minimum estimated SNR of pixels included in the second fit.
+            minimum SNR of pixels included in the fit (default 5).
+
+        direct_snr : bool
+            if True (default), skip the first pass and select pixels with
+            (data - sky)/sigma > `snr_min`, so a single closed-form fit is
+            made per sky value. If False use the paper's two-pass method.
 
     Returns:: tuple of tuples
 
@@ -1363,11 +1380,27 @@ def fitFastGaussian(
                     float(fwhm_try),
                     fixed,
                     float(snr_min),
+                    bool(direct_snr),
                 )
             )
         except RuntimeError as err:
             raise HipercamError(str(err))
         return res[:4], res[4:20].reshape(4, 4), res[20], res[21]
+
+    # The closed-form fit works on log(data), so bright outliers have huge
+    # leverage and the loop below could not recover from them. The first
+    # clipping pass therefore uses the input profile as its model; this
+    # replaces (rather than adds to) the first pass of the loop.
+    guess = Window(
+        wind,
+        gaussian(
+            gfit.x, gfit.y, skyv, height, xcen, ycen, fwhm, gfit.xbin, gfit.ybin, ndiv
+        ),
+    )
+    ok = gfit.mask & (sigma > 0)
+    gres = (wind.data - guess.data) / sigma
+    gscale = max(1.0, 1.4826 * np.median(np.abs(gres[ok])))
+    sigma[ok & (np.abs(gres) > 2 * gscale * thresh)] *= -1
 
     fixed = bool(fwhm_fix)
     fwhm_cur = fwhm

@@ -318,11 +318,24 @@ more than twice as fast as the standard gaussian fit.
 The key idea is that the logarithm of a gaussian is a quadratic in x and y,
 so that fitting :math:`\ln(I - c)` for and image :math:`I` and 
 sky level :math:`c` is a weighted *linear* least-squares problem. Taking 
-logs distorts the noise, however, so the method is applied in two passes. 
+logs distorts the noise, however, so only pixels with a high signal-to-noise 
+can be used.
 
-The first uses only the five brightest pixels to get a rough model from which 
-the signal-to-noise of every pixel is estimated; the second uses all pixels 
-whose estimated signal-to-noise exceeds a threshold. The paper has no sky term, 
+The paper does this in two passes: the first uses only the five brightest
+pixels to get a rough model from which the signal-to-noise of every pixel is
+estimated, and the second uses all pixels whose estimated signal-to-noise
+exceeds a threshold. By default |hiper| skips the first pass and instead
+computes the signal-to-noise of each pixel directly from the data and its
+uncertainty, selecting pixels with :math:`(I - c)/\sigma > 5`. Because bright
+outliers such as cosmic rays would badly distort the logarithmic fit, the
+input profile (position, FWHM, height, sky) is used to clip gross outliers
+before the first fit, so a reasonable starting profile is needed; the usual
+iterative rejection then proceeds as for the other methods. The method needs
+a threshold of about 5 or more; lower values bias the fit. Set
+``direct_snr=False`` in :func:`hipercam.fitting.fitFastGaussian` to use the
+paper's two-pass approach.
+
+The paper has no sky term, 
 so the sky is added by a one-dimensional search for the sky level that minimises 
 chi**2, repeated on every pass of the pixel rejection loop. The initial sky, 
 FWHM, ``fit_ndiv``, rejection threshold, and minimum FWHM all work as for the 
