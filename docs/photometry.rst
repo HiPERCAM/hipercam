@@ -316,8 +316,7 @@ implemented as :func:`hipercam.fitting.fitFastGaussian`, and is typically
 more than twice as fast as the standard gaussian fit.
 
 The key idea is that the logarithm of a gaussian is a quadratic in x and y,
-so that fitting :math:`\ln(I - c)` for and image :math:`I` and 
-sky level :math:`c` is a weighted *linear* least-squares problem. Taking 
+so that fitting :math:`\ln(I - c)` for an image :math:`I` and
 logs distorts the noise, however, so only pixels with a high signal-to-noise 
 can be used.
 
