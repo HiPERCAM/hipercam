@@ -343,8 +343,9 @@ other methods.
 **When to use it.** The method is best suited to compact, bright stars well
 above the noise, where it gives results very close to the standard gaussian
 fit. It can *drastically* speed up real-time reductions, provided the 
-reference stars are bright enough to be well above the noise. The positions
-of faint targets not linked to the reference stars may suffer in accuracy however.
+reference stars are bright enough to be well above the noise (more than 200
+counts above the sky at their peak). The reduction of faint targets not linked 
+to the reference stars may suffer in accuracy however.
 
 It is less accurate for faint targets. The method relies on pixels with
 high signal-to-noise, and for faint stars few pixels qualify so the fit
