@@ -4,9 +4,11 @@ Core data, functions and classes for the hipercam package
 """
 
 from collections import OrderedDict as Odict
-from astropy.utils.exceptions import AstropyUserWarning
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as _version
+
 import numpy as np
-from importlib.metadata import version as _version, PackageNotFoundError
+from astropy.utils.exceptions import AstropyUserWarning
 
 __all__ = (
     "FIELD",
@@ -46,6 +48,7 @@ __all__ = (
     "BAD_TIME",
     "FLAGS",
     "OUTLIER",
+    "FAST_GAUSS_LOW_PEAK",
     "FLAG_MESSAGES",
     "FRNG",
 )
@@ -134,6 +137,7 @@ BAD_FLAT = bmask(1 << 10)  # Bad flat field pixel (e.g. deep dust speck)
 BAD_COLUMN = bmask(1 << 11)  # Bad column (e.g. target aperture includes such data)
 BAD_TIME = bmask(1 << 12)  # Bad time
 OUTLIER = bmask(1 << 13)  # Point far from local trend (for Tseries)
+FAST_GAUSS_LOW_PEAK = bmask(1 << 14)  # Fast Gaussian fit used with faint star (peak < 200 counts above sky)
 
 # all flags for useful reference in other places
 FLAGS = (
@@ -153,6 +157,7 @@ FLAGS = (
     ("BAD_COLUMN", BAD_COLUMN),
     ("BAD_TIME", BAD_TIME),
     ("OUTLIER", OUTLIER),
+    ("FAST_GAUSS_LOW_PEAK", FAST_GAUSS_LOW_PEAK),
 )
 
 # messages if various bitflags are set
@@ -172,6 +177,7 @@ FLAG_MESSAGES = Odict(
         (BAD_COLUMN, "bad column in in target aperture"),
         (BAD_TIME, "the time was flagged as bad"),
         (OUTLIER, "identified as an outlier"),
+        (FAST_GAUSS_LOW_PEAK, "fast gaussian fit unreliable due to low peak counts"),
     )
 )
 
