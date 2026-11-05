@@ -258,7 +258,7 @@ Profile fitting
 
 In order to measure the FWHM to set the aperture size, |hiper| uses one of two
 possible forms of stellar profile, namely a 2D gaussian or "Moffat" profile,
-in each case symmetric. The gaussian profile is described by the following
+in each case symmetric (plus a constant sky level). The gaussian profile is described by the following
 relation
 
 .. math::
@@ -303,6 +303,64 @@ multiple points within pixels to allow for cases where the seeing becomes
 small compared to the pixels. This is controlled by the parameter `fit_ndiv`
 in the reduce file. It's use does come with a speed penalty owing to the
 larger number of function evaluations.
+
+Fast gaussian fitting
+---------------------
+
+As an alternative to the iterative gaussian fit, one can set ``fit_method =
+fast`` in the reduce file. This uses the "fast gaussian fitting" (FGF) method
+of `Wan et al (2018) <https://www.mdpi.com/1424-8220/18/9/2836>`_, which fits
+the same symmetric gaussian profile as above but in closed form, with no
+iteration to convergence and no need for good starting values. It is
+implemented as :func:`hipercam.fitting.fitFastGaussian`, and is typically
+more than twice as fast as the standard gaussian fit.
+
+The key idea is that the logarithm of a gaussian is a quadratic in x and y,
+so that fitting :math:`\ln(I - c)` for an image :math:`I` and
+logs distorts the noise, however, so only pixels with a high signal-to-noise 
+can be used.
+
+The paper does this in two passes: the first uses only the five brightest
+pixels to get a rough model from which the signal-to-noise of every pixel is
+estimated, and the second uses all pixels whose estimated signal-to-noise
+exceeds a threshold. By default |hiper| skips the first pass and instead
+computes the signal-to-noise of each pixel directly from the data and its
+uncertainty, selecting pixels with :math:`(I - c)/\sigma > 5`. Because bright
+outliers such as cosmic rays would badly distort the logarithmic fit, the
+input profile (position, FWHM, height, sky) is used to clip gross outliers
+before the first fit, so a reasonable starting profile is needed; the usual
+iterative rejection then proceeds as for the other methods. The method needs
+a threshold of about 5 or more; lower values bias the fit. Set
+``direct_snr=False`` in :func:`hipercam.fitting.fitFastGaussian` to use the
+paper's two-pass approach.
+
+The paper has no sky term, 
+so the sky is added by a one-dimensional search for the sky level that minimises 
+chi**2, repeated on every pass of the pixel rejection loop. The initial sky, 
+FWHM, ``fit_ndiv``, rejection threshold, and minimum FWHM all work as for the 
+other methods.
+
+**When to use it.** The method is best suited to compact, bright stars well
+above the noise, where it gives results very close to the standard gaussian
+fit. It can *drastically* speed up real-time reductions, provided the 
+reference stars are bright enough to be well above the noise (more than 200
+counts above the sky at their peak). The reduction of faint targets not linked 
+to the reference stars may suffer in accuracy however.
+
+It is less accurate for faint targets. The method relies on pixels with
+high signal-to-noise, and for faint stars few pixels qualify so the fit
+is poorer, and the FWHM in particular can be biased high. In a simple
+simulation of a FWHM=4 pixel star with a peak of 200 counts on a sky of
+100 counts, the FWHM came out about 40% too large, whereas the standard
+fit recovered it to a few percent. 
+
+The sky search covers only about +/-10 times the median pixel uncertainty
+around the starting value, so a poor initial sky estimate can give a
+biased result.
+
+Sub-pixellation (``fit_ndiv``) is only used to evaluate the final model and
+chi**2, not in the fit itself, so for badly under-sampled profiles
+the standard fit is preferable.
 
 
 Optimal photometry

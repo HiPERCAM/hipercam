@@ -11,27 +11,34 @@ from . import _fitting_cpp
 from .core import HipercamError
 from .window import Window
 
-__all__ = ("combFit", "fitMoffat", "fitGaussian", "moffat", "gaussian")
+__all__ = (
+    "combFit",
+    "fitMoffat",
+    "fitGaussian",
+    "fitFastGaussian",
+    "moffat",
+    "gaussian",
+)
 
 
 def combFit(
-        wind,
-        sigma,
-        method,
-        sky,
-        height,
-        x,
-        y,
-        fwhm,
-        fwhm_min,
-        fwhm_fix,
-        beta,
-        beta_max,
-        beta_fix,
-        thresh,
-        ndiv=0,
-        max_nfev=None,
-        ls_tol=1e-8,
+    wind,
+    sigma,
+    method,
+    sky,
+    height,
+    x,
+    y,
+    fwhm,
+    fwhm_min,
+    fwhm_fix,
+    beta,
+    beta_max,
+    beta_fix,
+    thresh,
+    ndiv=0,
+    max_nfev=None,
+    ls_tol=1e-8,
 ):
     """Fits a stellar profile in a :class:Window using either a 2D Gaussian
     or Moffat profile. This is a convenience wrapper of fitMoffat and
@@ -47,7 +54,8 @@ def combFit(
             on exit. Rejected points will be negative.
 
         method : string
-            fitting method 'g' for Gaussian, 'm' for Moffat
+            fitting method 'g' for Gaussian, 'm' for Moffat, 'f' for fast
+            (closed-form) Gaussian (see :func:`fitFastGaussian`)
 
         sky : float
             initial sky level
@@ -112,11 +120,11 @@ def combFit(
 
        pars : tuple
           (sky, height, x, y, fwhm, beta), the fitted parameters
-          (`beta` == 0 if `method`=='g')
+          (`beta` == 0 if `method`=='g' or 'f')
 
        epars : tuple
           (esky, eheight, ex, ey, efwhm, ebeta), fitted standard errors.
-          `ebeta` == -1 if `method`=='g'; `efwhm` == -1 if the FWHM was fixed
+          `ebeta` == -1 if `method`=='g' or 'f'; `efwhm` == -1 if the FWHM was fixed
           or it hit the minimum value.
 
        extras : tuple
@@ -132,15 +140,48 @@ def combFit(
 
     """
 
-    if method == "g":
+    if method == "f":
+        # fast gaussian fit
+        (
+            (sky, height, x, y, fwhm),
+            (esky, eheight, ex, ey, efwhm),
+            (fit, X, Y, chisq, nok, nrej, npar, nfev),
+        ) = fitFastGaussian(
+            wind,
+            sigma,
+            sky,
+            height,
+            x,
+            y,
+            fwhm,
+            fwhm_min,
+            fwhm_fix,
+            thresh,
+            ndiv,
+            max_nfev,
+            ls_tol,
+        )
+
+    elif method == "g":
         # gaussian fit
         (
             (sky, height, x, y, fwhm),
             (esky, eheight, ex, ey, efwhm),
-            (fit, X, Y, chisq, nok, nrej, npar, nfev)
+            (fit, X, Y, chisq, nok, nrej, npar, nfev),
         ) = fitGaussian(
-            wind, sigma, sky, height, x, y, fwhm, fwhm_min, fwhm_fix,
-            thresh, ndiv, max_nfev, ls_tol
+            wind,
+            sigma,
+            sky,
+            height,
+            x,
+            y,
+            fwhm,
+            fwhm_min,
+            fwhm_fix,
+            thresh,
+            ndiv,
+            max_nfev,
+            ls_tol,
         )
 
     elif method == "m":
@@ -148,22 +189,36 @@ def combFit(
         (
             (sky, height, x, y, fwhm, beta),
             (esky, eheight, ex, ey, efwhm, ebeta),
-            (fit, X, Y, chisq, nok, nrej, npar, nfev)
+            (fit, X, Y, chisq, nok, nrej, npar, nfev),
         ) = fitMoffat(
-            wind, sigma, sky, height, x, y, fwhm, fwhm_min, fwhm_fix, beta,
-            beta_max, beta_fix, thresh, ndiv, max_nfev, ls_tol
+            wind,
+            sigma,
+            sky,
+            height,
+            x,
+            y,
+            fwhm,
+            fwhm_min,
+            fwhm_fix,
+            beta,
+            beta_max,
+            beta_fix,
+            thresh,
+            ndiv,
+            max_nfev,
+            ls_tol,
         )
 
     else:
         raise NotImplementedError(f"Fitting method = {method} method not implemented")
 
-    if method == "g":
+    if method in ("g", "f"):
         message = (
             f"x,y= {x:.2f}({ex:.2f}), {y:.2f}({ey:.2f}),"
             f" FWHM= {fwhm:.2f}({efwhm:.2f}),"
             f" peak= {height:.1f}({eheight:.1f}),"
             f" sky= {sky:.1f}({esky:.1f}),"
-            f" counts= {(fit-sky).sum():.0f}, chi**2= {chisq:.1f},"
+            f" counts= {(fit - sky).sum():.0f}, chi**2= {chisq:.1f},"
             f" nok= {nok}, nrej= {nrej}, nfev= {nfev}"
         )
         beta, ebeta = 0.0, -1.0
@@ -173,7 +228,7 @@ def combFit(
             f" FWHM= {fwhm:.2f}({efwhm:.2f}),"
             f" peak= {height:.1f}({eheight:.1f}),"
             f" sky= {sky:.1f}({esky:.1f}),"
-            f" counts= {(fit-sky).sum():.0f}, "
+            f" counts= {(fit - sky).sum():.0f}, "
             f" beta= {beta:.2f}({ebeta:.2f}),"
             f" chi**2= {chisq:.1f},"
             f" nok= {nok}, nrej= {nrej}, nfev= {nfev}"
@@ -194,22 +249,22 @@ def combFit(
 
 
 def fitMoffat(
-        wind,
-        sigma,
-        sky,
-        height,
-        xcen,
-        ycen,
-        fwhm,
-        fwhm_min,
-        fwhm_fix,
-        beta,
-        beta_max,
-        beta_fix,
-        thresh,
-        ndiv,
-        max_nfev=None,
-        ls_tol=1e-8,
+    wind,
+    sigma,
+    sky,
+    height,
+    xcen,
+    ycen,
+    fwhm,
+    fwhm_min,
+    fwhm_fix,
+    beta,
+    beta_max,
+    beta_fix,
+    thresh,
+    ndiv,
+    max_nfev=None,
+    ls_tol=1e-8,
 ):
     """Fits the profile of one target in a Window with a symmetric 2D Moffat
     profile plus a constant "c + h/(1+alpha**2)**beta" where r is the distance
@@ -360,7 +415,6 @@ def fitMoffat(
     first_fit = True
     nfev = 0
     while True:
-
         # retrieve current fit mode
         mode = mfit.mode
 
@@ -407,7 +461,6 @@ def fitMoffat(
             mfit.set_mode(mode.replace("f", ""), fwhm_min, beta)
 
         else:
-
             # no mode switch, compute fit
             fit = Window(wind, mfit.model(param))
 
@@ -425,9 +478,9 @@ def fitMoffat(
             # reject any above the defined threshold
             if first_fit:
                 # first fit carried out with higher threshold for safety
-                sigma[ok & (np.abs(resid) > 2*sfac*thresh)] *= -1
+                sigma[ok & (np.abs(resid) > 2 * sfac * thresh)] *= -1
             else:
-                sigma[ok & (np.abs(resid) > sfac*thresh)] *= -1
+                sigma[ok & (np.abs(resid) > sfac * thresh)] *= -1
 
             # check whether any have been rejected
             ok = mfit.mask & (sigma > 0)
@@ -447,29 +500,22 @@ def fitMoffat(
             first_fit = False
 
     # Make sure all regions masked off have sigma < 0
-    sigma[~mfit.mask] = - np.abs(sigma[~mfit.mask])
+    sigma[~mfit.mask] = -np.abs(sigma[~mfit.mask])
 
     # OK we are done.
-    extras = (
-        fit,
-        mfit.x,
-        mfit.y,
-        chisq,
-        nok,
-        nrej,
-        len(param),
-        nfev
-    )
+    extras = (fit, mfit.x, mfit.y, chisq, nok, nrej, len(param), nfev)
 
     if sky is None:
         return (
-            (0., heightf, xf, yf, fwhmf, betaf),
-            (-1., heightfe, xfe, yfe, fwhmfe, betafe), extras
+            (0.0, heightf, xf, yf, fwhmf, betaf),
+            (-1.0, heightfe, xfe, yfe, fwhmfe, betafe),
+            extras,
         )
     else:
         return (
             (skyf, heightf, xf, yf, fwhmf, betaf),
-            (skyfe, heightfe, xfe, yfe, fwhmfe, betafe), extras
+            (skyfe, heightfe, xfe, yfe, fwhmfe, betafe),
+            extras,
         )
 
 
@@ -532,10 +578,14 @@ def moffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv):
     Moffat profile plus constant evaluated at each coordinate pair.
 
     """
-    return _fitting_cpp.moffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv)
+    return _fitting_cpp.moffat(
+        x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv
+    )
 
 
-def dmoffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv, comp_dfwhm, comp_dbeta):
+def dmoffat(
+    x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv, comp_dfwhm, comp_dbeta
+):
     """Returns a list of numpy arrays corresponding to the ordinate grids
     in xy set to the partial derivatives of a Moffat profile plus a
     constant. Defined by sky + height/(1+alpha*r**2)**beta where r is
@@ -628,7 +678,7 @@ def _mask(wind, x, y):
     y1, y2 = wind.y(0), wind.y(wind.ny - 1)
     xc, yc = (x1 + x2) / 2, (y1 + y2) / 2.0
     rad = 1.01 * min((x2 - x1) / 2, (y2 - y1) / 2)
-    return (x - xc) ** 2 + (y - yc) ** 2 < rad ** 2
+    return (x - xc) ** 2 + (y - yc) ** 2 < rad**2
 
 
 class Mfit:
@@ -936,19 +986,19 @@ class Mfit:
 
 
 def fitGaussian(
-        wind,
-        sigma,
-        sky,
-        height,
-        xcen,
-        ycen,
-        fwhm,
-        fwhm_min,
-        fwhm_fix,
-        thresh,
-        ndiv,
-        max_nfev=None,
-        ls_tol=1e-8,
+    wind,
+    sigma,
+    sky,
+    height,
+    xcen,
+    ycen,
+    fwhm,
+    fwhm_min,
+    fwhm_fix,
+    thresh,
+    ndiv,
+    max_nfev=None,
+    ls_tol=1e-8,
 ):
     """Fits the profile of one target in an Window with a 2D symmetric Gaussian
     profile "c + h*exp(-alpha*r**2)" where r is the distance from the centre
@@ -1073,7 +1123,6 @@ def fitGaussian(
     first_fit = True
     nfev = 0
     while True:
-
         # retrieve current fit mode
         mode = gfit.mode
 
@@ -1115,7 +1164,6 @@ def fitGaussian(
             gfit.set_mode(mode.replace("f", ""), fwhm_min)
 
         else:
-
             # no mode switch, compute fit
             fit = Window(wind, gfit.model(param))
 
@@ -1133,9 +1181,9 @@ def fitGaussian(
             # reject any above the defined threshold
             if first_fit:
                 # first fit carried out with higher threshold for safety
-                sigma[ok & (np.abs(resid) > 2*sfac*thresh)] *= -1
+                sigma[ok & (np.abs(resid) > 2 * sfac * thresh)] *= -1
             else:
-                sigma[ok & (np.abs(resid) > sfac*thresh)] *= -1
+                sigma[ok & (np.abs(resid) > sfac * thresh)] *= -1
 
             # check whether any have been rejected
             ok = gfit.mask & (sigma > 0)
@@ -1146,18 +1194,282 @@ def fitGaussian(
                 # many have been, re-scale the uncertainties to
                 # reflect the actual chi**2
                 nrej = len(sigma[gfit.mask]) - nok
-                skyfe, heightfe, xfe, yfe, fwhmfe = gfit.get_epar(
-                    sfac * np.sqrt(covs)
-                )
+                skyfe, heightfe, xfe, yfe, fwhmfe = gfit.get_epar(sfac * np.sqrt(covs))
                 if not first_fit:
                     # always carry out at least 1
                     break
             first_fit = False
 
     # Make sure all regions masked off have sigma < 0
-    sigma[~gfit.mask] = - np.abs(sigma[~gfit.mask])
+    sigma[~gfit.mask] = -np.abs(sigma[~gfit.mask])
 
     # OK we are done.
+    extras = (fit, gfit.x, gfit.y, chisq, nok, nrej, len(param), nfev)
+
+    if sky is None:
+        return (
+            (0.0, heightf, xf, yf, fwhmf),
+            (-1.0, heightfe, xfe, yfe, fwhmfe),
+            extras,
+        )
+    else:
+        return (
+            (skyf, heightf, xf, yf, fwhmf),
+            (skyfe, heightfe, xfe, yfe, fwhmfe),
+            extras,
+        )
+
+
+def fitFastGaussian(
+    wind,
+    sigma,
+    sky,
+    height,
+    xcen,
+    ycen,
+    fwhm,
+    fwhm_min,
+    fwhm_fix,
+    thresh,
+    ndiv,
+    max_nfev=None,
+    ls_tol=1e-8,
+    snr_min=5.0,
+    direct_snr=True,
+):
+    """Fits the profile of one target in a Window with a symmetric 2D Gaussian
+    plus a constant using the closed-form "fast Gaussian fitting" (FGF) method
+    of Wan et al. 2018, Sensors 18, 2836
+    (https://www.mdpi.com/1424-8220/18/9/2836). The log of the (sky
+    subtracted) data is fitted with a quadratic using weighted linear least
+    squares, which needs no iteration or starting values.
+
+    Pixels must be selected by SNR because the log transform distorts the
+    noise: a pixel with signal S and noise N has ln(I) - ln(S) = ln(1 + N/S),
+    which has an error far larger than N/S when S is small. Weighting by I
+    makes the pixel errors approximately uniform, but only for pixels with
+    high SNR where ln(1 + N/S) ~ N/S. The paper therefore uses two passes: a
+    first fit to only the five brightest pixels (high SNR) gives a rough
+    model from which the SNR of every pixel is estimated, then a second fit
+    uses all pixels with SNR > `snr_min`. Much faster than
+    :func:`fitGaussian`.
+
+    By default (`direct_snr` = True) the first pass is skipped and the SNR of
+    each pixel is taken directly from the data and the supplied
+    uncertainties, i.e. (data - sky)/sigma, so a single closed-form fit is
+    made. Because bright outliers have huge leverage on the log fit, the input
+    profile is used as the model for the first rejection pass (instead of a
+    fit), so gross outliers are clipped before the first solve; later
+    passes clip against the fitted model as usual. The method is vulnerable
+    to poorly estimated `sigma`, and in simulations it needs
+    `snr_min` of about 5 or more: at 3 the selection biases the fit. Set
+    `direct_snr` = False for the paper's two-pass method.
+
+    The paper's method has no sky term, so here the sky is added by a 1D
+    golden-section search on chi**2 around the closed-form fits. The search
+    starts from the input `sky`, and is repeated, over a narrower range
+    centred on the previous value, on every pass of the rejection loop so the
+    sky tracks the pixel rejection. The routine mirrors :func:`fitGaussian`;
+    if the free-FWHM fit fails or the FWHM falls below `fwhm_min`, the fit
+    is repeated with the FWHM held fixed.
+
+    Arguments::
+
+        wind : Window
+            the Window with the data to be fitted. Ideally should contain only
+            one target, so chopping down to a small region around the target
+            of interest is usually a good idea.
+
+        sigma : np.array
+            array of uncertainties matching wind. Modified on exit. Rejected
+            points multiplied by -1
+
+        sky : float or None
+            if None the sky is taken to be zero and is not fitted; otherwise
+            the sky is fitted, with this value as the starting point of the
+            search (searched over +/- 10 times the median sigma).
+
+        height : float
+            initial peak height of profile (counts). Not used by this method
+            but kept for consistency with :func:`fitGaussian`.
+
+        xcen : float
+            approximate X value at centre of profile (unbinned absolute
+            coordinates)
+
+        ycen : float
+            approximate Y value at centre of profile (unbinned absolute
+            coordinates)
+
+        fwhm : float
+            FWHM (unbinned pixels), used if `fwhm_fix` or if the free fit
+            fails.
+
+        fwhm_min : float
+            minimum value to allow FWHM to go to (unbinned pixels).
+
+        fwhm_fix : bool
+            fix the FWHM at the value 'fwhm' during fits.
+
+        thresh : float
+            threshold in terms of RMS for rejection. The first fit is carried
+            out with 2*thresh to avoid spurious rejections.
+
+        ndiv : int
+            sub-pixellation factor used when computing the best-fit model and
+            chi**2; see :func:`fitGaussian`. The fit itself assumes the
+            profile is sampled at pixel centres.
+
+        max_nfev : int or None
+            unused; kept for consistency with :func:`fitGaussian`.
+
+        ls_tol : float or None
+            unused; kept for consistency with :func:`fitGaussian`.
+
+        snr_min : float
+            minimum SNR of pixels included in the fit (default 5).
+
+        direct_snr : bool
+            if True (default), skip the first pass and select pixels with
+            (data - sky)/sigma > `snr_min`, so a single closed-form fit is
+            made per sky value. If False use the paper's two-pass method.
+
+    Returns:: tuple of tuples
+
+        (pars, sigs, extras) exactly as for :func:`fitGaussian`. The sky
+        uncertainty is -1 if `sky` is None. It comes from the curvature of
+        chi**2 with the other parameters re-optimised, but the errors on the
+        other parameters do not include their covariance with the sky, so
+        they are somewhat underestimated. `nfev` counts the passes of the
+        fitting loop.
+
+    Raises a HipercamError if the fit fails.
+
+    """
+
+    if fwhm < fwhm_min:
+        raise HipercamError("fwhm out of range")
+
+    fix_sky = sky is None
+    gfit = Gfit(wind, sigma, ndiv, "", fwhm)
+    x = np.ascontiguousarray(gfit.x, dtype=float)
+    y = np.ascontiguousarray(gfit.y, dtype=float)
+    data = np.ascontiguousarray(wind.data, dtype=float)
+
+    skyv = 0.0 if fix_sky else float(sky)
+    sig_med = float(np.median(sigma[gfit.mask & (sigma > 0)]))
+    sky_tol = 0.02 * sig_med
+    sky_range = 10 * sig_med
+
+    def solve(sig, fwhm_try, fixed, skyc, srange):
+        ok_indices = np.flatnonzero((gfit.mask & (sig > 0)).ravel()).astype(np.int64)
+        try:
+            res = np.array(
+                _fitting_cpp.fast_gaussian_fit(
+                    x,
+                    y,
+                    data,
+                    np.ascontiguousarray(sig, dtype=float),
+                    ok_indices,
+                    skyc,
+                    fix_sky,
+                    srange,
+                    sky_tol,
+                    float(xcen),
+                    float(ycen),
+                    float(fwhm_try),
+                    fixed,
+                    float(snr_min),
+                    bool(direct_snr),
+                )
+            )
+        except RuntimeError as err:
+            raise HipercamError(str(err))
+        return res[:4], res[4:20].reshape(4, 4), res[20], res[21]
+
+    # The closed-form fit works on log(data), so bright outliers have huge
+    # leverage and the loop below could not recover from them. The first
+    # clipping pass therefore uses the input profile as its model; this
+    # replaces (rather than adds to) the first pass of the loop.
+    guess = Window(
+        wind,
+        gaussian(
+            gfit.x, gfit.y, skyv, height, xcen, ycen, fwhm, gfit.xbin, gfit.ybin, ndiv
+        ),
+    )
+    ok = gfit.mask & (sigma > 0)
+    gres = (wind.data - guess.data) / sigma
+    gscale = max(1.0, 1.4826 * np.median(np.abs(gres[ok])))
+    sigma[ok & (np.abs(gres) > 2 * gscale * thresh)] *= -1
+
+    fixed = bool(fwhm_fix)
+    fwhm_cur = fwhm
+    skyf = skyv
+    srange = sky_range
+    first_fit = True
+    nfev = 0
+    while True:
+        # the sky is re-fitted on every pass, searching about the last value
+        try:
+            par, cov, skyf, skyvar = solve(sigma, fwhm_cur, fixed, skyf, srange)
+        except HipercamError:
+            if fixed:
+                raise
+            # fall back to fixed fwhm
+            fixed, fwhm_cur = True, fwhm
+            continue
+        nfev += 1
+        srange = 0.3 * sky_range
+
+        heightf, xf, yf, fwhmf = par
+        if not np.isfinite(par).all():
+            raise HipercamError("non-finite parameters in fitFastGaussian")
+
+        if not fixed and fwhmf < fwhm_min:
+            fixed, fwhm_cur = True, fwhm_min
+            continue
+
+        if fixed:
+            fwhmf = fwhm_cur
+
+        fitdata = gaussian(
+            gfit.x, gfit.y, skyf, heightf, xf, yf, fwhmf, gfit.xbin, gfit.ybin, ndiv
+        )
+        fit = Window(wind, fitdata)
+
+        covs = np.diag(cov)
+        if (covs < 0).any():
+            raise HipercamError("Negative covariance in fitFastGaussian")
+
+        # compute chi**2 and number of OK points
+        ok = gfit.mask & (sigma > 0)
+        resid = (wind.data - fit.data) / sigma
+        chisq = (resid[ok] ** 2).sum()
+        nok1 = len(resid[ok])
+        sfac = np.sqrt(chisq / nok1)
+
+        # reject any above the defined threshold
+        if first_fit:
+            sigma[ok & (np.abs(resid) > 2 * sfac * thresh)] *= -1
+        else:
+            sigma[ok & (np.abs(resid) > sfac * thresh)] *= -1
+
+        ok = gfit.mask & (sigma > 0)
+        nok = len(sigma[ok])
+
+        if nok == nok1:
+            nrej = len(sigma[gfit.mask]) - nok
+            heightfe, xfe, yfe, fwhmfe = sfac * np.sqrt(covs)
+            skyfe = sfac * np.sqrt(skyvar) if skyvar > 0 else -1.0
+            if fixed:
+                fwhmfe = -1.0
+            if not first_fit:
+                break
+        first_fit = False
+
+    # Make sure all regions masked off have sigma < 0
+    sigma[~gfit.mask] = -np.abs(sigma[~gfit.mask])
+
     extras = (
         fit,
         gfit.x,
@@ -1165,22 +1477,15 @@ def fitGaussian(
         chisq,
         nok,
         nrej,
-        len(param),
-        nfev
+        (3 if fixed else 4) + (0 if fix_sky else 1),
+        nfev,
     )
 
-    if sky is None:
-        return (
-            (0., heightf, xf, yf, fwhmf),
-            (-1., heightfe, xfe, yfe, fwhmfe),
-            extras
-        )
-    else:
-        return (
-            (skyf, heightf, xf, yf, fwhmf),
-            (skyfe, heightfe, xfe, yfe, fwhmfe),
-            extras
-        )
+    return (
+        (skyf, heightf, xf, yf, fwhmf),
+        (-1.0 if fix_sky else skyfe, heightfe, xfe, yfe, fwhmfe),
+        extras,
+    )
 
 
 def gaussian(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv):
@@ -1299,7 +1604,9 @@ def dgaussian(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv, comp_dfwhm)
     They come in the same order as they appear in the function call.
 
     """
-    return _fitting_cpp.dgaussian(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv, comp_dfwhm)
+    return _fitting_cpp.dgaussian(
+        x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv, comp_dfwhm
+    )
 
 
 class Gfit:

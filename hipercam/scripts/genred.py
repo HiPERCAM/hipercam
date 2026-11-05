@@ -949,6 +949,12 @@ ngroup = {gsec["ngroup"]}
 # very likely need to use large aperture radii in the extraction
 # section.
 
+# An alternative to gaussian or Moffat fits is the `fast` option. This
+# uses the method of Wan et al (2018) to fit a 2D Gaussian to the image
+# in closed form with no iteration. It is much faster than the other two
+# methods, but will be less accurate for faint targets and is not suitable
+# when the PSF is undersampled.
+
 # An obscure parameter is 'fit_ndiv'. If this is made > 0, the fit
 # routine attempts to allow for pixellation by evaluating the profile
 # at multiple points within each pixel of the fit. First it will
@@ -1000,7 +1006,7 @@ search_half_width = {asec["search_half_width"]:.1f} # for initial search for obj
 search_smooth_fwhm = {asec["search_smooth_fwhm"]:.1f} # smoothing FWHM, binned pixels
 search_smooth_fft = {asec["search_smooth_fft"]} # use FFTs for smoothing, 'yes' or 'no'.
 
-fit_method = {asec["fit_method"]} # gaussian or moffat
+fit_method = {asec["fit_method"]} # gaussian, moffat or fast
 fit_beta = {asec["fit_beta"]:.1f} # Moffat exponent
 fit_beta_max = {asec["fit_beta_max"]:.1f} # max Moffat expt
 fit_fwhm = {asec["fwhm"]:.1f} # FWHM, unbinned pixels

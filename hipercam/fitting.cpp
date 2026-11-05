@@ -2,6 +2,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -1105,8 +1106,590 @@ dgaussian(py::array_t<double> x, py::array_t<double> y, double sky,
   return result;
 }
 
+namespace {
+
+// Solves the weighted linear least squares problem for the fast Gaussian
+// fitting (FGF) method of Wan et al. 2018, Sensors 18, 2836. For a symmetric
+// Gaussian, ln(I) = ln(A) - m*((x-xc)**2 + (y-yc)**2), so that
+//
+//   I*(ln(I) + m*(x**2 + y**2) + p*x + q*y + k) = 0
+//
+// with p = -2*m*xc, q = -2*m*yc and k = m*(xc**2 + yc**2) - ln(A), which is
+// linear in the unknowns. The unknowns are (m, p, q, k) or just (p, q, k) if
+// m is held fixed (npar = 4 or 3). Each equation is divided by sigma. The
+// normal matrix is returned in `cov` after inversion. Returns false if the
+// system is singular.
+//
+// Arguments: xs, ys = pixel positions relative to the approximate centre, r2 =
+// xs**2 + ys**2 (precomputed); is = sky-subtracted counts (must be > 0 for the selected pixels); ss =
+// per-pixel sigma; sel = indices of the pixels to use; fix_m / m_fixed = hold
+// m = 4 ln2 / FWHM**2 at m_fixed instead of solving for it. On return theta
+// holds the solution in the order above and cov the (npar x npar) inverse
+// normal matrix, stored with a row stride of 4.
+bool fgf_solve(const std::vector<double> &xs, const std::vector<double> &ys,
+               const std::vector<double> &r2, const std::vector<double> &is,
+               const std::vector<double> &ss,
+               const std::vector<std::size_t> &sel, bool fix_m, double m_fixed,
+               double *theta, double *cov) {
+  const int npar = fix_m ? 3 : 4;
+  // column offset of p in each row (column 0 is m when it is free)
+  const int off = fix_m ? 0 : 1;
+  if (sel.size() < static_cast<std::size_t>(npar)) {
+    return false;
+  }
+
+  // Accumulate the normal equations A^T A theta = A^T b
+  double ata[16] = {0.0};
+  double atb[4] = {0.0};
+  for (std::size_t idx : sel) {
+    const double x = xs[idx], y = ys[idx], val = is[idx], rr = r2[idx];
+    // The I factor in the linearised equation (and 1/sigma) is applied as a
+    // weight, which keeps the noise of ln(I) from dominating the fit
+    const double w = val / ss[idx];
+    double row[4];
+    if (!fix_m) {
+      row[0] = w * rr;
+    }
+    row[off] = w * x;
+    row[off + 1] = w * y;
+    row[off + 2] = w;
+    double rhs = -w * std::log(val);
+    if (fix_m) {
+      // move the known m*(x**2 + y**2) term to the right-hand side
+      rhs -= w * m_fixed * rr;
+    }
+    // A^T A is symmetric, so only accumulate the upper triangle
+    for (int i = 0; i < npar; ++i) {
+      atb[i] += row[i] * rhs;
+      for (int j = i; j < npar; ++j) {
+        ata[i * 4 + j] += row[i] * row[j];
+      }
+    }
+  }
+  for (int i = 1; i < npar; ++i) {
+    for (int j = 0; j < i; ++j) {
+      ata[i * 4 + j] = ata[j * 4 + i];
+    }
+  }
+
+  // Gauss-Jordan elimination on [ata | identity] to get solution and inverse
+  double aug[4][8] = {{0.0}};
+  for (int i = 0; i < npar; ++i) {
+    for (int j = 0; j < npar; ++j) {
+      aug[i][j] = ata[i * 4 + j];
+    }
+    aug[i][npar + i] = 1.0;
+  }
+  for (int c = 0; c < npar; ++c) {
+    // partial pivoting: pick the largest element in this column
+    int piv = c;
+    for (int r = c + 1; r < npar; ++r) {
+      if (std::fabs(aug[r][c]) > std::fabs(aug[piv][c])) {
+        piv = r;
+      }
+    }
+    if (!(std::fabs(aug[piv][c]) > 1e-300)) {
+      return false;
+    }
+    if (piv != c) {
+      for (int j = 0; j < 2 * npar; ++j) {
+        std::swap(aug[piv][j], aug[c][j]);
+      }
+    }
+    const double d = aug[c][c];
+    // normalise the pivot row, then eliminate this column from other rows
+    for (int j = 0; j < 2 * npar; ++j) {
+      aug[c][j] /= d;
+    }
+    for (int r = 0; r < npar; ++r) {
+      if (r != c) {
+        const double f = aug[r][c];
+        for (int j = 0; j < 2 * npar; ++j) {
+          aug[r][j] -= f * aug[c][j];
+        }
+      }
+    }
+  }
+  // The right half of aug is now the inverse of A^T A (the covariance);
+  // theta = inverse * A^T b
+  for (int i = 0; i < npar; ++i) {
+    double t = 0.0;
+    for (int j = 0; j < npar; ++j) {
+      t += aug[i][npar + j] * atb[j];
+      cov[i * 4 + j] = aug[i][npar + j];
+    }
+    theta[i] = t;
+  }
+  return true;
+}
+
+} // namespace
+
+namespace {
+
+// Result of one two-step closed-form fit at a fixed sky level.
+struct FgfResult {
+  bool ok = false;
+  double height = 0.0, xc = 0.0, yc = 0.0, fwhm = 0.0;
+  double cov[16] = {0.0}; // covariance of (height, xc, yc, fwhm)
+  double chisq = 0.0;     // chi**2 of the fit in the data domain, all pixels
+};
+
+// Pixel data shared by all fits, relative to the approximate centre.
+struct FgfData {
+  std::vector<double> xs, ys, r2, raw, sg; // all OK pixels; r2 = xs**2 + ys**2
+  bool fix_fwhm = false;
+  double m_fixed = 0.0;
+  double snr_min = 5.0;
+  bool direct_snr = true; // select pixels using data/sigma, single pass
+
+  // Scratch space reused between calls of fgf_at_sky to avoid reallocating
+  // inside the sky search
+  mutable std::vector<double> is;
+  mutable std::vector<std::size_t> pos, sel, sel2;
+
+  // Pixels usually lie on a regular grid, so exp(-m*(dx**2 + dy**2)) factors
+  // into a product of terms depending only on x or only on y. If there are
+  // far fewer distinct x and y values than pixels (`separable`), ux and uy
+  // hold those values and ix[j], iy[j] index the ones for pixel j, so the
+  // exponentials need only be evaluated once per distinct value.
+  bool separable = false;
+  std::vector<double> ux, uy;
+  std::vector<std::size_t> ix, iy;
+  mutable std::vector<double> ex, ey;
+
+  // Builds the lookup tables above from xs and ys
+  void build_separable() {
+    auto uniq = [](const std::vector<double> &v, std::vector<double> &u,
+                   std::vector<std::size_t> &idx) {
+      u = v;
+      std::sort(u.begin(), u.end());
+      u.erase(std::unique(u.begin(), u.end()), u.end());
+      idx.resize(v.size());
+      for (std::size_t j = 0; j < v.size(); ++j) {
+        idx[j] = std::lower_bound(u.begin(), u.end(), v[j]) - u.begin();
+      }
+    };
+    uniq(xs, ux, ix);
+    uniq(ys, uy, iy);
+    separable = 2 * (ux.size() + uy.size()) < xs.size();
+    ex.resize(ux.size());
+    ey.resize(uy.size());
+  }
+
+  // Fills ex and ey with exp(-m*(ux - xc)**2) and exp(-m*(uy - yc)**2)
+  void fill_exps(double m, double xc, double yc) const {
+    for (std::size_t i = 0; i < ux.size(); ++i) {
+      const double dx = ux[i] - xc;
+      ex[i] = std::exp(-m * dx * dx);
+    }
+    for (std::size_t i = 0; i < uy.size(); ++i) {
+      const double dy = uy[i] - yc;
+      ey[i] = std::exp(-m * dy * dy);
+    }
+  }
+};
+
+// Two-step FGF of Wan et al. 2018 at sky level `sky`. Step 1 fits the five
+// brightest pixels to estimate each pixel's SNR; step 2 fits all pixels with
+// SNR > snr_min. If d.direct_snr, the SNR is instead taken directly as
+// (data - sky)/sigma, so pixels are selected with no preliminary fit and a
+// single closed-form solve is made. The covariance is only computed if
+// `want_cov`, and chi**2 only if `want_chisq`, since neither is needed while
+// searching for the sky.
+FgfResult fgf_at_sky(const FgfData &d, double sky, bool want_cov,
+                     bool want_chisq) {
+  FgfResult res;
+  const std::size_t n = d.xs.size();
+  const int npar = d.fix_fwhm ? 3 : 4;
+
+  // Sky-subtracted counts; only positive pixels have a defined logarithm
+  std::vector<double> &is = d.is;
+  std::vector<std::size_t> &pos = d.pos, &sel = d.sel, &sel2 = d.sel2;
+  is.resize(n);
+  pos.clear();
+  sel2.clear();
+  std::size_t npos = 0;
+  if (d.direct_snr) {
+    // A single pass makes the SNR cut; the list of positive pixels is only
+    // built (by build_pos) if the fallback selection needs it.
+    for (std::size_t j = 0; j < n; ++j) {
+      const double v = d.raw[j] - sky;
+      is[j] = v;
+      if (v > 0.0) {
+        ++npos;
+        if (v > d.snr_min * d.sg[j]) {
+          sel2.push_back(j);
+        }
+      }
+    }
+  } else {
+    for (std::size_t j = 0; j < n; ++j) {
+      is[j] = d.raw[j] - sky;
+      if (is[j] > 0.0) {
+        pos.push_back(j);
+      }
+    }
+    npos = pos.size();
+  }
+  // need more pixels than parameters for the fit to mean anything
+  if (npos < static_cast<std::size_t>(npar) + 1) {
+    return res;
+  }
+
+  double theta[4], cov[16];
+  // Selection of the (up to) 5 brightest pixels, used for the preliminary fit
+  // of the two-step method and as a fallback if too few pixels pass the SNR
+  // cut. Computed only when needed because it is a sort of every pixel.
+  auto select_brightest = [&]() {
+    if (pos.empty()) {
+      for (std::size_t j = 0; j < n; ++j) {
+        if (is[j] > 0.0) {
+          pos.push_back(j);
+        }
+      }
+    }
+    sel = pos;
+    const std::size_t nbright = std::min<std::size_t>(5, sel.size());
+    std::partial_sort(
+        sel.begin(), sel.begin() + nbright, sel.end(),
+        [&](std::size_t a, std::size_t b) { return is[a] > is[b]; });
+    sel.resize(nbright);
+  };
+
+  // Converts the solved linear parameters back to (m, p, q, k)
+  auto unpack = [&](double &m, double &p, double &q, double &k) {
+    if (d.fix_fwhm) {
+      m = d.m_fixed;
+      p = theta[0];
+      q = theta[1];
+      k = theta[2];
+    } else {
+      m = theta[0];
+      p = theta[1];
+      q = theta[2];
+      k = theta[3];
+    }
+  };
+
+  double m, p, q, k;
+  if (!d.direct_snr) {
+    // Step 1: rough fit to the brightest pixels
+    select_brightest();
+    if (!fgf_solve(d.xs, d.ys, d.r2, is, d.sg, sel, d.fix_fwhm, d.m_fixed, theta,
+                   cov)) {
+      return res;
+    }
+    unpack(m, p, q, k);
+    // m <= 0 would be a rising, not a falling, profile
+    if (!(m > 0.0)) {
+      return res;
+    }
+
+    // Step 2 selection: model signal s from the rough fit; keep pixels where
+    // the signal exceeds snr_min times the residual (data - model)
+    const double lnA1 = (p * p + q * q) / (4.0 * m) - k;
+    const double xc1 = -p / (2.0 * m), yc1 = -q / (2.0 * m);
+    // exp(lnA1) must not overflow for the factored form to be safe
+    if (d.separable && lnA1 < 700.0) {
+      const double A1 = std::exp(lnA1);
+      d.fill_exps(m, xc1, yc1);
+      for (std::size_t j : pos) {
+        const double s = A1 * d.ex[d.ix[j]] * d.ey[d.iy[j]];
+        if (std::fabs(s) > d.snr_min * std::fabs(is[j] - s)) {
+          sel2.push_back(j);
+        }
+      }
+    } else {
+      for (std::size_t j : pos) {
+        const double dx = d.xs[j] - xc1, dy = d.ys[j] - yc1;
+        const double s = std::exp(lnA1 - m * (dx * dx + dy * dy));
+        if (std::fabs(s) > d.snr_min * std::fabs(is[j] - s)) {
+          sel2.push_back(j);
+        }
+      }
+    }
+  }
+  // too few pixels survived the SNR cut: fall back to the brightest pixels
+  if (sel2.size() < static_cast<std::size_t>(npar) + 1) {
+    if (d.direct_snr) {
+      select_brightest();
+    }
+    sel2 = sel;
+  }
+  // Final closed-form solve using the selected pixels
+  if (!fgf_solve(d.xs, d.ys, d.r2, is, d.sg, sel2, d.fix_fwhm, d.m_fixed, theta,
+                 cov)) {
+    return res;
+  }
+  unpack(m, p, q, k);
+  if (!(m > 0.0)) {
+    return res;
+  }
+
+  // Convert (m, p, q, k) to physical parameters: centre, amplitude (peak
+  // height above sky) and FWHM
+  const double xc = -p / (2.0 * m), yc = -q / (2.0 * m);
+  const double A = std::exp((p * p + q * q) / (4.0 * m) - k);
+  const double fw = std::sqrt(4.0 * std::log(2.0) / m);
+  if (!std::isfinite(A) || !std::isfinite(fw)) {
+    return res;
+  }
+
+  // Jacobian of (A, xc, yc, fwhm) w.r.t. the solved parameters
+  const int off = d.fix_fwhm ? 0 : 1;
+  double jac[4][4] = {{0.0}};
+  if (want_cov) {
+    if (!d.fix_fwhm) {
+      jac[0][0] = -A * (p * p + q * q) / (4.0 * m * m);
+      jac[1][0] = p / (2.0 * m * m);
+      jac[2][0] = q / (2.0 * m * m);
+      jac[3][0] = -fw / (2.0 * m);
+    }
+    jac[0][off] = A * p / (2.0 * m);
+    jac[0][off + 1] = A * q / (2.0 * m);
+    jac[0][off + 2] = -A;
+    jac[1][off] = -1.0 / (2.0 * m);
+    jac[2][off + 1] = -1.0 / (2.0 * m);
+
+    for (int a = 0; a < 4; ++a) {
+      for (int b = 0; b < 4; ++b) {
+        double s = 0.0;
+        for (int i = 0; i < npar; ++i) {
+          for (int j = 0; j < npar; ++j) {
+            s += jac[a][i] * cov[i * 4 + j] * jac[b][j];
+          }
+        }
+        res.cov[a * 4 + b] = s;
+      }
+    }
+  }
+
+  // chi**2 in the data domain over all pixels, used to fit the sky
+  double chisq = 0.0;
+  if (want_chisq) {
+    if (d.separable) {
+      d.fill_exps(m, xc, yc);
+      for (std::size_t j = 0; j < n; ++j) {
+        const double r = (is[j] - A * d.ex[d.ix[j]] * d.ey[d.iy[j]]) / d.sg[j];
+        chisq += r * r;
+      }
+    } else {
+      for (std::size_t j = 0; j < n; ++j) {
+        const double dx = d.xs[j] - xc, dy = d.ys[j] - yc;
+        const double r =
+            (is[j] - A * std::exp(-m * (dx * dx + dy * dy))) / d.sg[j];
+        chisq += r * r;
+      }
+    }
+  }
+  res.ok = true;
+  res.height = A;
+  res.xc = xc;
+  res.yc = yc;
+  res.fwhm = fw;
+  res.chisq = chisq;
+  return res;
+}
+
+} // namespace
+
+// Fast Gaussian fitting of a symmetric 2D Gaussian plus constant after Wan et
+// al. 2018, Sensors 18, 2836, extended to fit the sky. For a given sky the fit
+// is closed-form (see fgf_at_sky); if the sky is free it is found with a
+// golden-section search on the resulting chi**2 over
+// [sky - sky_range, sky + sky_range], stopping when the bracket is < sky_tol.
+// The sky variance comes from the curvature of the profile chi**2.
+//
+// Returns 4 + 16 + 2 values: fitted (height, xcen, ycen, fwhm), their 4x4
+// row-major covariance (unscaled apart from the input sigmas; ignores the
+// correlation with the sky), then the sky and its variance (-1 if the sky was
+// fixed). If fix_fwhm, the fwhm row/column of the covariance is zero.
+//
+// Arguments
+// ---------
+// x, y        : pixel coordinates of every pixel in the fit window (any
+//               shape, but x, y, data and sigma must all match). Flattened
+//               in C order, so indices in ok_indices refer to the flat array.
+// data        : debiassed counts in each pixel, including the sky.
+// sigma       : 1-sigma uncertainty of each pixel, in counts. Used to weight
+//               the fit and to select pixels by SNR.
+// ok_indices  : 1D int64 array of flat indices of the pixels to use. Allows
+//               masked/bad/saturated pixels to be left out.
+// sky         : if fix_sky, the sky level to subtract; otherwise the centre
+//               of the range searched for the best sky.
+// fix_sky     : true to hold the sky at `sky`; false to fit it.
+// sky_range   : half-width of the sky search interval (counts); only used if
+//               fix_sky is false. Must be > 0 in that case.
+// sky_tol     : stop the sky search when the bracket is narrower than this
+//               (counts); only used if fix_sky is false. Must be > 0 in that
+//               case.
+// xcen, ycen  : approximate centre of the profile, in the same coordinates as
+//               x and y. Coordinates are measured relative to this point
+//               internally for numerical stability. The fit does not need an
+//               accurate position, but it should be reasonably close.
+// fwhm        : FWHM in pixels. Held fixed if fix_fwhm, otherwise only
+//               checked to be positive (the fitted value is independent of
+//               it).
+// fix_fwhm    : true to hold the FWHM at `fwhm` and fit only the height and
+//               centre; false to fit the FWHM too.
+// snr_min     : minimum signal-to-noise for a pixel to be included in the
+//               final fit. Faint pixels have the most noisy logarithms so
+//               are excluded.
+// direct_snr  : if true, SNR = (data - sky)/sigma, which needs just a single
+//               closed-form solve. If false, the SNR is estimated from a
+//               preliminary fit to the 5 brightest pixels as in Wan et al.
+//               (two solves).
+//
+// Throws std::runtime_error if the inputs are invalid or the fit fails
+// (e.g. too few usable pixels, or a non-positive Gaussian curvature).
+std::vector<double> fast_gaussian_fit(
+    py::array_t<double> x, py::array_t<double> y, py::array_t<double> data,
+    py::array_t<double> sigma, py::array_t<std::int64_t> ok_indices,
+    double sky, bool fix_sky, double sky_range, double sky_tol, double xcen,
+    double ycen, double fwhm, bool fix_fwhm, double snr_min,
+    bool direct_snr) {
+  py::buffer_info xi = x.request(), yi = y.request(), di = data.request(),
+                  si = sigma.request(), oi = ok_indices.request();
+  check_matching_shapes({&xi, &yi, &di, &si});
+  check_ok_indices_1d(oi);
+  const std::size_t npix = static_cast<std::size_t>(xi.size);
+  const std::size_t nok = static_cast<std::size_t>(oi.shape[0]);
+  const auto *ok_ptr = static_cast<const std::int64_t *>(oi.ptr);
+  check_ok_indices_range(ok_ptr, nok, npix);
+  if (!(fwhm > 0.0)) {
+    throw std::runtime_error("fwhm must be positive");
+  }
+  if (!fix_sky && !(sky_range > 0.0 && sky_tol > 0.0)) {
+    throw std::runtime_error("sky_range and sky_tol must be positive");
+  }
+
+  const double *xp = static_cast<const double *>(xi.ptr);
+  const double *yp = static_cast<const double *>(yi.ptr);
+  const double *dp = static_cast<const double *>(di.ptr);
+  const double *sp = static_cast<const double *>(si.ptr);
+
+  // Gather the usable pixels into contiguous arrays, with positions relative
+  // to the approximate centre, and convert the FWHM to the Gaussian exponent
+  // m = 4 ln2 / FWHM**2 used when it is held fixed.
+  FgfData d;
+  d.fix_fwhm = fix_fwhm;
+  d.m_fixed = 4.0 * std::log(2.0) / (fwhm * fwhm);
+  d.snr_min = snr_min;
+  d.direct_snr = direct_snr;
+  for (std::size_t n = 0; n < nok; ++n) {
+    const std::size_t idx = static_cast<std::size_t>(ok_ptr[n]);
+    const double xr = xp[idx] - xcen, yr = yp[idx] - ycen;
+    d.xs.push_back(xr);
+    d.ys.push_back(yr);
+    d.r2.push_back(xr * xr + yr * yr);
+    d.raw.push_back(dp[idx]);
+    d.sg.push_back(std::fabs(sp[idx]));
+  }
+
+  if (!fix_sky) {
+    d.build_separable(); // only pays off over the many fits of a sky search
+  }
+
+  double best = sky;
+  double sky_var = -1.0;
+  FgfResult res;
+  if (fix_sky) {
+    // Sky known: a single closed-form fit does everything
+    res = fgf_at_sky(d, sky, true, false);
+  } else {
+    // Sky free: minimise the chi**2 of the closed-form fit over the sky
+    // large finite sentinel: infinities are unsafe under -ffast-math
+    const double kInfeasible = 1.0e300;
+    auto f = [&](double c) {
+      FgfResult r = fgf_at_sky(d, c, false, true);
+      return r.ok ? r.chisq : kInfeasible;
+    };
+    // Coarse scan to bracket the minimum among feasible skies, because the
+    // pixel selection changes with the sky and f can be infinite or jumpy.
+    const int ngrid = 21;
+    const double step = 2.0 * sky_range / (ngrid - 1);
+    int ibest = -1;
+    double fbest = kInfeasible;
+    for (int i = 0; i < ngrid; ++i) {
+      const double fi = f(sky - sky_range + i * step);
+      if (fi < fbest) {
+        fbest = fi;
+        ibest = i;
+      }
+    }
+    if (ibest < 0) {
+      throw std::runtime_error("fast Gaussian fit failed");
+    }
+
+    // Golden-section refinement within the grid cells either side of the
+    // best grid point. gr is the inverse golden ratio; c1 < c2 are the two
+    // interior probe points of the bracket [a, b].
+    const double gr = 0.5 * (std::sqrt(5.0) - 1.0);
+    double a = sky - sky_range + std::max(ibest - 1, 0) * step;
+    double b = sky - sky_range + std::min(ibest + 1, ngrid - 1) * step;
+    double c1 = b - gr * (b - a), c2 = a + gr * (b - a);
+    double f1 = f(c1), f2 = f(c2);
+    const double xbest = sky - sky_range + ibest * step;
+    for (int it = 0; it < 100 && (b - a) > sky_tol; ++it) {
+      // if both are infeasible, move towards the best grid point
+      const bool left = (f1 >= kInfeasible && f2 >= kInfeasible) ? (xbest < c2) : f1 < f2;
+      if (left) {
+        // minimum lies in [a, c2]: shrink from the right, reusing c1
+        b = c2;
+        c2 = c1;
+        f2 = f1;
+        c1 = b - gr * (b - a);
+        f1 = f(c1);
+      } else {
+        // minimum lies in [c1, b]: shrink from the left, reusing c2
+        a = c1;
+        c1 = c2;
+        f1 = f2;
+        c2 = a + gr * (b - a);
+        f2 = f(c2);
+      }
+    }
+    best = 0.5 * (a + b);
+    res = fgf_at_sky(d, best, true, true);
+
+    // Curvature of the profile chi**2 for the sky variance, from a central
+    // second difference. For chi**2 = chi2_min + (sky - best)**2/var the
+    // curvature is 2/var, hence var = 2/curv. Left at -1 if not measurable.
+    const double h = std::max(sky_tol, 0.05 * sky_range);
+    const double fp = f(best + h), fm = f(best - h);
+    const double curv = (fp - 2.0 * res.chisq + fm) / (h * h);
+    if (fp < kInfeasible && fm < kInfeasible && curv > 0.0) {
+      sky_var = 2.0 / curv;
+    }
+  }
+  if (!res.ok) {
+    throw std::runtime_error("fast Gaussian fit failed");
+  }
+
+  // Pack the output: [0-3] height, xcen, ycen, fwhm; [4-19] covariance;
+  // [20] sky; [21] sky variance. Positions are shifted back to input coords.
+  std::vector<double> result(22, 0.0);
+  result[0] = res.height;
+  result[1] = xcen + res.xc;
+  result[2] = ycen + res.yc;
+  result[3] = res.fwhm;
+  std::copy(res.cov, res.cov + 16, result.begin() + 4);
+  result[20] = best;
+  result[21] = fix_sky ? -1.0 : sky_var;
+  return result;
+}
+
 PYBIND11_MODULE(_fitting_cpp, m) {
   m.doc() = "C++ implementation of profile fitting functions";
+
+  m.def("fast_gaussian_fit", &fast_gaussian_fit,
+        "Closed-form fast Gaussian fit (Wan et al. 2018, Sensors 18, 2836)",
+        py::arg("x"), py::arg("y"), py::arg("data"), py::arg("sigma"),
+        py::arg("ok_indices"), py::arg("sky"), py::arg("fix_sky"),
+        py::arg("sky_range"), py::arg("sky_tol"), py::arg("xcen"),
+        py::arg("ycen"), py::arg("fwhm"), py::arg("fix_fwhm"),
+        py::arg("snr_min") = 5.0, py::arg("direct_snr") = true);
 
   m.def("moffat", &moffat, "C++ implementation of Moffat profile", py::arg("x"),
         py::arg("y"), py::arg("sky"), py::arg("height"), py::arg("xcen"),

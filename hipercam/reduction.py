@@ -2,9 +2,9 @@
 This contains code used in common by the script reduce.py
 """
 
-from collections import OrderedDict
 import sys
 import warnings
+from collections import OrderedDict
 
 import numpy as np
 from trm.pgplot import (
@@ -35,6 +35,10 @@ from hipercam import fitting, utils
 from hipercam.ccd import crop_calib_frame_to
 
 NaN = float("NaN")
+
+# Fast Gaussian fits with a fitted peak (above sky) below this many counts
+# are flagged as unreliable
+FAST_GAUSS_MIN_PEAK = 200.0
 
 
 class Rfile(OrderedDict):
@@ -175,6 +179,8 @@ class Rfile(OrderedDict):
             rfile.method = "m"
         elif apsec["fit_method"] == "gaussian":
             rfile.method = "g"
+        elif apsec["fit_method"] == "fast":
+            rfile.method = "f"
         else:
             raise hcam.HipercamError(
                 "apertures.fit_method = {:s} not recognised".format(apsec["fit_method"])
@@ -1632,6 +1638,7 @@ def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
                 "betae": NaN,
                 "dx": 0.0,
                 "dy": 0.0,
+                "low_peak": False,
             }
         return True
 
@@ -1785,6 +1792,7 @@ def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
                         "betae": ebeta,
                         "dx": dx,
                         "dy": dy,
+                        "low_peak": rfile.method == "f" and height < FAST_GAUSS_MIN_PEAK,
                     }
 
                     if efwhm > 0.0:
@@ -1826,6 +1834,7 @@ def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
                 "betae": NaN,
                 "dx": 0.0,
                 "dy": 0.0,
+                "low_peak": False,
             }
 
         store["mfwhm"] = NaN
@@ -1858,6 +1867,7 @@ def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
                                 "betae": NaN,
                                 "dx": 0.0,
                                 "dy": 0.0,
+                                "low_peak": False,
                             }
 
                         store["mfwhm"] = NaN
@@ -1911,6 +1921,7 @@ def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
                         "betae": NaN,
                         "dx": 0.0,
                         "dy": 0.0,
+                        "low_peak": False,
                     }
             store["mfwhm"] = NaN
             store["mbeta"] = NaN
@@ -2088,6 +2099,7 @@ def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
                         "betae": ebeta,
                         "dx": dx,
                         "dy": dy,
+                        "low_peak": rfile.method == "f" and height < FAST_GAUSS_MIN_PEAK,
                     }
 
                     if ref:
@@ -2142,6 +2154,7 @@ def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
                     "betae": NaN,
                     "dx": xshift,
                     "dy": yshift,
+                    "low_peak": False,
                 }
 
     # finally the linked ones
@@ -2166,6 +2179,7 @@ def moveApers(cnam, ccd, bccd, read, gain, ccdwin, rfile, store):
                 "betae": NaN,
                 "dx": store[aper.link]["dx"],
                 "dy": store[aper.link]["dy"],
+                "low_peak": store[aper.link]["low_peak"],
             }
 
     # update mfwhm and mbeta if we can. If not, set them to -1 as a flag down
@@ -2692,6 +2706,8 @@ def extractFlux(cnam, ccd, bccd, rccd, read, gain, ccdwin, rfile, store):
                 )
 
             info = store[apnam]
+            if info["low_peak"]:
+                flag |= hcam.FAST_GAUSS_LOW_PEAK
 
             results[apnam] = {
                 "x": aper.x,
@@ -3763,7 +3779,8 @@ class LogWriter:
 
     def write_header(self):
         # first, a general description
-        self.log.write("""#
+        self.log.write(
+            """#
 # This is a logfile produced by the HiPERCAM pipeline command 'reduce'. It consists
 # of one line per reduced CCD per exposure. Each line contains all the information
 # from all apertures defined for the CCD. The column names are defined just before
@@ -3774,7 +3791,8 @@ class LogWriter:
 # of the HiPERCAM reduction software, and was generated using the following
 # command-line inputs to 'reduce':
 #
-""".format(hipercam_version=self.hipercam_version))
+""".format(hipercam_version=self.hipercam_version)
+        )
 
         # second, list the command-line inputs to the logfile
         for line in self.plist:
