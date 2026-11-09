@@ -74,8 +74,8 @@ def ltrans(args=None):
             exs, eys = np.sqrt(table["errx2"]), np.sqrt(table["erry2"])
 
             fig = plt.figure()
-            axes = fig.add_subplot(111)
-            axes.set_aspect("equal")
+            ax = fig.add_subplot(111)
+            ax.set_aspect("equal")
             plt.errorbar(xs, ys, eys, exs, ".")
             plt.title('Raw positions from all frames')
             plt.show()
@@ -110,8 +110,8 @@ def ltrans(args=None):
                     yts[ok] = st * (xs[ok] - xoff) + ct * (ys[ok] - yoff)
 
             fig = plt.figure()
-            axes = fig.add_subplot(111)
-            axes.set_aspect("equal")
+            ax = fig.add_subplot(111)
+            ax.set_aspect("equal")
             plt.errorbar(xts, yts, eys, exs, ".")
             plt.title('Corrected positions from all frames')
             plt.show()

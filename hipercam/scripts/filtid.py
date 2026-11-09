@@ -310,9 +310,9 @@ def filtid(args=None):
 
     print()
     if plot:
-        fig,axes = plt.subplots(len(ccds),1,sharex=True)
+        fig,axs = plt.subplots(len(ccds),1,sharex=True)
 
-        for cnam, ax in zip(ccds, axes):
+        for cnam, ax in zip(ccds, axs):
             if cnam in xdata:
                 xds = xdata[cnam]
                 ratios = ydata[cnam] / xds
@@ -331,4 +331,3 @@ def filtid(args=None):
                 ratios = ydata[cnam] / xdata[cnam]
                 mratio = ratios.mean()
                 print(f'{cnam}-vs-{ccdref} = {mratio:.4f}')
-

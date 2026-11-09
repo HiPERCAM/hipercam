@@ -376,7 +376,7 @@ def psfaper(args=None):
         )
 
     # create the plot
-    fig, caxes = hcam.mpl.plot_frame(
+    fig, axs = hcam.mpl.plot_frame(
         mccd=mccd,
         cnams=ccds,
         ncols=nx,
@@ -391,9 +391,9 @@ def psfaper(args=None):
 
     # add any existing apertures to the plot, storing a reference to the plot objects
     pobjs = {}
-    for cnam, axes in caxes.items():
+    for cnam, ax in axs.items():
         if cnam in mccdaper:
-            pobjs[cnam] = hcam.mpl.pCcdAper(axes, mccdaper[cnam])
+            pobjs[cnam] = hcam.mpl.pCcdAper(ax, mccdaper[cnam])
         else:
             # create in an empty group to be added to later
             mccdaper[cnam] = hcam.CcdAper()
@@ -427,7 +427,7 @@ close enough.
         mccd,
         mccdaper,
         fig,
-        caxes,
+        axs,
         pobjs,
         aper,
         method,
@@ -462,7 +462,7 @@ class PickRef:
         mccd,
         mccdaper,
         fig,
-        caxes,
+        axs,
         pobjs,
         apernam,
         method,
@@ -488,8 +488,8 @@ class PickRef:
 
         # figure and axes
         self.fig = fig
-        self.caxes = caxes
-        self.axnams = {axes: cnam for cnam, axes in caxes.items()}  # reverse for events
+        self.axs = axs
+        self.axnams = {ax: cnam for cnam, ax in axs.items()}  # reverse for events
         self.pobjs = pobjs
 
         # output file
@@ -519,13 +519,13 @@ class PickRef:
 
     def _keyPressEvent(self, event):
         # shortcuts
-        key, x, y, axes = event.key, event.xdata, event.ydata, event.inaxes
-        if axes is not None:
+        key, x, y, ax = event.key, event.xdata, event.ydata, event.inaxes
+        if ax is not None:
             # store information in attributes accessible to all methods, for
             # later access: name, the key hit, the axes instance, x, y
-            self._cnam = self.axnams[axes]
+            self._cnam = self.axnams[ax]
             self._key = key
-            self._axes = axes
+            self._ax = ax
             self._x = x
             self._y = y
 
@@ -539,12 +539,12 @@ class PickRef:
                 self._find_stars_and_quit()
 
     def _unlinkaxes(self):
-        for axes in self.caxes.values():
-            shared_x = axes.get_shared_x_axes()
-            shared_y = axes.get_shared_y_axes()
-            for child in shared_x.get_siblings(axes):
+        for ax in self.axs.values():
+            shared_x = ax.get_shared_x_axes()
+            shared_y = ax.get_shared_y_axes()
+            for child in shared_x.get_siblings(ax):
                 shared_x.remove(child)
-            for child in shared_y.get_siblings(axes):
+            for child in shared_y.get_siblings(ax):
                 shared_y.remove(child)
 
     def _add(self):
@@ -637,7 +637,7 @@ class PickRef:
 
         # add aperture to the plot, store plot objects
         self.pobjs[self._cnam][self._label] = hcam.mpl.pAper(
-            self._axes, aper, self._label
+            self._ax, aper, self._label
         )
 
         # make sure it appears

@@ -862,7 +862,7 @@ class Tseries:
 
     def mplot(
         self,
-        axes,
+        ax,
         color="b",
         fmt=".",
         bitmask=None,
@@ -879,7 +879,7 @@ class Tseries:
 
         Arguments::
 
-           axes : Axes
+           ax : :class:`matplotlib.axes.Axes`
               the axis instance to plot to. Can just be matplotlib.pyplot
 
            color : matplotlib colour
@@ -948,22 +948,22 @@ class Tseries:
             ye = self.ye[plot]
             kwargs["fmt"] = fmt
             kwargs["capsize"] = capsize
-            axes.errorbar(t, y, ye, te, **kwargs)
+            ax.errorbar(t, y, ye, te, **kwargs)
 
         elif errx:
             te = self.te[plot] / 2.0
             kwargs["fmt"] = fmt
             kwargs["capsize"] = capsize
-            axes.errorbar(t, y, xerr=te, **kwargs)
+            ax.errorbar(t, y, xerr=te, **kwargs)
 
         elif erry:
             ye = self.ye[plot]
             kwargs["fmt"] = fmt
             kwargs["capsize"] = capsize
-            axes.errorbar(t, y, ye, **kwargs)
+            ax.errorbar(t, y, ye, **kwargs)
 
         else:
-            axes.plot(t, y, fmt, **kwargs)
+            ax.plot(t, y, fmt, **kwargs)
 
     def __repr__(self):
         return f"Tseries(t={self.t!r}, y={self.y!r}, ye={self.ye!r}, bmask={self.bmask!r}, te={self.te!r}"
@@ -2008,7 +2008,7 @@ Data written by hipercam.hlog.Tseries.write.
 
 
 def scatter(
-    axes,
+    ax,
     xts,
     yts,
     color="b",
@@ -2025,7 +2025,7 @@ def scatter(
 
     Arguments::
 
-         axes : Axes
+         ax : :class:`matplotlib.axes.Axes`
             An Axes instance to plot to
 
          xts : Tseries
@@ -2084,19 +2084,19 @@ def scatter(
         ye = yts.ye[plot]
         kwargs["fmt"] = fmt
         kwargs["capsize"] = capsize
-        axes.errorbar(x, y, ye, xe, **kwargs)
+        ax.errorbar(x, y, ye, xe, **kwargs)
 
     elif errx:
         xe = xts.ye[plot]
         kwargs["fmt"] = fmt
         kwargs["capsize"] = capsize
-        axes.errorbar(x, y, xerr=xe, **kwargs)
+        ax.errorbar(x, y, xerr=xe, **kwargs)
 
     elif erry:
         ye = yts.ye[plot]
         kwargs["fmt"] = fmt
         kwargs["capsize"] = capsize
-        axes.errorbar(x, y, ye, **kwargs)
+        ax.errorbar(x, y, ye, **kwargs)
 
     else:
-        axes.plot(x, y, fmt, **kwargs)
+        ax.plot(x, y, fmt, **kwargs)

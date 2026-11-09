@@ -590,13 +590,13 @@ class CCD(Agroup):
             )
         )
 
-    def plot(self, axes, **kwargs):
-        """Plots the CCD on the given matplotlib axes.
+    def plot(self, ax, **kwargs):
+        """Plots the CCD on the given `matplotlib.axes.Axes` object.
 
         See :func:`hipercam.mpl.pCcd` for details of the arguments.
 
         """
-        return pCcd(axes, self, **kwargs)
+        return pCcd(ax, self, **kwargs)
 
 
 class MCCD(Agroup):

@@ -160,7 +160,7 @@ def plog(args=None):
     fig = plt.figure()
     if width > 0 and height > 0:
         fig.set_size_inches(width, height)
-    axes = fig.add_subplot(1, 1, 1)
+    ax = fig.add_subplot(1, 1, 1)
 
     dat1 = hlog.tseries(ccd1, aper1, pname1)
 
@@ -171,46 +171,46 @@ def plog(args=None):
 
     if ccd2 == "!":
         # just one
-        dat1.mplot(axes, bitmask=bitmask)
-        axes.set_xlabel("Time [MJD]")
-        axes.set_ylabel(lab1)
+        dat1.mplot(ax, bitmask=bitmask)
+        ax.set_xlabel("Time [MJD]")
+        ax.set_ylabel(lab1)
 
     else:
         # two apertures
         dat2 = hlog.tseries(ccd2, aper2, pname2)
         if scheme == "b":
             # plot both together
-            dat1.mplot(axes, "b", bitmask=bitmask)
-            dat2.mplot(axes, "r", bitmask=bitmask)
-            axes.set_xlabel("Time [MJD]")
-            axes.set_ylabel(f"{lab1} & {lab2}")
+            dat1.mplot(ax, "b", bitmask=bitmask)
+            dat2.mplot(ax, "r", bitmask=bitmask)
+            ax.set_xlabel("Time [MJD]")
+            ax.set_ylabel(f"{lab1} & {lab2}")
 
         elif scheme == "r":
             # ratio
             ratio = dat1 / dat2
-            ratio.mplot(axes, "b", bitmask=bitmask)
-            axes.set_xlabel("Time [MJD]")
-            axes.set_ylabel(f"{lab1} / {lab2}")
+            ratio.mplot(ax, "b", bitmask=bitmask)
+            ax.set_xlabel("Time [MJD]")
+            ax.set_ylabel(f"{lab1} / {lab2}")
 
         elif scheme == "d":
             # difference
             diff = dat1 - dat2
-            diff.mplot(axes, "b", bitmask=bitmask)
-            axes.set_xlabel("Time [MJD]")
-            axes.set_ylabel(f"{lab1} - {lab2}")
+            diff.mplot(ax, "b", bitmask=bitmask)
+            ax.set_xlabel("Time [MJD]")
+            ax.set_ylabel(f"{lab1} - {lab2}")
 
         elif scheme == "s":
             # scatter plot
             mask1 = dat1.get_mask(bitmask=bitmask, invert=True)
             mask2 = dat1.get_mask(bitmask=bitmask, invert=True)
             ok = ~mask1 & ~mask2
-            axes.errorbar(
+            ax.errorbar(
                 dat1.y[ok], dat2.y[ok], dat2.ye[ok], dat1.ye[ok], ".", capsize=0
             )
-            axes.set_xlabel(lab1)
-            axes.set_ylabel(lab2)
+            ax.set_xlabel(lab1)
+            ax.set_ylabel(lab2)
 
-    axes.set_title(title)
+    ax.set_title(title)
 
     if device == "term":
         plt.show()

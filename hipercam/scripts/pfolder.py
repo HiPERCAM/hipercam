@@ -90,18 +90,18 @@ def pfolder(args=None):
     fig = plt.figure()
     if width > 0 and height > 0:
         fig.set_size_inches(width, height)
-    axes = fig.add_subplot(1, 1, 1)
+    ax = fig.add_subplot(1, 1, 1)
 
     # load counts data, fold, plot two cycles
     data = hlog.tseries(ccd, aper, "counts")
     data.t = np.mod(86400.0 * (data.t - t0) / period, 1)
-    data.mplot(axes, mask=hcam.ALL_OK)
+    data.mplot(ax, mask=hcam.ALL_OK)
     data.t += 1
-    data.mplot(axes, mask=hcam.ALL_OK)
+    data.mplot(ax, mask=hcam.ALL_OK)
 
-    axes.set_xlabel("Phase [cycles]")
-    axes.set_ylabel("Counts")
-    axes.set_title("{:s}, CCD {:s}, Aperture {:s}".format(log, ccd, aper))
+    ax.set_xlabel("Phase [cycles]")
+    ax.set_ylabel("Counts")
+    ax.set_title("{:s}, CCD {:s}, Aperture {:s}".format(log, ccd, aper))
 
     if device == "term":
         plt.show()

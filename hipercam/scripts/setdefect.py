@@ -266,7 +266,7 @@ def setdefect(args=None):
         xlo, xhi, ylo, yhi = 0, nxmax + 1, 0, nymax + 1
 
     # create the plot
-    fig, caxes = hcam.mpl.plot_frame(
+    fig, axs = hcam.mpl.plot_frame(
         mccd=mccd,
         cnams=ccds,
         ncols=nx,
@@ -281,9 +281,9 @@ def setdefect(args=None):
 
     # add any existing defects to the plot, storing a reference to the plot objects
     pobjs = {}
-    for cnam, axes in caxes.items():
+    for cnam, ax in axs.items():
         if cnam in mccd_dfct:
-            pobjs[cnam] = hcam.mpl.pCcdDefect(axes, mccd_dfct[cnam])
+            pobjs[cnam] = hcam.mpl.pCcdDefect(ax, mccd_dfct[cnam])
         else:
             # create in an empty group to be added to later
             mccd_dfct[cnam] = defect.CcdDefect()
@@ -311,7 +311,7 @@ def setdefect(args=None):
         mccd,
         mccd_dfct,
         fig,
-        caxes,
+        axs,
         pobjs,
         dfct,
         ffield,
@@ -333,7 +333,7 @@ class PickDefect:
         mccd,
         mccd_dfct,
         fig,
-        caxes,
+        axs,
         pobjs,
         dfctnam,
         ffield,
@@ -345,8 +345,8 @@ class PickDefect:
 
         # figure and axes
         self.fig = fig
-        self.caxes = caxes
-        self.axnams = {axes: cnam for cnam, axes in caxes.items()}  # reverse for events
+        self.axs = axs
+        self.axnams = {ax: cnam for cnam, ax in axs.items()}  # reverse for events
         self.pobjs = pobjs
 
         # output file
@@ -408,7 +408,7 @@ class PickDefect:
             if event.inaxes is not None:
                 self._cnam = self.axnams[event.inaxes]
                 self._key = event.key
-                self._axes = event.inaxes
+                self._ax = event.inaxes
                 self._x = event.xdata
                 self._y = event.ydata
                 self._line()
@@ -417,20 +417,20 @@ class PickDefect:
             # standard mode action
             self._standard(event.key, event.xdata, event.ydata, event.inaxes)
 
-    def _standard(self, key, x, y, axes):
+    def _standard(self, key, x, y, ax):
         """Carries out the work needed when we are in the standard mode. Just pass
         through the value of the key pressed, the associated x, y position and
         the axes instance (all from the event) and this will handle the rest.
 
         """
 
-        if axes is not None:
+        if ax is not None:
 
             # store information in attributes accessible to all methods, for
             # later access: name, the key hit, the axes instance, x, y
-            self._cnam = self.axnams[axes]
+            self._cnam = self.axnams[ax]
             self._key = key
-            self._axes = axes
+            self._ax = ax
             self._x = x
             self._y = y
 
@@ -580,7 +580,7 @@ close enough (< 10 pixels)
             self.mccd_dfct[self._cnam][self._label] = dfct
 
             # add defect to the plot, store plot objects
-            self.pobjs[self._cnam][self._label] = hcam.mpl.pDefect(self._axes, dfct)
+            self.pobjs[self._cnam][self._label] = hcam.mpl.pDefect(self._ax, dfct)
 
             # make sure it appears
             plt.draw()
@@ -660,7 +660,7 @@ close enough (< 10 pixels)
 
             # add defect to the plot, store plot objects
             self.pobjs[self._cnam][self._label] = \
-                hcam.mpl.pDefect(self._axes, dfct)
+                hcam.mpl.pDefect(self._ax, dfct)
 
             # make sure it appears
             plt.draw()

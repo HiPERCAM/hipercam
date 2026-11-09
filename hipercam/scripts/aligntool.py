@@ -636,8 +636,8 @@ class ImageManager(hcam.mpl.AnimationManager):
 
         """
         # create empty figure and axes
-        self.fig, self.axes = hcam.mpl.create_figure(
-            cnams = ['reference', 'data'],
+        self.fig, self.axs = hcam.mpl.create_figure(
+            cnams = ccd_data.keys(),
             ncols=1,
             region=region,
             title="CCD display",
@@ -655,7 +655,7 @@ class ImageManager(hcam.mpl.AnimationManager):
         self.cmap = cmap
 
         # create and update the artists
-        self.artists = {axnam: None for axnam in self.axes}
+        self.artists = {cnam: None for cnam in self.axs}
         self.update(ccd_data)
 
         # adjust the layout to prevent overlap
@@ -664,13 +664,13 @@ class ImageManager(hcam.mpl.AnimationManager):
 
     def draw_artists(self):
         """Draw all of the animated artists."""
-        for cnam in self.axes:
+        for cnam in self.axs:
             # Draw the axes
-            self.fig.draw_artist(self.axes[cnam])
+            self.fig.draw_artist(self.axs[cnam])
 
             # Draw the artists for this CCD, if they exist
             if self.artists[cnam] is not None:
-                # 'ccd' has values which are all lists of artists
+                # pCCD returns lists of artists
                 for artists in self.artists[cnam].values():
                     for artist in artists:
                         self.fig.draw_artist(artist)
@@ -701,7 +701,7 @@ class ImageManager(hcam.mpl.AnimationManager):
                 # if old_artists is not None they will be updated and returned,
                 # otherwise new artists will be created
                 new_artists[cnam] = hcam.mpl.pCcd(
-                    axes=self.axes[cnam],
+                    ax=self.axs[cnam],
                     ccd=ccd_data[cnam],
                     vmin=vmin,
                     vmax=vmax,
@@ -724,7 +724,7 @@ class ImageManager(hcam.mpl.AnimationManager):
         """Returns the current intensity limits for the specified CCD."""
         if self.artists[cnam] is None:
             return None
-        imgs = self.axes[cnam].get_images()
+        imgs = self.axs[cnam].get_images()
         return imgs[0].get_clim()  # for the first window, but should be the same
 
 
@@ -755,32 +755,32 @@ class FwhmManager(hcam.mpl.AnimationManager):
         rect_pos = [self.left, self.bottom, self.width, self.height]
         rect_corr = [self.left, self.bottom_h + 0.1, self.width, 0.1]
 
-        self.axes = {}
-        self.axes['im'] = self.fig.add_axes(rect_im, animated=True)
-        self.axes['x'] = self.fig.add_axes(rect_xcut, animated=True)
-        self.axes['y'] = self.fig.add_axes(rect_ycut, animated=True)
-        self.axes['pos'] = self.fig.add_axes(
-            rect_pos, sharex=self.axes['im'], sharey=self.axes['im'], animated=True
+        self.axs = {}
+        self.axs['im'] = self.fig.add_axes(rect_im, animated=True)
+        self.axs['x'] = self.fig.add_axes(rect_xcut, animated=True)
+        self.axs['y'] = self.fig.add_axes(rect_ycut, animated=True)
+        self.axs['pos'] = self.fig.add_axes(
+            rect_pos, sharex=self.axs['im'], sharey=self.axs['im'], animated=True
         )
-        self.axes['corr'] = self.fig.add_axes(rect_corr, animated=True)
+        self.axs['corr'] = self.fig.add_axes(rect_corr, animated=True)
 
         # params
         self.fix_fwhm_scale = fix_fwhm_scale
         self.bins = bins
 
         # plot formatting
-        self.axes['y'].yaxis.set_major_formatter(NullFormatter())
-        self.axes['x'].xaxis.set_major_formatter(NullFormatter())
-        self.axes['x'].yaxis.set_label_position("right")
-        self.axes['x'].yaxis.tick_right()
-        self.axes['pos'].set_xlabel("x")
-        self.axes['pos'].set_ylabel("y")
-        self.axes['im'].set_xlabel("x")
-        self.axes['x'].set_ylabel("FWHM")
-        self.axes['y'].set_xlabel("FWHM")
+        self.axs['y'].yaxis.set_major_formatter(NullFormatter())
+        self.axs['x'].xaxis.set_major_formatter(NullFormatter())
+        self.axs['x'].yaxis.set_label_position("right")
+        self.axs['x'].yaxis.tick_right()
+        self.axs['pos'].set_xlabel("x")
+        self.axs['pos'].set_ylabel("y")
+        self.axs['im'].set_xlabel("x")
+        self.axs['x'].set_ylabel("FWHM")
+        self.axs['y'].set_xlabel("FWHM")
         if self.fix_fwhm_scale:
-            self.axes['y'].set_xlim(1.9, 2.8)
-            self.axes['x'].set_ylim(1.9, 2.8)
+            self.axs['y'].set_xlim(1.9, 2.8)
+            self.axs['x'].set_ylim(1.9, 2.8)
 
         # create and update the artists
         self.artists = {}
@@ -789,7 +789,7 @@ class FwhmManager(hcam.mpl.AnimationManager):
     def draw_artists(self):
         """Draw all of the animated artists."""
         # Draw the axes
-        for ax in self.axes.values():
+        for ax in self.axs.values():
             self.fig.draw_artist(ax)
 
             # We also need to manually rescale the axes when animating
@@ -821,8 +821,8 @@ class FwhmManager(hcam.mpl.AnimationManager):
 
         # plot the FWHM as a function of position and flux
         if self.artists.get('x') is None:
-            self.artists['x'] = self.axes['x'].plot(xpos, fwhm, "r.", animated=True)[0]
-            self.artists['y'] = self.axes['y'].plot(fwhm, ypos, "r.", animated=True)[0]
+            self.artists['x'] = self.axs['x'].plot(xpos, fwhm, "r.", animated=True)[0]
+            self.artists['y'] = self.axs['y'].plot(fwhm, ypos, "r.", animated=True)[0]
         else:
             self.artists['x'].set_data(xpos, fwhm)
             self.artists['y'].set_data(fwhm, ypos)
@@ -835,10 +835,10 @@ class FwhmManager(hcam.mpl.AnimationManager):
 
             # plot the corrected FWHM as a function of position and flux
             if self.artists.get('x_corr') is None:
-                self.artists['x_corr'] = self.axes['x'].plot(
+                self.artists['x_corr'] = self.axs['x'].plot(
                     xpos, fwhm_prime, "b+", animated=True
                 )[0]
-                self.artists['y_corr'] = self.axes['y'].plot(
+                self.artists['y_corr'] = self.axs['y'].plot(
                     fwhm_prime, ypos, "b+", animated=True
                 )[0]
             else:
@@ -848,10 +848,10 @@ class FwhmManager(hcam.mpl.AnimationManager):
             # plot the correlation between flux and spot fwhm
             idx = np.argsort(peak)
             if self.artists.get('corr') is None:
-                self.artists['corr'] = self.axes['corr'].plot(
+                self.artists['corr'] = self.axs['corr'].plot(
                     peak, fwhm, "r.", animated=True
                 )[0]
-                self.artists['corr_f'] = self.axes['corr'].plot(
+                self.artists['corr_f'] = self.axs['corr'].plot(
                     peak[idx], f(peak[idx]), "b--", animated=True
                 )[0]
             else:
@@ -865,7 +865,7 @@ class FwhmManager(hcam.mpl.AnimationManager):
             func = interpolate.Rbf(xpos, ypos, fwhm_prime, function="quintic")
             image = func(xx, yy)
             if self.artists.get('im') is None:
-                self.artists['im'] = self.axes['im'].pcolormesh(
+                self.artists['im'] = self.axs['im'].pcolormesh(
                     xx, yy, image, cmap="magma", animated=True
                 )
             else:
@@ -877,10 +877,10 @@ class FwhmManager(hcam.mpl.AnimationManager):
 
         # plot the positions of the spots in the data and reference images
         if self.artists.get('pos') is None:
-            self.artists['pos'] = self.axes['pos'].plot(
+            self.artists['pos'] = self.axs['pos'].plot(
                 xpos, ypos, "r.", animated=True
             )[0]
-            self.artists['pos_ref'] = self.axes['pos'].plot(
+            self.artists['pos_ref'] = self.axs['pos'].plot(
                 xref, yref, "b+", alpha=0.5, animated=True
             )[0]
         else:
@@ -893,7 +893,7 @@ class FwhmManager(hcam.mpl.AnimationManager):
         textstr = f"Θ = {theta:.2f}; xoff={xoff:.1f}, yoff={yoff:.1f}"
         props = dict(boxstyle="round", facecolor="wheat", alpha=0.5)
         if self.artists.get('pos_text') is None:
-            self.artists['pos_text'] = self.axes['pos'].text(
+            self.artists['pos_text'] = self.axs['pos'].text(
                 self.left,
                 1.02,
                 textstr,
@@ -901,7 +901,7 @@ class FwhmManager(hcam.mpl.AnimationManager):
                 verticalalignment="bottom",
                 bbox=props,
                 fontsize=10,
-                transform=self.axes['pos'].transAxes,
+                transform=self.axs['pos'].transAxes,
                 animated=True
             )
         else:

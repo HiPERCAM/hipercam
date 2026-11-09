@@ -329,7 +329,7 @@ def hplot(args=None):
         thresh = cl.get_value("thresh", "number of RMS to reject at", 4.0)
 
     # create the plot
-    fig, caxes = hcam.mpl.plot_frame(
+    fig, axs = hcam.mpl.plot_frame(
         mccd=mccd,
         cnams=ccds,
         ncols=nx,
@@ -343,8 +343,8 @@ def hplot(args=None):
     )
 
     # print the plot ranges for each CCD
-    for cnam in caxes:
-        imgs = caxes[cnam].get_images()
+    for cnam in axs:
+        imgs = axs[cnam].get_images()
         vmin, vmax = imgs[0].get_clim()  # the first window, but should all be the same
         print(f"CCD = {cnam}, plot range = {vmin} to {vmax}")
 
@@ -371,7 +371,7 @@ def hplot(args=None):
     picker = PickProfit(
         mccd,
         fig,
-        caxes,
+        axs,
         shbox,
         fwhm,
         beta,
@@ -400,7 +400,7 @@ class PickProfit:
         self,
         mccd,
         fig,
-        caxes,
+        axs,
         shbox=31,
         fwhm=6,
         beta=5,
@@ -419,8 +419,8 @@ class PickProfit:
 
         # figure and axes
         self.fig = fig
-        self.caxes = caxes
-        self.axnams = {axes: cnam for cnam, axes in caxes.items()}  # reverse for events
+        self.axs = axs
+        self.axnams = {ax: cnam for cnam, ax in axs.items()}  # reverse for events
 
         # fitting params
         self.shbox = shbox

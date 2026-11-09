@@ -2,11 +2,11 @@ import os
 import time
 
 import matplotlib.pyplot as plt
-from matplotlib.patches import Circle, Ellipse, Rectangle
 import numpy as np
 from astropy.io import fits
 from astropy.table import Table
 from astropy.time import Time
+from matplotlib.patches import Circle, Ellipse, Rectangle
 from numpy.lib.recfunctions import append_fields
 from scipy import spatial
 from trm import cline
@@ -927,7 +927,7 @@ class ImageManager(hcam.mpl.AnimationManager):
 
         """
         # create empty figure and axes
-        self.fig, self.caxes = hcam.mpl.create_figure(
+        self.fig, self.axs = hcam.mpl.create_figure(
             cnams=ccd_data.keys(),
             ncols=ncols,
             region=region,
@@ -959,9 +959,9 @@ class ImageManager(hcam.mpl.AnimationManager):
 
     def draw_artists(self):
         """Draw all of the animated artists."""
-        for cnam in self.caxes:
+        for cnam in self.axs:
             # Draw the axes
-            self.fig.draw_artist(self.caxes[cnam])
+            self.fig.draw_artist(self.axs[cnam])
 
             # Draw the CCD artists
             if self.img_artists[cnam] is not None:
@@ -1008,7 +1008,7 @@ class ImageManager(hcam.mpl.AnimationManager):
 
                 # plot the CCD
                 new_artists[cnam] = hcam.mpl.pCcd(
-                    axes=self.caxes[cnam],
+                    ax=self.axs[cnam],
                     ccd=ccd_data[cnam],
                     vmin=vmin,
                     vmax=vmax,
@@ -1104,7 +1104,7 @@ class ImageManager(hcam.mpl.AnimationManager):
                 pass
             else:
                 for obj_data in object_data[cnam]:
-                    oartists.append(self._plot_object(self.caxes[cnam], obj_data))
+                    oartists.append(self._plot_object(self.axs[cnam], obj_data))
 
             new_artists[cnam] = oartists
 
@@ -1115,5 +1115,5 @@ class ImageManager(hcam.mpl.AnimationManager):
         """Returns the current intensity limits for the specified CCD."""
         if self.img_artists[cnam] is None:
             return None
-        imgs = self.caxes[cnam].get_images()
+        imgs = self.axs[cnam].get_images()
         return imgs[0].get_clim()  # for the first window, but should be the same

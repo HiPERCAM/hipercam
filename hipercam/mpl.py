@@ -65,14 +65,14 @@ Params = {
 }
 
 
-def pWin(axes, win, label="", animated=False, artists=None):
+def pWin(ax, win, label="", animated=False, artists=None):
     """
     Plots boundary of a :class:`Winhead` as a line and optionally
     labels it.
 
     Arguments::
 
-       axes : :class:`matplotlib.axes.Axes`
+       ax : :class:`matplotlib.axes.Axes`
            the Axes to plot to.
 
        win : :class:`Winhead`
@@ -100,7 +100,7 @@ def pWin(axes, win, label="", animated=False, artists=None):
     if artists is None:
         artists = []
         artists.append(
-            axes.plot(
+            ax.plot(
                 [left, right, right, left, left],
                 [bottom, bottom, top, top, bottom],
                 color=Params["win.box.col"],
@@ -110,7 +110,7 @@ def pWin(axes, win, label="", animated=False, artists=None):
 
         if label != "":
             artists.append(
-                axes.text(
+                ax.text(
                     left - 3,
                     bottom - 3,
                     label,
@@ -136,12 +136,12 @@ def pWin(axes, win, label="", animated=False, artists=None):
     return artists
 
 
-def pWind(axes, wind, vmin, vmax, label="", cmap="Greys", animated=False, artists=None):
+def pWind(ax, wind, vmin, vmax, label="", cmap="Greys", animated=False, artists=None):
     """Plots :class:`Window` as an image with a line border.
 
     Arguments::
 
-       axes : :class:`matplotlib.axes.Axes`
+       ax : :class:`matplotlib.axes.Axes`
            the Axes to plot to.
 
        wind : Window
@@ -177,7 +177,7 @@ def pWind(axes, wind, vmin, vmax, label="", cmap="Greys", animated=False, artist
 
         # plot image
         artists.append(
-            axes.imshow(
+            ax.imshow(
                 wind.data,
                 extent=(left, right, bottom, top),
                 aspect="equal",
@@ -191,7 +191,7 @@ def pWind(axes, wind, vmin, vmax, label="", cmap="Greys", animated=False, artist
         )
 
         # plot window border
-        alist = pWin(axes, wind, label, animated)
+        alist = pWin(ax, wind, label, animated)
         artists += alist
 
     else:
@@ -205,7 +205,7 @@ def pWind(axes, wind, vmin, vmax, label="", cmap="Greys", animated=False, artist
 
 
 def pCcd(
-    axes,
+    ax,
     ccd,
     vmin=None,
     vmax=None,
@@ -221,7 +221,7 @@ def pCcd(
 
     Arguments::
 
-       axes : :class:`matplotlib.axes.Axes`
+       ax : :class:`matplotlib.axes.Axes`
            the Axes to plot to.
 
        ccd : CCD
@@ -267,23 +267,23 @@ def pCcd(
 
         # plot each window in the CCD
         for key, wind in ccd.items():
-            artists[key] = pWind(axes, wind, vmin, vmax, key, cmap, animated)
+            artists[key] = pWind(ax, wind, vmin, vmax, key, cmap, animated)
 
         # plot outermost border of CCD
-        artists["border"] = axes.plot(
+        artists["border"] = ax.plot(
             [0.5, ccd.nxtot + 0.5, ccd.nxtot + 0.5, 0.5, 0.5],
             [0.5, 0.5, ccd.nytot + 0.5, ccd.nytot + 0.5, 0.5],
             color=Params["ccd.box.col"],
             animated=animated,
         )
 
-        axes.tick_params(labelsize=Params["axis.number.fs"])
+        ax.tick_params(labelsize=Params["axis.number.fs"])
 
         # plot labels
         artists["labels"] = []
         if tlabel != "":
             artists["labels"].append(
-                axes.set_title(
+                ax.set_title(
                     tlabel,
                     color=Params["axis.label.col"],
                     fontsize=Params["axis.label.fs"],
@@ -292,7 +292,7 @@ def pCcd(
             )
         if xlabel != "":
             artists["labels"].append(
-                axes.set_xlabel(
+                ax.set_xlabel(
                     xlabel,
                     color=Params["axis.label.col"],
                     fontsize=Params["axis.label.fs"],
@@ -301,7 +301,7 @@ def pCcd(
             )
         if ylabel != "":
             artists["labels"].append(
-                axes.set_ylabel(
+                ax.set_ylabel(
                     ylabel,
                     color=Params["axis.label.col"],
                     fontsize=Params["axis.label.fs"],
@@ -313,19 +313,19 @@ def pCcd(
         # only need to update the images
         for key, wind in ccd.items():
             artists[key] = pWind(
-                axes, wind, vmin, vmax, key, cmap, animated, artists[key]
+                ax, wind, vmin, vmax, key, cmap, animated, artists[key]
             )
 
     return artists
 
 
-def pAper(axes, aper, label="", ccdAper=None, animated=False, artists=None):
+def pAper(ax, aper, label="", ccdAper=None, animated=False, artists=None):
     """Plots an :class:`Aperture` object, returning a list of the artists
     created or updated.
 
     Arguments::
 
-       axes : :class:`matplotlib.axes.Axes`
+       ax : :class:`matplotlib.axes.Axes`
            the Axes to plot to.
 
        aper : Aperture
@@ -363,7 +363,7 @@ def pAper(axes, aper, label="", ccdAper=None, animated=False, artists=None):
 
         # target
         artists.append(
-            axes.add_patch(
+            ax.add_patch(
                 Circle(
                     (aper.x, aper.y),
                     aper.rtarg,
@@ -381,7 +381,7 @@ def pAper(axes, aper, label="", ccdAper=None, animated=False, artists=None):
 
         # sky
         artists.append(
-            axes.add_patch(
+            ax.add_patch(
                 Circle(
                     (aper.x, aper.y),
                     aper.rsky1,
@@ -398,7 +398,7 @@ def pAper(axes, aper, label="", ccdAper=None, animated=False, artists=None):
         )
 
         artists.append(
-            axes.add_patch(
+            ax.add_patch(
                 Circle(
                     (aper.x, aper.y),
                     aper.rsky2,
@@ -434,7 +434,7 @@ def pAper(axes, aper, label="", ccdAper=None, animated=False, artists=None):
                 v -= (aper.rtarg + laper.rtarg) * uv
                 p1 += r1
                 artists.append(
-                    axes.arrow(
+                    ax.arrow(
                         p1.x,
                         p1.y,
                         v.x,
@@ -456,7 +456,7 @@ def pAper(axes, aper, label="", ccdAper=None, animated=False, artists=None):
         for xoff, yoff, r in aper.mask:
             # draw the line
             artists.append(
-                axes.plot(
+                ax.plot(
                     [aper.x, aper.x + xoff],
                     [aper.y, aper.y + yoff],
                     "--",
@@ -467,7 +467,7 @@ def pAper(axes, aper, label="", ccdAper=None, animated=False, artists=None):
 
             # and now the circle
             artists.append(
-                axes.add_patch(
+                ax.add_patch(
                     Circle(
                         (aper.x + xoff, aper.y + yoff),
                         r,
@@ -485,7 +485,7 @@ def pAper(axes, aper, label="", ccdAper=None, animated=False, artists=None):
         for xoff, yoff in aper.extra:
             # draw the line
             artists.append(
-                axes.plot(
+                ax.plot(
                     [aper.x, aper.x + xoff],
                     [aper.y, aper.y + yoff],
                     "--",
@@ -496,7 +496,7 @@ def pAper(axes, aper, label="", ccdAper=None, animated=False, artists=None):
 
             # and now the circle
             artists.append(
-                axes.add_patch(
+                ax.add_patch(
                     Circle(
                         (aper.x + xoff, aper.y + yoff),
                         aper.rtarg,
@@ -510,7 +510,7 @@ def pAper(axes, aper, label="", ccdAper=None, animated=False, artists=None):
 
         if label != "":
             artists.append(
-                axes.text(
+                ax.text(
                     aper.x - aper.rsky2,
                     aper.y - aper.rsky2,
                     label,
@@ -570,7 +570,7 @@ def pAper(axes, aper, label="", ccdAper=None, animated=False, artists=None):
                 # Seems to be no easy way to update a FancyArrow
                 # just remove then recreate. Hope it works.
                 artists[n].remove()
-                artists[n] = axes.arrow(
+                artists[n] = ax.arrow(
                     p1.x,
                     p1.y,
                     v.x,
@@ -624,13 +624,13 @@ def pAper(axes, aper, label="", ccdAper=None, animated=False, artists=None):
     return artists
 
 
-def pCcdAper(axes, ccdAper, animated=False, artists=None):
+def pCcdAper(ax, ccdAper, animated=False, artists=None):
     """Plots a :class:`CcdAper` object, returning references to the plot
     objects.
 
     Arguments::
 
-       axes : :class:`matplotlib.axes.Axes`
+       ax : :class:`matplotlib.axes.Axes`
            the Axes to plot to.
 
        ccdAper : CcdAper
@@ -655,20 +655,20 @@ def pCcdAper(axes, ccdAper, animated=False, artists=None):
     if ccdAper is not None:
         for key, aper in ccdAper.items():
             if artists is None:
-                pobjs[key] = pAper(axes, aper, key, ccdAper, animated)
+                pobjs[key] = pAper(ax, aper, key, ccdAper, animated)
             else:
-                pobjs[key] = pAper(axes, aper, key, ccdAper, animated, artists[key])
+                pobjs[key] = pAper(ax, aper, key, ccdAper, animated, artists[key])
 
     return pobjs
 
 
-def pDefect(axes, dfct, animated=False, artists=None):
+def pDefect(ax, dfct, animated=False, artists=None):
     """Plots a :class:`Defect` object, returning a list of
     the artists created.
 
     Arguments::
 
-       axes : :class:`matplotlib.axes.Axes`
+       ax : :class:`matplotlib.axes.Axes`
            the Axes to plot to.
 
        dfct : Defect
@@ -693,7 +693,7 @@ def pDefect(axes, dfct, animated=False, artists=None):
 
         if isinstance(dfct, defect.Point):
             if dfct.severity == defect.Severity.MODERATE:
-                artists = axes.plot(
+                artists = ax.plot(
                     dfct.x,
                     dfct.y,
                     "o",
@@ -702,7 +702,7 @@ def pDefect(axes, dfct, animated=False, artists=None):
                     animated=animated,
                 )
             elif dfct.severity == defect.Severity.SEVERE:
-                artists = axes.plot(
+                artists = ax.plot(
                     dfct.x,
                     dfct.y,
                     "o",
@@ -713,7 +713,7 @@ def pDefect(axes, dfct, animated=False, artists=None):
 
         elif isinstance(dfct, defect.Line):
             if dfct.severity == defect.Severity.MODERATE:
-                artists = axes.plot(
+                artists = ax.plot(
                     [dfct.x1, dfct.x2],
                     [dfct.y1, dfct.y2],
                     "--",
@@ -721,7 +721,7 @@ def pDefect(axes, dfct, animated=False, artists=None):
                     animated=animated,
                 )
             elif dfct.severity == defect.Severity.SEVERE:
-                artists = axes.plot(
+                artists = ax.plot(
                     [dfct.x1, dfct.x2],
                     [dfct.y1, dfct.y2],
                     color=Params["defect.severe.col"],
@@ -735,7 +735,7 @@ def pDefect(axes, dfct, animated=False, artists=None):
                 col = Params["defect.severe.col"]
 
             artists = [
-                axes.text(
+                ax.text(
                     dfct.x,
                     dfct.y,
                     f"{int(round(dfct.rate))}",
@@ -768,13 +768,13 @@ def pDefect(axes, dfct, animated=False, artists=None):
     return artists
 
 
-def pCcdDefect(axes, ccdDefect, animated=False, artists=None):
+def pCcdDefect(ax, ccdDefect, animated=False, artists=None):
     """Plots a :class:`CcdDefect` object, returning references to the
     artists.
 
     Arguments::
 
-       axes      : :class:`matplotlib.axes.Axes`
+       ax : :class:`matplotlib.axes.Axes`
            the Axes to plot to.
 
        ccdDefect : CcdDefect
@@ -799,20 +799,20 @@ def pCcdDefect(axes, ccdDefect, animated=False, artists=None):
     if ccdDefect is not None:
         for key, dfct in ccdDefect.items():
             if artists is None:
-                pobjs[key] = pDefect(axes, dfct, animated)
+                pobjs[key] = pDefect(ax, dfct, animated)
             else:
-                pobjs[key] = pDefect(axes, dfct, animated, artists[key])
+                pobjs[key] = pDefect(ax, dfct, animated, artists[key])
 
     return pobjs
 
 
-def pFringePair(axes, fpair):
+def pFringePair(ax, fpair):
     """Plots a :class:`FringePair` object, returning
     a list of artists created.
 
     Arguments::
 
-       axes : :class:`matplotlib.axes.Axes`
+       ax : :class:`matplotlib.axes.Axes`
            the Axes to plot to.
 
        fpair : FringePair
@@ -820,7 +820,7 @@ def pFringePair(axes, fpair):
 
     """
 
-    return axes.plot(
+    return ax.plot(
         [fpair.x1, fpair.x2],
         [fpair.y1, fpair.y2],
         mfc="b",
@@ -831,13 +831,13 @@ def pFringePair(axes, fpair):
     )
 
 
-def pCcdFringePair(axes, ccdFringePair):
+def pCcdFringePair(ax, ccdFringePair):
     """Plots a :class:`CcdFringePair` object, returning references to the plot
     objects.
 
     Arguments::
 
-       axes : :class:`matplotlib.axes.Axes`
+       ax : :class:`matplotlib.axes.Axes`
            the Axes to plot to.
 
        ccdFringePair : CcdFringePair
@@ -850,7 +850,7 @@ def pCcdFringePair(axes, ccdFringePair):
     """
     pobjs = {}
     for key, fpair in ccdFringePair.items():
-        pobjs[key] = pFringePair(axes, fpair)
+        pobjs[key] = pFringePair(ax, fpair)
 
     return pobjs
 
@@ -968,14 +968,14 @@ def create_figure(
             whether to use animated artists or not.
             If used for movie-style display, set animated=True.
             Note if animated=True, you need to update the axes after each draw using
-            `fig.draw_artist(axes)`, in addition to updating other artists.
+            `fig.draw_artist(ax)`, in addition to updating other artists.
 
     Returns::
         fig: matplotlib.figure.Figure
             The figure object.
 
-        caxes: dict[str, matplotlib.axes.Axes]
-            A dictionary of the axes objects, one per CCD, labeled by their names.
+        axs: dict[str, matplotlib.axes.Axes]
+            A dictionary of the Axes objects, one per CCD, labeled by their names.
     """
     if region is None:
         region = [None, None, None, None]
@@ -994,29 +994,29 @@ def create_figure(
     nrows = len(cnams) // ncols if len(cnams) % ncols == 0 else len(cnams) // ncols + 1
 
     # Create the axes
-    caxes = {}
+    axs = {}
     for n, cnam in enumerate(cnams):
         if n == 0:
-            axes = first_axes = fig.add_subplot(nrows, ncols, n + 1, animated=animated)
-            axes.set_aspect("equal", adjustable="box")
-            axes.set_xlim(*xlim)
-            axes.set_ylim(*ylim)
+            ax = first_ax = fig.add_subplot(nrows, ncols, n + 1, animated=animated)
+            ax.set_aspect("equal", adjustable="box")
+            ax.set_xlim(*xlim)
+            ax.set_ylim(*ylim)
         else:
             # subsequent axes share the same x and y as the first
-            axes = fig.add_subplot(
+            ax = fig.add_subplot(
                 nrows,
                 ncols,
                 n + 1,
-                sharex=first_axes,
-                sharey=first_axes,
+                sharex=first_ax,
+                sharey=first_ax,
                 animated=animated,
             )
-            axes.set_aspect("equal")
+            ax.set_aspect("equal")
 
         # store the axes for each CCD in a dictionary for later reference
-        caxes[cnam] = axes
+        axs[cnam] = ax
 
-    return fig, caxes
+    return fig, axs
 
 
 def plot_frame(
@@ -1086,10 +1086,10 @@ def plot_frame(
             If None, the default size is used.
 
     Returns:
-        fig: :class:`matplotlib.figure.Figure`
+        fig : :class:`matplotlib.figure.Figure`
             The Figure object.
 
-        caxes: dict[str, :class:`matplotlib.axes.Axes`]
+        axs : dict[str, :class:`matplotlib.axes.Axes`]
             A dictionary mapping CCD names to their corresponding Axes objects.
 
     """
@@ -1099,12 +1099,12 @@ def plot_frame(
         cnams = [cnams]
 
     # Create the figure and axes
-    fig, caxes = create_figure(
+    fig, axs = create_figure(
         cnams=cnams, ncols=ncols, region=region, title=title, figsize=figsize
     )
 
     # Plot each CCD on its axes
-    for cnam, axes in caxes.items():
+    for cnam, ax in axs.items():
         # Subtract median from each window, if requested
         if msub:
             for wind in mccd[cnam].values():
@@ -1115,7 +1115,7 @@ def plot_frame(
 
         # Plot the ccd
         pCcd(
-            axes,
+            ax,
             mccd[cnam],
             vmin=vmin,
             vmax=vmax,
@@ -1125,12 +1125,12 @@ def plot_frame(
 
         # Plot the defects, if any
         if defects is not None:
-            pCcdDefect(axes, defects[cnam] if cnam in defects else None)
+            pCcdDefect(ax, defects[cnam] if cnam in defects else None)
 
     # Adjust the layout to prevent overlap
     fig.tight_layout()
 
-    return fig, caxes
+    return fig, axs
 
 
 class AnimationManager(ABC):

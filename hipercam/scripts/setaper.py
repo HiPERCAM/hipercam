@@ -458,7 +458,7 @@ def setaper(args=None):
         ndiv = cl.get_value("ndiv", "pixel sub-division factor", 0, 0)
 
     # create the plot
-    fig, caxes = hcam.mpl.plot_frame(
+    fig, axs = hcam.mpl.plot_frame(
         mccd=mccd,
         cnams=ccds,
         ncols=nx,
@@ -473,9 +473,9 @@ def setaper(args=None):
 
     # add any existing apertures to the plot, storing a reference to the plot objects
     pobjs = {}
-    for cnam, axes in caxes.items():
+    for cnam, ax in axs.items():
         if cnam in mccdaper:
-            pobjs[cnam] = hcam.mpl.pCcdAper(axes, mccdaper[cnam])
+            pobjs[cnam] = hcam.mpl.pCcdAper(ax, mccdaper[cnam])
         else:
             # create in an empty group to be added to later
             mccdaper[cnam] = hcam.CcdAper()
@@ -486,7 +486,7 @@ def setaper(args=None):
         mccd,
         mccdaper,
         fig,
-        caxes,
+        axs,
         pobjs,
         aper,
         linput,
@@ -527,7 +527,7 @@ class PickAper:
         mccd,
         mccdaper,
         fig,
-        caxes,
+        axs,
         pobjs,
         apernam,
         linput,
@@ -556,8 +556,8 @@ class PickAper:
 
         # figure and axes
         self.fig = fig
-        self.caxes = caxes
-        self.axnams = {axes: cnam for cnam, axes in caxes.items()}  # reverse for events
+        self.axs = axs
+        self.axnams = {ax: cnam for cnam, ax in axs.items()}  # reverse for events
         self.pobjs = pobjs
 
         # output file
@@ -638,7 +638,7 @@ class PickAper:
                 # link mode. this should be the second aperture
                 # store essential data
                 self._cnam = self.axnams[event.inaxes]
-                self._axes = event.inaxes
+                self._ax = event.inaxes
                 self._x = event.xdata
                 self._y = event.ydata
                 self._link()
@@ -653,7 +653,7 @@ class PickAper:
             elif event.key == "e":
                 # extra mode. store essential data
                 self._cnam = self.axnams[event.inaxes]
-                self._axes = event.inaxes
+                self._ax = event.inaxes
                 self._x = event.xdata
                 self._y = event.ydata
                 self._extra()
@@ -667,7 +667,7 @@ class PickAper:
             elif event.key == "m":
                 # mask mode. store essential data
                 self._cnam = self.axnams[event.inaxes]
-                self._axes = event.inaxes
+                self._ax = event.inaxes
                 self._x = event.xdata
                 self._y = event.ydata
                 self._mask()
@@ -676,19 +676,19 @@ class PickAper:
             # standard mode action
             self._standard(event.key, event.xdata, event.ydata, event.inaxes)
 
-    def _standard(self, key, x, y, axes):
+    def _standard(self, key, x, y, ax):
         """Carries out the work needed when we are in the standard mode. Just pass
         through the value of the key pressed, the associated x, y position and
         the axes instance (all from the event) and this will handle the rest.
 
         """
 
-        if axes is not None:
+        if ax is not None:
             # store information in attributes accessible to all methods, for
             # later access: name, the key hit, the axes instance, x, y
-            self._cnam = self.axnams[axes]
+            self._cnam = self.axnams[ax]
             self._key = key
-            self._axes = axes
+            self._ax = ax
             self._x = x
             self._y = y
 
@@ -819,7 +819,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                 if len(self.mccdaper[self._cnam]):
                     # only if there are some to clone ...
                     for cnam in self.mccdaper:
-                        if cnam != self._cnam and cnam in self.caxes:
+                        if cnam != self._cnam and cnam in self.axs:
                             # ... it is not the CCD to be cloned and it
                             # is being displayed.
 
@@ -834,7 +834,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
 
                             # plot them, storing the plot objects
                             self.pobjs[cnam] = hcam.mpl.pCcdAper(
-                                self.caxes[cnam], self.mccdaper[cnam]
+                                self.axs[cnam], self.mccdaper[cnam]
                             )
 
                             plt.draw()
@@ -973,7 +973,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
 
         # add aperture to the plot, store plot objects
         self.pobjs[self._cnam][self._label] = hcam.mpl.pAper(
-            self._axes, aper, self._label
+            self._ax, aper, self._label
         )
 
         # make sure it appears
@@ -1009,7 +1009,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                 obj.remove()
 
             # re-plot new version, over-writing plot objects
-            self.pobjs[self._cnam][apnam] = hcam.mpl.pAper(self._axes, aper, apnam)
+            self.pobjs[self._cnam][apnam] = hcam.mpl.pAper(self._ax, aper, apnam)
             plt.draw()
 
             print(
@@ -1124,7 +1124,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
 
                     # plot in new position, over-writing the plot objects
                     self.pobjs[self._cnam][apnam] = hcam.mpl.pAper(
-                        self._axes, aper, apnam
+                        self._ax, aper, apnam
                     )
 
                     # look for any apertures linked to this one and adjust
@@ -1141,7 +1141,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
 
                             # then re-plot
                             self.pobjs[self._cnam][lanam] = hcam.mpl.pAper(
-                                self._axes, laper, lanam, self.mccdaper[self._cnam]
+                                self._ax, laper, lanam, self.mccdaper[self._cnam]
                             )
 
                     # finally update the plot
@@ -1199,7 +1199,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
 
                     # then re-plot
                     self.pobjs[self._cnam][anam] = hcam.mpl.pAper(
-                        self._axes, aper, anam
+                        self._ax, aper, anam
                     )
 
             # update plot
@@ -1267,7 +1267,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
 
                 # re-plot new version, over-writing plot objects
                 self.pobjs[self._cnam][self._extra_apnam] = hcam.mpl.pAper(
-                    self._axes,
+                    self._ax,
                     self._extra_aper,
                     self._extra_apnam,
                     self.mccdaper[self._extra_cnam],
@@ -1352,7 +1352,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
 
                     # re-plot new version, over-writing plot objects
                     self.pobjs[self._cnam][self._link_apnam] = hcam.mpl.pAper(
-                        self._axes,
+                        self._ax,
                         self._link_aper,
                         self._link_apnam,
                         self.mccdaper[self._link_cnam],
@@ -1437,7 +1437,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
 
                 # re-plot new version, over-writing plot objects
                 self.pobjs[self._cnam][self._mask_apnam] = hcam.mpl.pAper(
-                    self._axes,
+                    self._ax,
                     self._mask_aper,
                     self._mask_apnam,
                     self.mccdaper[self._mask_cnam],
@@ -1473,7 +1473,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                 obj.remove()
 
             # re-plot new version, over-writing plot objects
-            self.pobjs[self._cnam][apnam] = hcam.mpl.pAper(self._axes, aper, apnam)
+            self.pobjs[self._cnam][apnam] = hcam.mpl.pAper(self._ax, aper, apnam)
 
         plt.draw()
         self.action_prompt(True)
@@ -1508,7 +1508,7 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
                     obj.remove()
 
                 # re-plot new version, over-writing plot objects
-                self.pobjs[self._cnam][apnam] = hcam.mpl.pAper(self._axes, aper, apnam)
+                self.pobjs[self._cnam][apnam] = hcam.mpl.pAper(self._ax, aper, apnam)
 
         plt.draw()
         self.action_prompt(True)

@@ -153,7 +153,7 @@ def flagcloud(args=None):
     print()
 
     plots = {}
-    caxes = {}
+    axs = {}
     ax = None
 
     fig,axs = plt.subplots(len(ccds),1,sharex=True)
@@ -203,7 +203,7 @@ def flagcloud(args=None):
         }
 
         # store the axes for each CCD in a dictionary for later reference
-        caxes[cnam] = ax
+        axs[cnam] = ax
 
         ax.set_ylabel("CCD {:s}".format(cnam))
 
@@ -214,7 +214,7 @@ def flagcloud(args=None):
     picker = PickPoints(
         hlog,
         fig,
-        caxes,
+        axs,
         plots,
         T0,
         output,
@@ -247,8 +247,8 @@ def nearest(x, y, lc, ax, fig, dmax=0.02, rmin=1.5):
       lc : Tseries
         the light-curve to test against
 
-      ax : Axes
-        Axes instance
+      ax : :class:`matplotlib.axes.Axes`
+        the Axes to plot to.
 
       fig : Figure
         containing Figure
@@ -298,14 +298,14 @@ def nearest(x, y, lc, ax, fig, dmax=0.02, rmin=1.5):
 class PickPoints:
     """Class to pick points and flag them as cloudy or junk."""
 
-    def __init__(self, hlog, fig, caxes, plots, T0, oname):
+    def __init__(self, hlog, fig, axs, plots, T0, oname):
         # log data
         self.hlog = hlog
 
         # figure and axes
         self.fig = fig
-        self.caxes = caxes
-        self.axnams = {axes: cnam for cnam, axes in caxes.items()}  # reverse for events
+        self.axs = axs
+        self.axnams = {ax: cnam for cnam, ax in axs.items()}  # reverse for events
         self.plots = plots
 
         # output file
@@ -353,8 +353,8 @@ class PickPoints:
 
             elif event.key == "c" or event.key == "J" or event.key == "R":
                 # range mode.
+                self._ax = event.inaxes
                 self._cnam = self.axnams[event.inaxes]
-                self._axes = event.inaxes
                 self._x = event.xdata
                 self._y = event.ydata
                 self._range(event.key)
@@ -364,7 +364,7 @@ class PickPoints:
             # standard mode action
             self._standard(event.key, event.xdata, event.ydata, event.inaxes)
 
-    def _standard(self, key, x, y, axes):
+    def _standard(self, key, x, y, ax):
         """Carries out the work needed when we are in the standard mode. Just
         pass through the value of the key pressed, the associated x, y
         position and the axes instance (all from the event) and this
@@ -372,13 +372,13 @@ class PickPoints:
 
         """
 
-        if axes is not None:
+        if ax is not None:
 
             # store information in attributes accessible to all methods, for
             # later access: name, the key hit, the axes instance, x, y
-            self._cnam = self.axnams[axes]
+            self._ax = ax
+            self._cnam = self.axnams[ax]
             self._key = key
-            self._axes = axes
             self._x = x
             self._y = y
 
@@ -409,13 +409,13 @@ require setting 2 points which should be from the same window.
                 print(key)
 
                 # short-hand
-                cnam = self.axnams[axes]
+                cnam = self.axnams[ax]
                 plot = self.plots[cnam]
                 p1, p2, rat = plot['a1'], plot['a2'], plot['rat']
 
-                i1, d1 = nearest(x, y, p1, axes, self.fig)
+                i1, d1 = nearest(x, y, p1, ax, self.fig)
                 if p2 is not None:
-                    i2, d2 = nearest(x, y, p2, axes, self.fig)
+                    i2, d2 = nearest(x, y, p2, ax, self.fig)
                 else:
                     i2 = None
 
@@ -427,31 +427,31 @@ require setting 2 points which should be from the same window.
                     elif d1 < d2:
                         ap, ind = plot['aper1'], i1
                         col = COL_JUNK if key == 'j' else COL_CLOUD if key == 'C' else COL_AP1
-                        axes.errorbar(p1.t[i1],p1.y[i1],p1.ye[i1],fmt='.',color=col,zorder=100)
+                        ax.errorbar(p1.t[i1],p1.y[i1],p1.ye[i1],fmt='.',color=col,zorder=100)
                         col = COL_JUNK if key == 'j' else COL_CLOUD if key == 'C' else COL_RAT
-                        axes.errorbar(rat.t[i1],rat.y[i1],rat.ye[i1],fmt='.',color=col,zorder=100)
+                        ax.errorbar(rat.t[i1],rat.y[i1],rat.ye[i1],fmt='.',color=col,zorder=100)
 
                     elif d2 < d1:
                         ap, ind = plot['aper2'], i2
                         col = COL_JUNK if key == 'j' else COL_CLOUD if key == 'C' else COL_AP2
-                        axes.errorbar(p2.t[i2],p2.y[i2],p2.ye[i2],fmt='.',color=col,zorder=100)
+                        ax.errorbar(p2.t[i2],p2.y[i2],p2.ye[i2],fmt='.',color=col,zorder=100)
                         col = COL_JUNK if key == 'j' else COL_CLOUD if key == 'C' else COL_RAT
-                        axes.errorbar(rat.t[i2],rat.y[i2],rat.ye[i2],fmt='.',color=col,zorder=100)
+                        ax.errorbar(rat.t[i2],rat.y[i2],rat.ye[i2],fmt='.',color=col,zorder=100)
 
                 elif i1 is not None:
                     ap, ind = plot['aper1'], i1
                     col = COL_JUNK if key == 'j' else COL_CLOUD if key == 'C' else COL_AP1
-                    axes.errorbar(p1.t[i1],p1.y[i1],p1.ye[i1],fmt='.',color=col,zorder=100)
+                    ax.errorbar(p1.t[i1],p1.y[i1],p1.ye[i1],fmt='.',color=col,zorder=100)
                     if rat is not None:
                         col = COL_JUNK if key == 'j' else COL_CLOUD if key == 'C' else COL_RAT
-                        axes.errorbar(rat.t[i1],rat.y[i1],rat.ye[i1],fmt='.',color=col,zorder=100)
+                        ax.errorbar(rat.t[i1],rat.y[i1],rat.ye[i1],fmt='.',color=col,zorder=100)
 
                 elif i2 is not None:
                     ap, ind = plot['aper2'], i2
                     col = COL_JUNK if key == 'j' else COL_CLOUD if key == 'C' else COL_AP2
-                    axes.errorbar(p2.t[i2],p2.y[i2],p2.ye[i2],fmt='.',color=col,zorder=100)
+                    ax.errorbar(p2.t[i2],p2.y[i2],p2.ye[i2],fmt='.',color=col,zorder=100)
                     col = COL_JUNK if key == 'j' else COL_CLOUD if key == 'C' else COL_RAT
-                    axes.errorbar(rat.t[i2],rat.y[i2],rat.ye[i2],fmt='.',color=col,zorder=100)
+                    ax.errorbar(rat.t[i2],rat.y[i2],rat.ye[i2],fmt='.',color=col,zorder=100)
 
                 if ap is not None:
                     # propagate change into the hlog
@@ -540,21 +540,21 @@ require setting 2 points which should be from the same window.
 
                 # mark points across all CCDs
                 for cnam, plot in self.plots.items():
-                    axes = self.caxes[cnam]
+                    ax = self.axs[cnam]
                     p1, p2, rat = plot['a1'], plot['a2'], plot['rat']
 
                     col = COL_CLOUD if key == 'c' else \
                         COL_JUNK if key == 'J' else COL_AP1
                     mask = (p1.t > t1) & (p1.t < t2)
-                    p1.mplot(axes,col,zorder=100,mask=mask)
+                    p1.mplot(ax,col,zorder=100,mask=mask)
 
                     if p2 is not None:
                         col = COL_CLOUD if key == 'c' else \
                             COL_JUNK if key == 'J' else COL_AP2
-                        p2.mplot(axes,col,zorder=100,mask=mask)
+                        p2.mplot(ax,col,zorder=100,mask=mask)
                         col = COL_CLOUD if key == 'c' else \
                             COL_JUNK if key == 'J' else COL_RAT
-                        rat.mplot(axes,col,zorder=100,mask=mask)
+                        rat.mplot(ax,col,zorder=100,mask=mask)
 
                 # Propagate the changes into the hlog
                 t1 += self.T0

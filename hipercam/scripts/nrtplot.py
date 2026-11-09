@@ -1008,7 +1008,7 @@ def nrtplot(args=None):
                 # from which stars can be selected.
 
                 # create the plot
-                fig, caxes = hcam.mpl.plot_frame(
+                fig, axs = hcam.mpl.plot_frame(
                     mccd=mccd,
                     cnams=ccds,
                     ncols=nx,
@@ -1031,7 +1031,7 @@ def nrtplot(args=None):
                 picker = PickProfitTargets(
                     mccd,
                     fig,
-                    caxes,
+                    axs,
                     shbox,
                     fwhm,
                     beta,
@@ -1354,7 +1354,7 @@ class ImageManager(hcam.mpl.AnimationManager):
 
         """
         # create empty figure and axes
-        self.fig, self.caxes = hcam.mpl.create_figure(
+        self.fig, self.axs = hcam.mpl.create_figure(
             cnams=ccd_data.keys(),
             ncols=ncols,
             region=region,
@@ -1384,7 +1384,7 @@ class ImageManager(hcam.mpl.AnimationManager):
         self.picker = PickProfit(
             ccd_data,
             self.fig,
-            self.caxes,
+            self.axs,
             shbox,
             fwhm,
             beta,
@@ -1410,9 +1410,9 @@ class ImageManager(hcam.mpl.AnimationManager):
 
     def draw_artists(self):
         """Draw all of the animated artists."""
-        for cnam in self.caxes:
+        for cnam in self.axs:
             # Draw the axes
-            self.fig.draw_artist(self.caxes[cnam])
+            self.fig.draw_artist(self.axs[cnam])
 
             # Draw the CCD artists
             if self.img_artists[cnam] is not None:
@@ -1472,7 +1472,7 @@ class ImageManager(hcam.mpl.AnimationManager):
                 new_artists[cnam] = self.img_artists[cnam]
             else:
                 # create/update the animated artists
-                axes = self.caxes[cnam]
+                ax = self.axs[cnam]
                 ccd = ccd_data[cnam]
                 old_artists = self.img_artists[cnam]
                 new_artists[cnam] = {}
@@ -1487,7 +1487,7 @@ class ImageManager(hcam.mpl.AnimationManager):
 
                 # plot the CCD
                 new_artists[cnam]["ccd"] = hcam.mpl.pCcd(
-                    axes=axes,
+                    ax=ax,
                     ccd=ccd,
                     vmin=vmin,
                     vmax=vmax,
@@ -1500,7 +1500,7 @@ class ImageManager(hcam.mpl.AnimationManager):
                 # plot the defects, if any
                 if self.defects is not None and cnam in self.defects:
                     new_artists[cnam]["defects"] = hcam.mpl.pCcdDefect(
-                        axes,
+                        ax,
                         self.defects[cnam],
                         animated=True,
                         artists=(
@@ -1522,7 +1522,7 @@ class ImageManager(hcam.mpl.AnimationManager):
             # Note we still do this even if ccd_data is None,
             # because we want to update the windows even on a frame that is skipped,
             # which is why this is a separate loop.
-            axes = self.caxes[cnam]
+            ax = self.axs[cnam]
             old_artists = self.img_artists[cnam]
             if swindows is None or self.swindows != swindows:
                 # the windows have changed (or been removed)
@@ -1538,7 +1538,7 @@ class ImageManager(hcam.mpl.AnimationManager):
             elif old_artists is None or self.swindows != swindows:
                 # first time, or the windows have changed, so create new artists
                 for llxh, llyh, nxh, nyh in swindows:
-                    (box,) = axes.plot(
+                    (box,) = ax.plot(
                         [
                             llxh - 0.5,
                             llxh + nxh - 0.5,
@@ -1580,20 +1580,20 @@ class ImageManager(hcam.mpl.AnimationManager):
                 # the fit failed on this frame, so just pass through the old artists
                 new_artists[ntarg] = old_artists
             else:
-                axes = self.caxes[pfit.cnam]
+                ax = self.axs[pfit.cnam]
                 if old_artists is None:
                     # First time, create the new artists
                     # Each target has three artists:
                     #     - a dot for the target position
                     #     - a circle of radius equal to the FWHM
                     #     - a search box
-                    new_artists[ntarg] = pfit.plot(axes, True)
+                    new_artists[ntarg] = pfit.plot(ax, True)
                 else:
                     # In this case we have already created the artists,
                     # so we just update them with the new data
                     if old_artists is None:
                         # The artists have yet to be made
-                        new_artists[ntarg] = pfit.plot(axes, True)
+                        new_artists[ntarg] = pfit.plot(ax, True)
                     else:
                         # they exist already and need updating
                         dot, circ, sbox = old_artists
@@ -1612,9 +1612,9 @@ class ImageManager(hcam.mpl.AnimationManager):
 
     def get_ilim(self, cnam):
         """Returns the current intensity limits for the specified CCD."""
-        if self.artists[cnam] is None:
+        if self.img_artists[cnam] is None:
             return None
-        imgs = self.axes[cnam].get_images()
+        imgs = self.axs[cnam].get_images()
         return imgs[0].get_clim()  # for the first window, but should be the same
 
 
@@ -1651,7 +1651,7 @@ class FwhmManager(hcam.mpl.AnimationManager):
         self.fig.canvas.manager.set_window_title("FWHM vs frame number")
         if figsize is not None and figsize[0] > 0 and figsize[1] > 0:
             self.fig.set_size_inches(figsize)
-        self.axes = self.fig.add_subplot(animated=True)
+        self.ax = self.fig.add_subplot(animated=True)
 
         # initialise the animation manager with the figure
         super().__init__(self.fig)
@@ -1662,22 +1662,22 @@ class FwhmManager(hcam.mpl.AnimationManager):
         self.xhi = xhi
         self.ylo = 0
         self.yhi = fwmax
-        self.axes.set_xlim(self.xlo, self.xhi)
-        self.axes.set_ylim(self.ylo, self.yhi)
+        self.ax.set_xlim(self.xlo, self.xhi)
+        self.ax.set_ylim(self.ylo, self.yhi)
 
         # plot a line for each target
         self.fwhm_artists = {ntarg: None for ntarg in fwhm_data}
         self.update(fwhm_data)
 
         # plot formatting
-        self.axes.set_xlabel("Frame number")
-        self.axes.set_ylabel("FWHM [unbinned pixels]")
-        self.axes.legend()
+        self.ax.set_xlabel("Frame number")
+        self.ax.set_ylabel("FWHM [unbinned pixels]")
+        self.ax.legend()
 
     def draw_artists(self):
         """Draw all of the animated artists."""
         # Draw the axes
-        self.fig.draw_artist(self.axes)
+        self.fig.draw_artist(self.ax)
 
         # Draw the artists
         for artist in self.fwhm_artists.values():
@@ -1690,7 +1690,7 @@ class FwhmManager(hcam.mpl.AnimationManager):
         for ntarg, (xs, ys) in fwhm_data.items():
             if self.fwhm_artists[ntarg] is None:
                 # First time, create the new artists
-                (artist,) = self.axes.plot(xs, ys, animated=True, label=f"{ntarg}")
+                (artist,) = self.ax.plot(xs, ys, animated=True, label=f"{ntarg}")
                 self.fwhm_artists[ntarg] = artist
             else:
                 # Update existing artists
@@ -1705,7 +1705,7 @@ class FwhmManager(hcam.mpl.AnimationManager):
             xadd = xmax - self.xhi + 1
             self.xlo += xadd
             self.xhi += xadd
-            self.axes.set_xlim(self.xlo, self.xhi)
+            self.ax.set_xlim(self.xlo, self.xhi)
             # crop out points outside of the buffer
             # note the deques should drop data automatically,
             # but if some frames are skipped or have failed fits then there might still
@@ -1726,7 +1726,7 @@ class PickProfitTargets:
         self,
         mccd,
         fig,
-        caxes,
+        axs,
         shbox,
         fwhm,
         beta,
@@ -1744,8 +1744,8 @@ class PickProfitTargets:
 
         # figure and axes
         self.fig = fig
-        self.caxes = caxes
-        self.axnams = {axes: cnam for cnam, axes in caxes.items()}  # reverse for events
+        self.axs = axs
+        self.axnams = {ax: cnam for cnam, ax in axs.items()}  # reverse for events
 
         # fitting params
         self.shbox = shbox
@@ -1826,7 +1826,7 @@ class PickProfit:
         self,
         ccd_data,
         fig,
-        caxes,
+        axs,
         shbox,
         fwhm,
         beta,
@@ -1844,8 +1844,8 @@ class PickProfit:
 
         # figure and axes
         self.fig = fig
-        self.caxes = caxes
-        self.axnams = {axes: cnam for cnam, axes in caxes.items()}  # reverse for events
+        self.axs = axs
+        self.axnams = {ax: cnam for cnam, ax in axs.items()}  # reverse for events
 
         # fitting params
         self.shbox = shbox

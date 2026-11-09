@@ -197,7 +197,7 @@ def setfringe(args=None):
         xlo, xhi, ylo, yhi = 0, nxmax + 1, 0, nymax + 1
 
     # create the plot
-    fig, caxes = hcam.mpl.plot_frame(
+    fig, axs = hcam.mpl.plot_frame(
         mccd=mccd,
         cnams=ccds,
         ncols=nx,
@@ -212,9 +212,9 @@ def setfringe(args=None):
 
     # add any existing fringe pairs to the plot, storing a reference to the plot objects
     pobjs = {}
-    for cnam, axes in caxes.items():
+    for cnam, ax in axs.items():
         if cnam in mccd_fpair:
-            pobjs[cnam] = hcam.mpl.pCcdFringePair(axes, mccd_fpair[cnam])
+            pobjs[cnam] = hcam.mpl.pCcdFringePair(ax, mccd_fpair[cnam])
         else:
             # create in an empty group to be added to later
             mccd_fpair[cnam] = fringe.CcdFringePair()
@@ -225,7 +225,7 @@ def setfringe(args=None):
         mccd,
         mccd_fpair,
         fig,
-        caxes,
+        axs,
         pobjs,
         fpair,
         nhalf,
@@ -246,7 +246,7 @@ class PickFringePair:
         mccd,
         mccd_fpair,
         fig,
-        caxes,
+        axs,
         pobjs,
         fringenam,
         nhalf,
@@ -257,8 +257,8 @@ class PickFringePair:
 
         # figure and axes
         self.fig = fig
-        self.caxes = caxes
-        self.axnams = {axes: cnam for cnam, axes in caxes.items()}  # reverse for events
+        self.axs = axs
+        self.axnams = {ax: cnam for cnam, ax in axs.items()}  # reverse for events
         self.pobjs = pobjs
 
         # output file
@@ -305,7 +305,7 @@ class PickFringePair:
             if event.inaxes is not None:
                 self._cnam = self.axnams[event.inaxes]
                 self._key = event.key
-                self._axes = event.inaxes
+                self._ax = event.inaxes
                 self._x = event.xdata
                 self._y = event.ydata
                 self._pair()
@@ -314,7 +314,7 @@ class PickFringePair:
             # standard mode action
             self._standard(event.key, event.xdata, event.ydata, event.inaxes)
 
-    def _standard(self, key, x, y, axes):
+    def _standard(self, key, x, y, ax):
         """Carries out the work needed when we are in the standard mode. Just
         pass through the value of the key pressed, the associated x, y
         position and the axes instance (all from the event) and this
@@ -322,13 +322,13 @@ class PickFringePair:
 
         """
 
-        if axes is not None:
+        if ax is not None:
             # store information in attributes accessible to all
             # methods, for later access: name, the key hit, the axes
             # instance, x, y
-            self._cnam = self.axnams[axes]
+            self._cnam = self.axnams[ax]
             self._key = key
-            self._axes = axes
+            self._ax = ax
             self._x = x
             self._y = y
 
@@ -440,7 +440,7 @@ as it is close enough (< 10 pixels)
 
                 # add fringe pair to the plot, store plot objects
                 self.pobjs[self._cnam][self._label] = hcam.mpl.pFringePair(
-                    self._axes, frng
+                    self._ax, frng
                 )
 
                 # make sure it appears
