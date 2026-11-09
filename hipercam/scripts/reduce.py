@@ -4,6 +4,7 @@ import sys
 from functools import partial
 
 import numpy as np
+from astropy.time import Time
 from trm import cline
 from trm.cline import Cline
 
@@ -22,14 +23,11 @@ from hipercam.reduction import (
     update_plots,
 )
 
-# get hipercam version to write into the reduce log file
-hipercam_version = hcam.version()
-
-has_psf_option = True
+HAS_PSF_OPTION = True
 try:
     from hipercam.psf_reduction import extractFluxPSF
 except (ModuleNotFoundError, ImportError):
-    has_psf_option = False
+    HAS_PSF_OPTION = False
 
 __all__ = [
     "reduce",
@@ -422,351 +420,241 @@ def reduce(args=None):
     )
 
     # a couple of initialisations
-    total_time = 0  # time waiting for new frame
-
     if lplot:
         lbuffer, xbuffer, ybuffer, tbuffer, sbuffer = setup_plot_buffers(rfile)
     else:
         lbuffer, xbuffer, ybuffer, tbuffer, sbuffer = None, None, None, None, None
 
+    # Set up the multiprocessing pool if requested
+    ncpu = rfile["general"]["ncpu"]
+    if ncpu > 1:
+        pool = multiprocessing.Pool(processes=ncpu)
+    else:
+        pool = None
+
+    # Containers for the processed, debiassed and raw MCCD groups
+    # and their frame numbers
+    pccds, bccds, mccds, nframes = [], [], [], []
+
+    # get hipercam version to write into the reduce log file
+    hipercam_version = hcam.version()
+
     ############################################
-    #
-    # open the log file and write headers
-    #
-    with LogWriter(log, rfile, hipercam_version, plist) as logfile:
-        ncpu = rfile["general"]["ncpu"]
-        if ncpu > 1:
-            pool = multiprocessing.Pool(processes=ncpu)
-        else:
-            pool = None
+    # Start the main loop
+    total_time = 0.0
+    with (
+        spooler.data_source(source, resource, first, full=False) as spool,
+        LogWriter(log, rfile, hipercam_version, plist) as logfile
+    ):
+        for n, mccd in enumerate(spool):
+            if server_or_local:
+                # Handle the waiting game ...
+                give_up, try_again, total_time = spooler.hang_about(
+                    mccd, twait, tmx, total_time
+                )
+                if give_up:
+                    break
+                elif try_again:
+                    continue
 
-        # whether some parameters have been initialised
-        initialised = False
+            # We have a frame!
+            nframe = mccd.head.get("NFRAME", n + 1)
 
-        # containers for the processed, debiassed and raw MCCD groups
-        # and their frame numbers
-        pccds, bccds, mccds, nframes = [], [], [], []
+            if source != "hf" and last and nframe > last:
+                # finite last frame number
+                print("\nHave reduced up to the last frame set.")
+                break
 
-        ##############################################
-        #
-        # Finally, start winding through the frames
-        #
+            # Print progress indicators
+            tstamp = Time(mccd.head["TIMSTAMP"], format="isot", precision=3)
+            tok = "ok" if mccd.head.get("GOODTIME", True) else "nok"
+            print(
+                f"Frame {nframe}: utc= {tstamp.iso} ({tok}), ",
+                end="" if implot else "\n",
+            )
 
-        with spooler.data_source(source, resource, first, full=False) as spool:
-            # 'spool' is an iterable source of MCCDs
-            for nf, mccd in enumerate(spool):
-                if server_or_local:
-                    # Handle the waiting game ...
-                    give_up, try_again, total_time = spooler.hang_about(
-                        mccd, twait, tmx, total_time
-                    )
+            # Trim the frames: ULTRACAM windowed data has bad columns
+            # and rows on the sides of windows closest to the readout
+            # which can badly affect reduction. This option strips
+            # them.
+            if trim:
+                hcam.ccd.trim_ultracam(mccd, ncol, nrow)
 
-                    if give_up:
-                        # Giving up, but need to handle any partially filled
-                        # frame group
-
-                        if len(mccds):
-                            # finish processing remaining frames. This step
-                            # will only occur if we have at least once passed
-                            # to later stages during which read and gain will
-                            # be set up
-                            results = processor(pccds, mccds, nframes)
-
-                            # write out results to the log file
-                            alerts = logfile.write_results(results)
-
-                            # print out any accumulated alert messages
-                            if len(alerts):
-                                print("\n".join(alerts))
-
-                            update_plots(
-                                results,
-                                rfile,
-                                implot,
-                                lplot,
-                                psfplot,
-                                imdev,
-                                lcdev,
-                                psfdev,
-                                pccd,
-                                ccds,
-                                msub,
-                                nx,
-                                iset,
-                                plo,
-                                phi,
-                                ilo,
-                                ihi,
-                                xlo,
-                                xhi,
-                                ylo,
-                                yhi,
-                                lpanel,
-                                xpanel,
-                                ypanel,
-                                tpanel,
-                                spanel,
-                                tkeep,
-                                lbuffer,
-                                xbuffer,
-                                ybuffer,
-                                tbuffer,
-                                sbuffer,
-                            )
-                            mccds = []
-
-                        print("reduce finished")
-                        break
-
-                    elif try_again:
-                        continue
-
-                # Trim the frames: ULTRACAM windowed data has bad
-                # columns and rows on the sides of windows closest to
-                # the readout which can badly affect reduction. This
-                # option strips them.
-                if trim:
-                    hcam.ccd.trim_ultracam(mccd, ncol, nrow)
-
-                # indicate progress
-                if "NFRAME" in mccd.head:
-                    nframe = mccd.head["NFRAME"]
-                else:
-                    nframe = nf + 1
-
-                if source != "hf" and last and nframe > last:
-                    # finite last frame number
-
-                    if len(mccds):
-                        # finish processing remaining frames
-                        results = processor(pccds, bccds, mccds, nframes)
-
-                        # write out results to the log file
-                        alerts = logfile.write_results(results)
-
-                        # print out any accumulated alert messages
-                        if len(alerts):
-                            print("\n".join(alerts))
-
-                        update_plots(
-                            results,
-                            rfile,
-                            implot,
-                            lplot,
-                            psfplot,
-                            imdev,
-                            lcdev,
-                            psfdev,
-                            pccd,
-                            ccds,
-                            msub,
-                            nx,
-                            iset,
-                            plo,
-                            phi,
-                            ilo,
-                            ihi,
-                            xlo,
-                            xhi,
-                            ylo,
-                            yhi,
-                            lpanel,
-                            xpanel,
-                            ypanel,
-                            tpanel,
-                            spanel,
-                            tkeep,
-                            lbuffer,
-                            xbuffer,
-                            ybuffer,
-                            tbuffer,
-                            sbuffer,
-                        )
-                        mccds = []
-
-                    print("\nHave reduced up to the last frame set.")
-                    print("reduce finished")
+            # First time setup
+            if n == 0:
+                # This is the first frame, which allows us to make
+                # some checks and initialisations.
+                read, gain, ok = initial_checks(mccd, rfile)
+                if not ok:
                     break
 
-                print(
-                    "Frame {:d}: {:s} ({:s})".format(
-                        nframe,
-                        mccd.head["TIMSTAMP"],
-                        "ok" if mccd.head.get("GOODTIME", True) else "nok",
-                    ),
-                    end="" if implot else "\n",
-                )
+                # Choose between PSF and normal photometry
+                use_psf = rfile["psf_photom"].get("use_psf", "no")
+                if use_psf.lower().strip() != "no":
+                    if not HAS_PSF_OPTION:
+                        raise ValueError(
+                            "'psf_photom' is set to 'yes', but photutils not installed"
+                        )
+                    # create a process function by wrapping ccdproc
+                    # in a partial whose first argument is the PSF extraction
+                    # function
+                    process_func = partial(ccdproc, extractFluxPSF)
+                else:
+                    # use a partial to encapsulate the normal extraction
+                    process_func = partial(ccdproc, extractFlux)
 
-                if not initialised:
-                    # This is the first frame  which allows us to make
-                    # some checks and initialisations.
-                    read, gain, ok = initial_checks(mccd, rfile)
+                # Define the CCD processor function object
+                processor = ProcessCCDs(rfile, read, gain, process_func, pool)
 
-                    # choose between PSF and normal photometry
-                    use_psf = rfile["psf_photom"].get("use_psf", "no")
-                    if use_psf.lower().strip() != "no":
-                        if not has_psf_option:
-                            raise ValueError(
-                                "'psf_photom' is set to 'yes', but photutils not installed"
-                            )
-                        # create a process function by wrapping ccdproc
-                        # in a partial whose first argument is the PSF extraction
-                        # function
-                        process_func = partial(ccdproc, extractFluxPSF)
-                    else:
-                        # use a partial to encapsulate the normal extraction
-                        process_func = partial(ccdproc, extractFlux)
+            # Lots of frame processing and calibration to do
+            # From now on, we will be storing three copies of the MCCD:
+            #   - 'pccd' is the fully processed data (debiassed, flat-fielded etc.)
+            #   - 'bccd' is the debiassed data, used for variance computation
+            #   - 'mccd' is the raw data, used to determine saturation
 
-                    # Define the CCD processor function object
-                    processor = ProcessCCDs(rfile, read, gain, process_func, pool)
+            # subtract the bias
+            if rfile.bias is not None:
+                bccd = mccd - rfile.bias
+                bexpose = rfile.bias.head.get("EXPTIME", 0.0)
+            else:
+                bccd = mccd.copy()
+                bexpose = 0.0
+            pccd = bccd.copy()
 
-                    # set flag to show we are set
-                    if not ok:
-                        break
-                    initialised = True
-
-                # De-bias the data. Retain a copy of the raw data as 'mccd'
-                # in order to judge saturation. Plain debiassed data called
-                # bccd. Data for full processing called 'pccd'
+            # subtract the dark, scaling by exposure time
+            if rfile.dark is not None:
+                dexpose = rfile.dark.head["EXPTIME"]
                 if rfile.bias is not None:
-                    # subtract bias
-                    bccd = mccd - rfile.bias
-                    pccd = bccd.copy()
                     bexpose = rfile.bias.head.get("EXPTIME", 0.0)
                 else:
-                    # no bias subtraction
-                    bccd = mccd.copy()
-                    pccd = mccd.copy()
                     bexpose = 0.0
+                for cnam in pccd:
+                    ccd = pccd[cnam]
+                    cexpose = ccd.head["EXPTIME"]
+                    scale = (cexpose - bexpose) / dexpose
+                    ccd -= scale * rfile.dark[cnam]
 
-                if rfile.dark is not None:
-                    # subtract dark, CCD by CCD
-                    dexpose = rfile.dark.head["EXPTIME"]
-                    for cnam in pccd:
+            # divide out the flat
+            if rfile.flat is not None:
+                pccd /= rfile.flat
+
+            # attempt to correct for poorly placed frame transfer mask,
+            # causing a step illumination in the y-direction
+            # also includes a stage where we average in
+            # the Y direction to try to eliminate high pixels
+            if rfile["focal_mask"]["demask"]:
+                # loop through all windows of all CCDs
+                dthresh = rfile["focal_mask"]["dthresh"]
+                for ccd in pccd.values():
+                    for wind in ccd.values():
+                        # form mean in Y direction, then try to
+                        # mask out high pixels
+                        ymean = np.mean(wind.data, 0)
+                        xmask = ymean == ymean
+                        while 1:
+                            # rejection cycle, rejecting
+                            # overly positive pixels
+                            ave = ymean[xmask].mean()
+                            rms = ymean[xmask].std()
+                            diff = ymean - ave
+                            diff[~xmask] = 0
+                            imax = np.argmax(diff)
+                            if diff[imax] > dthresh * rms:
+                                xmask[imax] = False
+                            else:
+                                break
+
+                        # form median in X direction
+                        xmedian = np.median(wind.data[:, xmask], 1)
+
+                        # subtract it's median to avoid removing
+                        # general background
+                        xmedian -= np.median(xmedian)
+
+                        # now subtract from 2D image using
+                        # broadcasting rules
+                        wind.data -= xmedian.reshape((len(xmedian), 1))
+
+            # remove fringes
+            if rfile.fmap is not None:
+                # apply only to CCDs present in both fmap and fpair
+                for cnam in rfile.fmap:
+                    if cnam in rfile.fpair:
                         ccd = pccd[cnam]
-                        cexpose = ccd.head["EXPTIME"]
-                        scale = (cexpose - bexpose) / dexpose
-                        ccd -= scale * rfile.dark[cnam]
+                        fscale = rfile.fpair[cnam].scale(
+                            ccd,
+                            rfile.fmap[cnam],
+                            rfile["calibration"]["nhalf"],
+                            rfile["calibration"]["rmin"],
+                            rfile["calibration"]["rmax"],
+                        )
+                        ccd -= fscale * rfile.fmap[cnam]
 
-                if rfile.flat is not None:
-                    # apply flat field to processed frame
-                    pccd /= rfile.flat
+            # Now we're ready to do the photometry.
+            # Accumulate frames into processing groups for faster parallelisation
+            pccds.append(pccd)
+            bccds.append(bccd)
+            mccds.append(mccd)
+            nframes.append(nframe)
 
-                if rfile["focal_mask"]["demask"]:
-                    # attempt to correct for poorly placed frame
-                    # transfer mask causing a step illumination in the
-                    # y-direction. Loop through all windows of all
-                    # CCDs. Also include a stage where we average in
-                    # the Y direction to try to eliminate high pixels.
-                    dthresh = rfile["focal_mask"]["dthresh"]
+            # If we have enough frames, process them in parallel.
+            # Otherwise we keep spooling for more until the group is full
+            # (or we run out of frames and break out early).
+            if len(pccds) == rfile["general"]["ngroup"]:
+                # carry out parallel processing
+                results = processor(pccds, bccds, mccds, nframes)
 
-                    for cnam, ccd in pccd.items():
-                        for wnam, wind in ccd.items():
-                            # form mean in Y direction, then try to
-                            # mask out high pixels
-                            ymean = np.mean(wind.data, 0)
-                            xmask = ymean == ymean
-                            while 1:
-                                # rejection cycle, rejecting
-                                # overly positive pixels
-                                ave = ymean[xmask].mean()
-                                rms = ymean[xmask].std()
-                                diff = ymean - ave
-                                diff[~xmask] = 0
-                                imax = np.argmax(diff)
-                                if diff[imax] > dthresh * rms:
-                                    xmask[imax] = False
-                                else:
-                                    break
+                # write out results to the log file
+                alerts = logfile.write_results(results)
 
-                            # form median in X direction
-                            xmedian = np.median(wind.data[:, xmask], 1)
+                # print out any accumulated alert messages
+                if len(alerts):
+                    print("\n".join(alerts))
 
-                            # subtract it's median to avoid removing
-                            # general background
-                            xmedian -= np.median(xmedian)
+                # update the plots with the new results
+                update_plots(
+                    results,
+                    rfile,
+                    implot,
+                    lplot,
+                    psfplot,
+                    imdev,
+                    lcdev,
+                    psfdev,
+                    pccds[-1],
+                    ccds,
+                    msub,
+                    nx,
+                    iset,
+                    plo,
+                    phi,
+                    ilo,
+                    ihi,
+                    xlo,
+                    xhi,
+                    ylo,
+                    yhi,
+                    lpanel,
+                    xpanel,
+                    ypanel,
+                    tpanel,
+                    spanel,
+                    tkeep,
+                    lbuffer,
+                    xbuffer,
+                    ybuffer,
+                    tbuffer,
+                    sbuffer,
+                )
 
-                            # now subtract from 2D image using
-                            # broadcasting rules
-                            wind.data -= xmedian.reshape((len(xmedian), 1))
+                # reset the frame buffers
+                pccds, bccds, mccds, nframes = [], [], [], []
 
-                if rfile.fmap is not None:
-                    # fringe correction
-                    calsec = rfile["calibration"]
-
-                    # apply only to CCDs present in both fmap and fpair
-                    for cnam in rfile.fmap:
-                        if cnam in rfile.fpair:
-                            ccd = pccd[cnam]
-                            fscale = rfile.fpair[cnam].scale(
-                                ccd,
-                                rfile.fmap[cnam],
-                                calsec["nhalf"],
-                                calsec["rmin"],
-                                calsec["rmax"],
-                            )
-                            ccd -= fscale * rfile.fmap[cnam]
-
-                # Accumulate frames into processing groups for faster
-                # parallelisation
-                pccds.append(pccd)
-                mccds.append(mccd)
-                bccds.append(bccd)
-                nframes.append(nframe)
-
-                if len(pccds) == rfile["general"]["ngroup"]:
-                    # parallel processing. This should usually be the first
-                    # points at which it takes place
-                    results = processor(pccds, bccds, mccds, nframes)
-
-                    # write out results to the log file
-                    alerts = logfile.write_results(results)
-
-                    # print out any accumulated alert messages
-                    if len(alerts):
-                        print("\n".join(alerts))
-
-                    update_plots(
-                        results,
-                        rfile,
-                        implot,
-                        lplot,
-                        psfplot,
-                        imdev,
-                        lcdev,
-                        psfdev,
-                        pccds[-1],
-                        ccds,
-                        msub,
-                        nx,
-                        iset,
-                        plo,
-                        phi,
-                        ilo,
-                        ihi,
-                        xlo,
-                        xhi,
-                        ylo,
-                        yhi,
-                        lpanel,
-                        xpanel,
-                        ypanel,
-                        tpanel,
-                        spanel,
-                        tkeep,
-                        lbuffer,
-                        xbuffer,
-                        ybuffer,
-                        tbuffer,
-                        sbuffer,
-                    )
-
-                    # Reset the frame buffers
-                    pccds, bccds, mccds, nframes = [], [], [], []
-
+        # Out of the loop now.
+        # If ngroup > 1, we might have some frames left over that haven't been
+        # processed yet. If so, process them now.
         if len(mccds):
-            # out of loop now. Finish processing any remaining
-            # frames.
+            # carry out parallel processing
             results = processor(pccds, bccds, mccds, nframes)
 
             # write out results to the log file
@@ -776,6 +664,7 @@ def reduce(args=None):
             if len(alerts):
                 print("\n".join(alerts))
 
+            # update the plots with the new results
             update_plots(
                 results,
                 rfile,
@@ -785,7 +674,7 @@ def reduce(args=None):
                 imdev,
                 lcdev,
                 psfdev,
-                pccd,
+                pccds[-1],
                 ccds,
                 msub,
                 nx,
@@ -811,4 +700,5 @@ def reduce(args=None):
                 sbuffer,
             )
 
-            print("reduce finished")
+    # Done
+    print("reduce finished")
