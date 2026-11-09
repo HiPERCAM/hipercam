@@ -1184,22 +1184,22 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
             del self.mccdaper[self._cnam][apnam]
 
             # break any links to the deleted aperture
-            for anam, aper in self.mccdaper[self._cnam].items():
+            for apnam, aper in self.mccdaper[self._cnam].items():
                 if aper.link == apnam:
                     aper.link = ""
                     print(
                         '  removed link to aperture "{:s}"'
-                        ' from aperture "{:s}"'.format(apnam, anam)
+                        ' from aperture "{:s}"'.format(apnam, apnam)
                     )
 
                     # remove the plot of the aperture that was linked in to
                     # wipe the link
-                    for obj in self.pobjs[self._cnam][anam]:
+                    for obj in self.pobjs[self._cnam][apnam]:
                         obj.remove()
 
                     # then re-plot
-                    self.pobjs[self._cnam][anam] = hcam.mpl.pAper(
-                        self._ax, aper, anam
+                    self.pobjs[self._cnam][apnam] = hcam.mpl.pAper(
+                        self._ax, aper, apnam
                     )
 
             # update plot
@@ -1525,12 +1525,12 @@ same size as the main target aperture. The 'mask' apertures have a fixed size.
         dmin = None
         apmin = None
         anmin = None
-        for anam, aper in self.mccdaper[self._cnam].items():
+        for apnam, aper in self.mccdaper[self._cnam].items():
             dist = np.sqrt((aper.x - self._x) ** 2 + (aper.y - self._y) ** 2)
             if dmin is None or dist < dmin:
                 dmin = dist
                 apmin = aper
-                anmin = anam
+                anmin = apnam
 
         return (apmin, anmin, dmin)
 

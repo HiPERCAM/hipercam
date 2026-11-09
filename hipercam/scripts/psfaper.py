@@ -689,12 +689,12 @@ class PickRef:
         dmin = None
         apmin = None
         anmin = None
-        for anam, aper in self.mccdaper[self._cnam].items():
+        for apnam, aper in self.mccdaper[self._cnam].items():
             dist = np.sqrt((aper.x - self._x) ** 2 + (aper.y - self._y) ** 2)
             if dmin is None or dist < dmin:
                 dmin = dist
                 apmin = aper
-                anmin = anam
+                anmin = apnam
 
         return (apmin, anmin, dmin)
 
