@@ -1064,6 +1064,9 @@ def nrtplot(args=None):
                         ntarg: (deque(maxlen=fwnmax), deque(maxlen=fwnmax))
                         for ntarg in pfit_targets
                     }
+                else:
+                    # no targets selected, so disable profile fitting
+                    profit = False
 
             # Fit profile for each target, if we have any
             if pfit_targets is not None:
