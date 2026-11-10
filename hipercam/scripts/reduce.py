@@ -62,7 +62,7 @@ NaN = float("NaN")
 ################################################
 def reduce(args=None):
     """``reduce [source] rfile (run first last [twait tmax]| flist) trim
-    ([ncol nrow]) log lplot implot (ccd nx msub xlo xhi ylo yhi iset
+    ([ncol nrow]) log lcplot implot (ccd nx msub xlo xhi ylo yhi iset
     (ilo ihi | plo phi))``
 
     Reduces a sequence of multi-CCD images, plotting lightcurves as
@@ -168,7 +168,7 @@ def reduce(args=None):
            of "max_xrange" parameter in the ULTRACAM pipeline whereby just
            the last few minutes are shown.
 
-        lplot : bool
+        lcplot : bool
            flag to indicate you want to plot the light curve. Saves time not
            to especially in high-speed runs.
 
@@ -177,31 +177,31 @@ def reduce(args=None):
 
         psfplot : bool
            flag to indicate you want to plot images after subtraction of PSF model.
-           inherits all other parameters from the image plot
+           only valid if 'use_psf' is set to 'yes' in the reduce file.
 
-        ccd : string [if implot]
+        ccd : string [if implot or psfplot]
            CCD(s) to plot, '0' for all, '1 3' to plot '1' and '3' only, etc.
 
-        nx : int [if implot]
+        nx : int [if implot or psfplot]
            number of panels across to display.
 
-        msub : bool [if implot]
+        msub : bool [if implot or psfplot]
            subtract the median from each window before scaling for the
            image display or not. This happens after any bias subtraction.
 
-        xlo : float [if implot]
+        xlo : float [if implot or psfplot]
            left-hand X-limit for plot
 
-        xhi : float [if implot]
+        xhi : float [if implot or psfplot]
            right-hand X-limit for plot (can actually be < xlo)
 
-        ylo : float [if implot]
+        ylo : float [if implot or psfplot]
            lower Y-limit for plot
 
-        yhi : float [if implot]
+        yhi : float [if implot or psfplot]
            upper Y-limit for plot (can be < ylo)
 
-        iset : string [if implot]
+        iset : string [if implot or psfplot]
            determines how the intensities are determined. There are three
            options: 'a' for automatic simply scales from the minimum to the
            maximum value found on a per CCD basis. 'd' for direct just takes
@@ -209,16 +209,16 @@ def reduce(args=None):
            based upon percentiles determined from the entire CCD on a per CCD
            basis.
 
-        ilo : float [if implot and iset='d']
+        ilo : float [if implot or psfplot and iset='d']
            lower intensity level
 
-        ihi : float [if implot and iset='d']
+        ihi : float [if implot or psfplot and iset='d']
            upper intensity level
 
-        plo : float [if implot and iset='p']
+        plo : float [if implot or psfplot and iset='p']
            lower percentile level
 
-        phi : float [if implot and iset='p']
+        phi : float [if implot or psfplot and iset='p']
            upper percentile level
 
     .. Warning::
@@ -247,7 +247,7 @@ def reduce(args=None):
         cl.register("rfile", Cline.GLOBAL, Cline.PROMPT)
         cl.register("log", Cline.GLOBAL, Cline.PROMPT)
         cl.register("tkeep", Cline.GLOBAL, Cline.PROMPT)
-        cl.register("lplot", Cline.LOCAL, Cline.PROMPT)
+        cl.register("lcplot", Cline.LOCAL, Cline.PROMPT)
         cl.register("implot", Cline.LOCAL, Cline.PROMPT)
         cl.register("psfplot", Cline.LOCAL, Cline.PROMPT)
         cl.register("ccd", Cline.LOCAL, Cline.PROMPT)
@@ -340,10 +340,16 @@ def reduce(args=None):
             0.0,
         )
 
-        lplot = cl.get_value("lplot", "do you want to plot light curves?", True)
+        lcplot = cl.get_value("lcplot", "do you want to plot light curves?", True)
 
         implot = cl.get_value("implot", "do you want to plot images?", True)
-        if rfile["psf_photom"].get("use_psf", "no").lower().strip() != "no":
+
+        use_psf = rfile["psf_photom"].get("use_psf", "no").lower().strip() != "no"
+        if use_psf:
+            if not HAS_PSF_OPTION:
+                raise ValueError(
+                    "'use_psf' is set to 'yes', but photutils not installed"
+                )
             psfplot = cl.get_value(
                 "psfplot", "do you want to plot residual of PSF model?", True
             )
@@ -429,20 +435,33 @@ def reduce(args=None):
     ################################################################
     #
     # all the inputs have now been obtained. Get on with doing stuff
-    if implot or psfplot:
-        plot_lims = (xlo, xhi, ylo, yhi)
-    else:
-        plot_lims = None
 
-    imdev, lcdev, psfdev, spanel, tpanel, xpanel, ypanel, lpanel = setup_plots(
-        rfile, ccds, nx, plot_lims, implot, lplot, psfplot
-    )
-
-    # a couple of initialisations
-    if lplot:
-        lbuffer, xbuffer, ybuffer, tbuffer, sbuffer = setup_plot_buffers(rfile)
+    # Set up the plot devices and buffers
+    if implot:
+        # image plot
+        imdevice = setup_implot(rfile, ccds, nx, xlo, xhi, ylo, yhi)
     else:
-        lbuffer, xbuffer, ybuffer, tbuffer, sbuffer = None, None, None, None, None
+        imdevice = None
+    if use_psf and psfplot:
+        # PSF plot
+        psfdevice = setup_implot(rfile, ccds, nx, xlo, xhi, ylo, yhi)
+    else:
+        psfdevice = None
+    if lcplot:
+        # lightcurve plot
+        lpanel, xpanel, ypanel, tpanel, spanel = setup_lcplot(rfile)
+        lbuffer, xbuffer, ybuffer, tbuffer, sbuffer = setup_lcplot_buffers(rfile)
+    else:
+        lpanel = None
+        xpanel = None
+        ypanel = None
+        tpanel = None
+        spanel = None
+        lbuffer = None
+        xbuffer = None
+        ybuffer = None
+        sbuffer = None
+        tbuffer = None
 
     # Set up the multiprocessing pool if requested
     ncpu = rfile["general"]["ncpu"]
@@ -509,12 +528,7 @@ def reduce(args=None):
                     break
 
                 # Choose between PSF and normal photometry
-                use_psf = rfile["psf_photom"].get("use_psf", "no")
-                if use_psf.lower().strip() != "no":
-                    if not HAS_PSF_OPTION:
-                        raise ValueError(
-                            "'psf_photom' is set to 'yes', but photutils not installed"
-                        )
+                if use_psf:
                     # create a process function by wrapping ccdproc
                     # in a partial whose first argument is the PSF extraction
                     # function
@@ -632,41 +646,57 @@ def reduce(args=None):
                     print("\n".join(alerts))
 
                 # update the plots with the new results
-                tzero = update_plots(
-                    results,
-                    tzero,
-                    rfile,
-                    implot,
-                    lplot,
-                    psfplot,
-                    imdev,
-                    lcdev,
-                    psfdev,
-                    pccds[-1],
-                    ccds,
-                    msub,
-                    nx,
-                    iset,
-                    plo,
-                    phi,
-                    ilo,
-                    ihi,
-                    xlo,
-                    xhi,
-                    ylo,
-                    yhi,
-                    lpanel,
-                    xpanel,
-                    ypanel,
-                    tpanel,
-                    spanel,
-                    tkeep,
-                    lbuffer,
-                    xbuffer,
-                    ybuffer,
-                    tbuffer,
-                    sbuffer,
-                )
+                if implot:
+                    update_implot(
+                        results,
+                        rfile,
+                        imdevice,
+                        pccds[-1],
+                        ccds,
+                        msub,
+                        nx,
+                        iset,
+                        plo,
+                        phi,
+                        ilo,
+                        ihi,
+                        xlo,
+                        xhi,
+                        ylo,
+                        yhi,
+                    )
+                if use_psf and psfplot:
+                    update_psfplot(
+                        results,
+                        rfile,
+                        psfdevice,
+                        pccds[-1],
+                        ccds,
+                        nx,
+                        plo,
+                        phi,
+                        xlo,
+                        xhi,
+                        ylo,
+                        yhi,
+                    )
+                if lcplot:
+                    tzero = update_lcplot(
+                        results,
+                        rfile,
+                        tzero,
+                        tkeep,
+                        lpanel,
+                        xpanel,
+                        ypanel,
+                        tpanel,
+                        spanel,
+                        lbuffer,
+                        xbuffer,
+                        ybuffer,
+                        tbuffer,
+                        sbuffer,
+                    )
 
                 # reset the frame buffers
                 pccds, bccds, mccds, nframes = [], [], [], []
@@ -686,41 +716,57 @@ def reduce(args=None):
                 print("\n".join(alerts))
 
             # update the plots with the new results
-            tzero = update_plots(
-                results,
-                tzero,
-                rfile,
-                implot,
-                lplot,
-                psfplot,
-                imdev,
-                lcdev,
-                psfdev,
-                pccds[-1],
-                ccds,
-                msub,
-                nx,
-                iset,
-                plo,
-                phi,
-                ilo,
-                ihi,
-                xlo,
-                xhi,
-                ylo,
-                yhi,
-                lpanel,
-                xpanel,
-                ypanel,
-                tpanel,
-                spanel,
-                tkeep,
-                lbuffer,
-                xbuffer,
-                ybuffer,
-                tbuffer,
-                sbuffer,
-            )
+            if implot:
+                update_implot(
+                    results,
+                    rfile,
+                    imdevice,
+                    pccd,
+                    ccds,
+                    msub,
+                    nx,
+                    iset,
+                    plo,
+                    phi,
+                    ilo,
+                    ihi,
+                    xlo,
+                    xhi,
+                    ylo,
+                    yhi,
+                )
+            if use_psf and psfplot:
+                update_psfplot(
+                    results,
+                    rfile,
+                    psfdevice,
+                    pccd,
+                    ccds,
+                    nx,
+                    plo,
+                    phi,
+                    xlo,
+                    xhi,
+                    ylo,
+                    yhi,
+                )
+            if lcplot:
+                tzero = update_lcplot(
+                    results,
+                    rfile,
+                    tzero,
+                    tkeep,
+                    lpanel,
+                    xpanel,
+                    ypanel,
+                    tpanel,
+                    spanel,
+                    lbuffer,
+                    xbuffer,
+                    ybuffer,
+                    tbuffer,
+                    sbuffer,
+                )
 
     # Done
     print("reduce finished")
@@ -1551,225 +1597,231 @@ class Seeing(BaseBuffer):
         return (tmax, fmax)
 
 
-def setup_plots(rfile, ccds, nx, plot_lims, implot=True, lplot=True, psfplot=True):
-    """
-    Perform initial setup of image and lightcurve plots for reduction outputs
-    """
-    imdev = lcdev = psfdev = spanel = tpanel = xpanel = ypanel = lpanel = None
-    if implot:
-        xlo, xhi, ylo, yhi = plot_lims
-        # image plot
-        imdev = hcam.pgp.Device(rfile["general"]["idevice"])
-        iwidth = rfile["general"]["iwidth"]
-        iheight = rfile["general"]["iheight"]
+def setup_implot(rfile, ccds, nx, xlo, xhi, ylo, yhi):
+    """Perform initial setup of the image plot for reduction outputs."""
+    device = hcam.pgp.Device(rfile["general"]["idevice"])
+    iwidth = rfile["general"]["iwidth"]
+    iheight = rfile["general"]["iheight"]
 
-        if iwidth > 0 and iheight > 0:
-            pgpap(iwidth, iheight / iwidth)
+    if iwidth > 0 and iheight > 0:
+        pgpap(iwidth, iheight / iwidth)
 
-        # set up panels and axes
-        nccd = len(ccds)
-        ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
+    # set up panels and axes
+    nccd = len(ccds)
+    ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
 
-        # slice up viewport
-        pgsubp(nx, ny)
+    # slice up viewport
+    pgsubp(nx, ny)
 
-        # plot axes, labels, titles. Happens once only
-        for cnam in ccds:
-            pgsci(hcam.pgp.Params["axis.ci"])
-            pgsch(hcam.pgp.Params["axis.number.ch"])
-            pgenv(xlo, xhi, ylo, yhi, 1, 0)
-            pgsci(hcam.pgp.Params["axis.label.ci"])
-            pgsch(hcam.pgp.Params["axis.label.ch"])
-            pglab("X", "Y", "CCD {:s}".format(cnam))
+    # plot axes, labels, titles. Happens once only
+    for cnam in ccds:
+        pgsci(hcam.pgp.Params["axis.ci"])
+        pgsch(hcam.pgp.Params["axis.number.ch"])
+        pgenv(xlo, xhi, ylo, yhi, 1, 0)
+        pgsci(hcam.pgp.Params["axis.label.ci"])
+        pgsch(hcam.pgp.Params["axis.label.ch"])
+        pglab("X", "Y", "CCD {:s}".format(cnam))
 
-    if psfplot:
-        xlo, xhi, ylo, yhi = plot_lims
-        # plot of image minus PSF model
-        psfdev = hcam.pgp.Device(rfile["general"].get("psfdevice", "/null"))
-        iwidth = rfile["general"]["iwidth"]
-        iheight = rfile["general"]["iheight"]
+    return device
 
-        if iwidth > 0 and iheight > 0:
-            pgpap(iwidth, iheight / iwidth)
-        # set up panels and axes
-        nccd = len(ccds)
-        ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
 
-        # slice up viewport
-        pgsubp(nx, ny)
+def setup_psfplot(rfile, ccds, nx, xlo, xhi, ylo, yhi):
+    """Perform initial setup of the PSF plot for reduction outputs."""
+    device = hcam.pgp.Device(rfile["general"].get("psfdevice", "/null"))
+    iwidth = rfile["general"]["iwidth"]
+    iheight = rfile["general"]["iheight"]
 
-        # plot axes, labels, titles. Happens once only
-        for cnam in ccds:
-            pgsci(hcam.pgp.Params["axis.ci"])
-            pgsch(hcam.pgp.Params["axis.number.ch"])
-            pgenv(xlo, xhi, ylo, yhi, 1, 0)
-            pgsci(hcam.pgp.Params["axis.label.ci"])
-            pgsch(hcam.pgp.Params["axis.label.ch"])
-            pglab("X", "Y", "CCD {:s}".format(cnam))
+    if iwidth > 0 and iheight > 0:
+        pgpap(iwidth, iheight / iwidth)
+    # set up panels and axes
+    nccd = len(ccds)
+    ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
 
-    if lplot:
-        # open the light curve plot
-        lcdev = hcam.pgp.Device(rfile["general"]["ldevice"])
-        lwidth = rfile["general"]["lwidth"]
-        lheight = rfile["general"]["lheight"]
-        if lwidth > 0 and lheight > 0:
-            pgpap(lwidth, lheight / lwidth)
+    # slice up viewport
+    pgsubp(nx, ny)
 
-        # define and draw panels. 'total' is the total height of all
-        # panel which will be used to work out the fraction occupied
-        # by each one. There is always a light curve panel of unit
-        # height.
-        lheight = 1.0
-        total = lheight
+    # plot axes, labels, titles. Happens once only
+    for cnam in ccds:
+        pgsci(hcam.pgp.Params["axis.ci"])
+        pgsch(hcam.pgp.Params["axis.number.ch"])
+        pgenv(xlo, xhi, ylo, yhi, 1, 0)
+        pgsci(hcam.pgp.Params["axis.label.ci"])
+        pgsch(hcam.pgp.Params["axis.label.ch"])
+        pglab("X", "Y", "CCD {:s}".format(cnam))
 
-        if rfile.position:
-            pheight = rfile["position"]["height"]
-            total += pheight
+    return device
 
-        if rfile.transmission:
-            theight = rfile["transmission"]["height"]
-            total += theight
 
-        if rfile.seeing:
-            sheight = rfile["seeing"]["height"]
-            total += sheight
+def setup_lcplot(rfile):
+    """Perform initial setup of the lightcurve plot for reduction outputs."""
+    device = hcam.pgp.Device(rfile["general"]["ldevice"])
+    lwidth = rfile["general"]["lwidth"]
+    lheight = rfile["general"]["lheight"]
+    if lwidth > 0 and lheight > 0:
+        pgpap(lwidth, lheight / lwidth)
 
-        # define standard viewport. We set the character height to ensure
-        # there is enough room around the edges.
-        pgsch(max(hcam.pgp.Params["axis.label.ch"], hcam.pgp.Params["axis.number.ch"]))
-        pgvstd()
-        xv1, xv2, yv1, yv2 = pgqvp()
-        x1, x2 = 0, rfile["lcplot"]["extend_x"]
+    # define and draw panels. 'total' is the total height of all
+    # panel which will be used to work out the fraction occupied
+    # by each one. There is always a light curve panel of unit
+    # height.
+    lheight = 1.0
+    total = lheight
 
-        # scale = vertical height of LC panel in device coordinates
-        scale = (yv2 - yv1) / total
+    if rfile.position:
+        pheight = rfile["position"]["height"]
+        total += pheight
 
-        # Work from the bottom up to get the X-axis labelling right
-        # since it has to be turned off for the upper panels.  at each
-        # step yv1, yv2 is the Panel's vertical range
-        xlabel = "Time [mins]"
-        xopt = "bcnst"
+    if rfile.transmission:
+        theight = rfile["transmission"]["height"]
+        total += theight
 
-        if rfile.seeing:
-            # the seeing panel
-            yv2 = yv1 + scale * sheight
-            spanel = Panel(
-                lcdev,
-                xv1,
-                xv2,
-                yv1,
-                yv2,
-                xlabel,
-                'FWHM (")',
-                "",
-                xopt,
-                "bcnst",
-                x1,
-                x2,
-                0,
-                rfile["seeing"]["ymax"],
-            )
+    if rfile.seeing:
+        sheight = rfile["seeing"]["height"]
+        total += sheight
 
-            xlabel = ""
-            xopt = "bcst"
-            yv1 = yv2
+    # define standard viewport. We set the character height to ensure
+    # there is enough room around the edges.
+    pgsch(max(hcam.pgp.Params["axis.label.ch"], hcam.pgp.Params["axis.number.ch"]))
+    pgvstd()
+    xv1, xv2, yv1, yv2 = pgqvp()
+    x1, x2 = 0, rfile["lcplot"]["extend_x"]
 
-        if rfile.transmission:
-            # the transmission panel
-            yv2 = yv1 + scale * theight
-            tpanel = Panel(
-                lcdev,
-                xv1,
-                xv2,
-                yv1,
-                yv2,
-                xlabel,
-                "% trans",
-                "",
-                xopt,
-                "bcnst",
-                x1,
-                x2,
-                0,
-                rfile["transmission"]["ymax"],
-            )
+    # scale = vertical height of LC panel in device coordinates
+    scale = (yv2 - yv1) / total
 
-            xlabel = ""
-            xopt = "bcst"
-            yv1 = yv2
+    # Work from the bottom up to get the X-axis labelling right
+    # since it has to be turned off for the upper panels.  at each
+    # step yv1, yv2 is the Panel's vertical range
+    xlabel = "Time [mins]"
+    xopt = "bcnst"
 
-        if rfile.position:
-            # the X,Y position panels. First Y
-            yv2 = yv1 + scale * pheight / 2.0
-            ypanel = Panel(
-                lcdev,
-                xv1,
-                xv2,
-                yv1,
-                yv2,
-                xlabel,
-                "Y",
-                "",
-                xopt,
-                "bcnst",
-                x1,
-                x2,
-                rfile["position"]["y_min"],
-                rfile["position"]["y_max"],
-            )
-
-            xlabel = ""
-            xopt = "bcst"
-            yv1 = yv2
-
-            # then X
-            yv2 = yv1 + scale * pheight / 2.0
-            xpanel = Panel(
-                lcdev,
-                xv1,
-                xv2,
-                yv1,
-                yv2,
-                xlabel,
-                "X",
-                "",
-                xopt,
-                "bcnst",
-                x1,
-                x2,
-                rfile["position"]["x_min"],
-                rfile["position"]["x_max"],
-            )
-
-            xlabel = ""
-            xopt = "bcst"
-            yv1 = yv2
-
-        # Light curve is not an option and is always at the top
-        yv2 = yv1 + scale * lheight
-
-        lpanel = Panel(
-            lcdev,
+    if rfile.seeing:
+        # the seeing panel
+        yv2 = yv1 + scale * sheight
+        spanel = Panel(
+            device,
             xv1,
             xv2,
             yv1,
             yv2,
             xlabel,
-            "Flux" if rfile["light"]["linear"] else "Magnitudes",
+            'FWHM (")',
             "",
             xopt,
             "bcnst",
             x1,
             x2,
-            rfile["light"]["y1"],
-            rfile["light"]["y2"],
+            0,
+            rfile["seeing"]["ymax"],
         )
 
-    return imdev, lcdev, psfdev, spanel, tpanel, xpanel, ypanel, lpanel
+        xlabel = ""
+        xopt = "bcst"
+        yv1 = yv2
+    else:
+        spanel = None
+
+    if rfile.transmission:
+        # the transmission panel
+        yv2 = yv1 + scale * theight
+        tpanel = Panel(
+            device,
+            xv1,
+            xv2,
+            yv1,
+            yv2,
+            xlabel,
+            "% trans",
+            "",
+            xopt,
+            "bcnst",
+            x1,
+            x2,
+            0,
+            rfile["transmission"]["ymax"],
+        )
+
+        xlabel = ""
+        xopt = "bcst"
+        yv1 = yv2
+    else:
+        tpanel = None
+
+    if rfile.position:
+        # the X,Y position panels. First Y
+        yv2 = yv1 + scale * pheight / 2.0
+        ypanel = Panel(
+            device,
+            xv1,
+            xv2,
+            yv1,
+            yv2,
+            xlabel,
+            "Y",
+            "",
+            xopt,
+            "bcnst",
+            x1,
+            x2,
+            rfile["position"]["y_min"],
+            rfile["position"]["y_max"],
+        )
+
+        xlabel = ""
+        xopt = "bcst"
+        yv1 = yv2
+
+        # then X
+        yv2 = yv1 + scale * pheight / 2.0
+        xpanel = Panel(
+            device,
+            xv1,
+            xv2,
+            yv1,
+            yv2,
+            xlabel,
+            "X",
+            "",
+            xopt,
+            "bcnst",
+            x1,
+            x2,
+            rfile["position"]["x_min"],
+            rfile["position"]["x_max"],
+        )
+
+        xlabel = ""
+        xopt = "bcst"
+        yv1 = yv2
+    else:
+        xpanel = None
+        ypanel = None
+
+    # Light curve is not an option and is always at the top
+    yv2 = yv1 + scale * lheight
+
+    lpanel = Panel(
+        device,
+        xv1,
+        xv2,
+        yv1,
+        yv2,
+        xlabel,
+        "Flux" if rfile["light"]["linear"] else "Magnitudes",
+        "",
+        xopt,
+        "bcnst",
+        x1,
+        x2,
+        rfile["light"]["y1"],
+        rfile["light"]["y2"],
+    )
+
+    return lpanel, xpanel, ypanel, tpanel, spanel
 
 
-def setup_plot_buffers(rfile):
-    # create buffers to store the points plotted in each panel
+def setup_lcplot_buffers(rfile):
+    """Create buffers to store the points plotted in each panel."""
     lbuffer = []
     for plot_config in rfile["light"]["plot"]:
         lbuffer.append(LightCurve(plot_config, rfile["light"]["linear"]))
@@ -1793,16 +1845,10 @@ def setup_plot_buffers(rfile):
     return lbuffer, xbuffer, ybuffer, tbuffer, sbuffer
 
 
-def update_plots(
+def update_implot(
     results,
-    tzero,
     rfile,
-    implot,
-    lplot,
-    psfplot,
-    imdev,
-    lcdev,
-    psfdev,
+    device,
     pccd,
     ccds,
     msub,
@@ -1816,429 +1862,487 @@ def update_plots(
     xhi,
     ylo,
     yhi,
+):
+    """Plot updater routine.
+
+    Arguments::
+
+        results : list
+            contains tuples with the results for groups of frames for
+            each CCD. See LogWriter.write for more details on its
+            structure.
+
+        rfile : Rfile
+            reduce file parameters
+
+        device : hipercam.pgp.Device
+            device to use for the plot
+
+        pccd : MCCD
+            current debiassed, flat-fielded frame. In the case of frame
+            groups, this will be the last one added.
+
+        ccds : list
+            list of CCD labels to be plotted
+
+        msub : bool
+            True to force subtraction of median value
+
+        nx : int
+            Number of panels in X for image display
+
+        iset : character
+            'a', 'd', or 'p' to define image display levels
+
+        plo : float [only matters if iset =='p']
+            Lower percentile level
+
+        phi : float [only matters if iset =='p']
+            Upper percentile level
+
+        ilo : float [only matters if iset =='d']
+            Lower intensity level
+
+        ihi : float [only matters if iset =='d']
+            Upper intensity level
+
+        xlo : int
+            left X-limit for determination of percentiles
+
+        xhi : int
+            right X-limit for determination of percentiles
+
+        ylo : int
+            lower Y-limit for determination of percentiles
+
+        yhi : int
+            upper Y-limit for determination of percentiles
+
+    """
+    # select the plot device
+    device.select()
+
+    # display the CCDs chosen
+    message = "; "
+    for nc, cnam in enumerate(ccds):
+        ccd = pccd[cnam]
+
+        if ccd.is_data():
+            # this should be data as opposed to a blank frame
+            # between data frames that occur with nskip > 0
+
+            if msub:
+                # subtract median from each window
+                for wind in ccd.values():
+                    wind -= wind.median()
+
+            # set to the correct panel and then plot CCD
+            ix = (nc % nx) + 1
+            iy = nc // nx + 1
+            pgpanl(ix, iy)
+            vmin, vmax = hcam.pgp.pCcd(
+                ccd, iset, plo, phi, ilo, ihi, xlo=xlo, xhi=xhi, ylo=ylo, yhi=yhi
+            )
+
+            # accumulate string of image scalings
+            if nc:
+                message += ", ccd {:s}: {:.2f} to {:.2f}".format(cnam, vmin, vmax)
+            else:
+                message += "ccd {:s}: {:.2f} to {:.2f}".format(cnam, vmin, vmax)
+
+            # plot apertures
+            if cnam in rfile.aper and len(rfile.aper[cnam]) > 0:
+                # find the result for this ccd name
+                res = next(res for (this_cnam, res) in results if this_cnam == cnam)
+                # we always use the last result in the parallel group
+                last_res = res[-1]
+                ccd_aper = last_res[2]
+                hcam.pgp.pCcdAper(ccd_aper)
+
+    # end of CCD display loop
+    print(message)
+
+
+def update_psfplot(
+    results,
+    rfile,
+    device,
+    pccd,
+    ccds,
+    nx,
+    plo,
+    phi,
+    xlo,
+    xhi,
+    ylo,
+    yhi,
+):
+    """Plot updater routine.
+
+    Arguments::
+
+        results : list
+            contains tuples with the results for groups of frames for
+            each CCD. See LogWriter.write for more details on its
+            structure.
+
+        rfile : Rfile
+            reduce file parameters
+
+        device : hipercam.pgp.Device
+            device to use for the plot
+
+        pccd : MCCD
+            current debiassed, flat-fielded frame. In the case of frame
+            groups, this will be the last one added.
+
+        ccds : list
+            list of CCD labels to be plotted
+
+        nx : int
+            Number of panels in X for image display
+
+        plo : float
+            Lower percentile level
+
+        phi : float
+            Upper percentile level
+
+        xlo : int
+            left X-limit for determination of percentiles
+
+        xhi : int
+            right X-limit for determination of percentiles
+
+        ylo : int
+            lower Y-limit for determination of percentiles
+
+        yhi : int
+            upper Y-limit for determination of percentiles
+
+    """
+    # select the plot device
+    device.select()
+
+    # display the CCDs chosen
+    for nc, cnam in enumerate(ccds):
+        ccd = pccd[cnam]
+
+        if ccd.is_data():
+            # this should be data as opposed to a blank frame
+            # between data frames that occur with nskip > 0
+
+            # set to the correct panel and then plot CCD
+            ix = (nc % nx) + 1
+            iy = nc // nx + 1
+            pgpanl(ix, iy)
+            res = next(res for this_cnam, res in results if this_cnam == cnam)
+            psf_store = res[-1][1]
+            psf_model, box_wnam, box_limits = psf_store.get(
+                f"psf_model_{cnam}", None
+            )
+
+            if psf_model is not None:
+                data_minus_model = ccd.copy()
+
+                # find the indices of the stamp used for PSF photometry
+                window = data_minus_model[box_wnam]
+                x1, x2, y1, y2 = box_limits
+                # code copied from window class
+                winh = super(hcam.Window, window).window(x1, x2, y1, y2)
+                ix1 = (winh.llx - window.llx) // window.xbin
+                iy1 = (winh.lly - window.lly) // window.ybin
+                iy2 = iy1 + winh.ny
+                ix2 = ix1 + winh.nx
+
+                # extract a view of the data array
+                data = window.data[iy1:iy2, ix1:ix2]
+                resid = psf_model.make_residual_image(data)
+                data_minus_model[box_wnam].data[iy1:iy2, ix1:ix2] = resid
+                vmin, vmax = ccd.percentile((plo, phi), xlo, xhi, ylo, yhi)
+                hcam.pgp.pCcd(
+                    data_minus_model,
+                    iset="d",
+                    dlo=vmin,
+                    dhi=vmax,
+                    xlo=xlo,
+                    xhi=xhi,
+                    ylo=ylo,
+                    yhi=yhi,
+                )
+
+            # plot apertures
+            if cnam in rfile.aper and len(rfile.aper[cnam]) > 0:
+                # find the result for this ccd name
+                res = next(res for (this_cnam, res) in results if this_cnam == cnam)
+                # we always use the last result in the parallel group
+                last_res = res[-1]
+                ccd_aper = last_res[2]
+                hcam.pgp.pCcdAper(ccd_aper)
+
+
+def update_lcplot(
+    results,
+    rfile,
+    tzero,
+    tkeep,
     lpanel,
     xpanel,
     ypanel,
     tpanel,
     spanel,
-    tkeep,
     lbuffer,
     xbuffer,
     ybuffer,
     tbuffer,
     sbuffer,
 ):
-    """Plot updater routine.
+    """Plot updater routine for lightcurve plot.
 
     Arguments::
 
-       results : list
-          contains tuples with the results for groups of frames for
-          each CCD. See LogWriter.write for more details on its
-          structure.
+        results : list
+            contains tuples with the results for groups of frames for each CCD.
+            See LogWriter.write for more details on its structure.
 
-       rfile : Rfile
-          reduce file parameters
+        rfile : Rfile
+              reduce file parameters
 
-       implot : bool
-          whether to plot images
+        tzero : float
+            reference time for plotting
 
-       lplot : bool
-          whether to plot light curves
+        tkeep : float
+            time to keep in the plot window
 
-       psfplot : bool
-          whether to plot PSF residuals
+        lpanel, xpanel, ypanel, tpanel, spanel : Panel
+            plot panels for lightcurve, x position, y position, transmission and seeing
 
-       imdev : hipercam.pgp.Device
-          represents the image plot device (if any)
-
-       lcdev : hipercam.pgp.Device
-          represents the light curve plot device (if any)
-
-       psfdev : hipercam.pgp.Device
-          represents the psf residuals plot device (if any)
-
-       pccd : MCCD [only matters if imdev]
-          current debiassed, flat-fielded frame. In the case of frame
-          groups, this will be the last one added.
-
-       ccds : list [only matters if imdev]
-          list of CCD labels to be plotted
-
-       msub : bool [only matters if imdev]
-          True to force subtraction of median value
-
-       nx : int [only matters if imdev]
-          Number of panels in X for image display
-
-       iset : character [only matters if imdev]
-          'a', 'd', or 'p' to define image display levels
-
-       plo : float [only matters if imdev and iset =='p']
-          Lower percentile level
-
-       phi : float [only matters if imdev and iset =='p']
-          Upper percentile level
-
-       ilo : float [only matters if imdev and iset =='d']
-          Lower intensity level
-
-       ihi : float [only matters if imdev and iset =='d']
-          Upper intensity level
-
-       xlo : int
-          left X-limit for determination of percentiles
-
-       xhi : int
-          right X-limit for determination of percentiles
-
-       ylo : int
-          lower Y-limit for determination of percentiles
-
-       yhi : int
-          upper Y-limit for determination of percentiles
-
-       lpanel, xpanel, ypanel, tpanel, spanel, tkeep, lbuffer,
-        xbuffer, ybuffer, tbuffer, sbuffer -- need doing.
-
-       lbuffer : list of LightCurve
+        lbuffer, xbuffer, ybuffer, tbuffer, sbuffer : list
+            buffers for lightcurve, x position, y position, transmission and seeing
 
     """
+    if tzero is None:
+        # first set the tzero if it is not set yet
 
-    # now the plotting sections
-    if implot:
-        # image plot
-        # select the image device
-        imdev.select()
+        skipbadt = rfile["general"]["skipbadt"]
+        for cnam, res in results:
+            for (
+                nframe,
+                store,
+                ccdaper,
+                reses,
+                mjdint,
+                mjdfrac,
+                mjdok,
+                expose,
+            ) in res:
+                if mjdok or not skipbadt:
+                    tzero = mjdint + mjdfrac
 
-        # display the CCDs chosen
-        message = "; "
-        for nc, cnam in enumerate(ccds):
-            ccd = pccd[cnam]
+    if tzero is None:
+        # Must have a tzero to get going at all
+        return None
 
-            if ccd.is_data():
-                # this should be data as opposed to a blank frame
-                # between data frames that occur with nskip > 0
+    # track the maximum time
+    tmax = None
 
-                if msub:
-                    # subtract median from each window
-                    for wind in ccd.values():
-                        wind -= wind.median()
+    replot, ltmax = plotLight(lpanel, tzero, results, rfile, tkeep, lbuffer)
+    tmax = tmax if ltmax is None else ltmax if tmax is None else max(tmax, ltmax)
 
-                # set to the correct panel and then plot CCD
-                ix = (nc % nx) + 1
-                iy = nc // nx + 1
-                pgpanl(ix, iy)
-                vmin, vmax = hcam.pgp.pCcd(
-                    ccd, iset, plo, phi, ilo, ihi, xlo=xlo, xhi=xhi, ylo=ylo, yhi=yhi
-                )
+    if rfile.position:
+        # plot the positions
+        rep, ptmax = plotPosition(
+            xpanel, ypanel, tzero, results, rfile, tkeep, xbuffer, ybuffer
+        )
+        replot |= rep
+        tmax = (
+            tmax if ptmax is None else ptmax if tmax is None else max(tmax, ptmax)
+        )
 
-                # accumulate string of image scalings
-                if nc:
-                    message += ", ccd {:s}: {:.2f} to {:.2f}".format(cnam, vmin, vmax)
-                else:
-                    message += "ccd {:s}: {:.2f} to {:.2f}".format(cnam, vmin, vmax)
+    if rfile.transmission:
+        # plot the transmission
+        rep, ttmax = plotTrans(tpanel, tzero, results, rfile, tkeep, tbuffer)
+        replot |= rep
+        tmax = (
+            tmax if ttmax is None else ttmax if tmax is None else max(tmax, ttmax)
+        )
 
-                # plot apertures
-                if cnam in rfile.aper and len(rfile.aper[cnam]) > 0:
-                    # find the result for this ccd name
-                    res = next(res for (this_cnam, res) in results if this_cnam == cnam)
-                    # we always use the last result in the parallel group
-                    last_res = res[-1]
-                    ccd_aper = last_res[2]
-                    hcam.pgp.pCcdAper(ccd_aper)
+    if rfile.seeing:
+        # plot the seeing
+        rep, stmax = plotSeeing(spanel, tzero, results, rfile, tkeep, sbuffer)
+        replot |= rep
+        tmax = (
+            tmax if stmax is None else stmax if tmax is None else max(tmax, stmax)
+        )
 
-        # end of CCD display loop
-        print(message)
+    # check the time
+    if tmax is not None and tmax > lpanel.x2:
+        # extend range by multiple of extend_x
+        x2 = lpanel.x2
+        while tmax > x2:
+            x2 += rfile["lcplot"]["extend_x"]
 
-    if psfplot:
-        # plot the PSF residuals
-        psfdev.select()
-
-        # display the CCDs chosen
-        message = "; "
-        for nc, cnam in enumerate(ccds):
-            ccd = pccd[cnam]
-
-            if ccd.is_data():
-                # this should be data as opposed to a blank frame
-                # between data frames that occur with nskip > 0
-
-                # set to the correct panel and then plot CCD
-                ix = (nc % nx) + 1
-                iy = nc // nx + 1
-                pgpanl(ix, iy)
-                res = next(res for this_cnam, res in results if this_cnam == cnam)
-                psf_store = res[-1][1]
-                psf_model, box_wnam, box_limits = psf_store.get(
-                    f"psf_model_{cnam}", None
-                )
-
-                if psf_model is not None:
-                    data_minus_model = ccd.copy()
-
-                    # find the indices of the stamp used for PSF photometry
-                    window = data_minus_model[box_wnam]
-                    x1, x2, y1, y2 = box_limits
-                    # code copied from window class
-                    winh = super(hcam.Window, window).window(x1, x2, y1, y2)
-                    ix1 = (winh.llx - window.llx) // window.xbin
-                    iy1 = (winh.lly - window.lly) // window.ybin
-                    iy2 = iy1 + winh.ny
-                    ix2 = ix1 + winh.nx
-
-                    # extract a view of the data array
-                    data = window.data[iy1:iy2, ix1:ix2]
-                    resid = psf_model.make_residual_image(data)
-                    data_minus_model[box_wnam].data[iy1:iy2, ix1:ix2] = resid
-                    vmin, vmax = ccd.percentile((plo, phi), xlo, xhi, ylo, yhi)
-                    hcam.pgp.pCcd(
-                        data_minus_model,
-                        iset="d",
-                        dlo=vmin,
-                        dhi=vmax,
-                        xlo=xlo,
-                        xhi=xhi,
-                        ylo=ylo,
-                        yhi=yhi,
-                    )
-
-                # plot apertures
-                if cnam in rfile.aper and len(rfile.aper[cnam]) > 0:
-                    # find the result for this ccd name
-                    res = next(res for (this_cnam, res) in results if this_cnam == cnam)
-                    # we always use the last result in the parallel group
-                    last_res = res[-1]
-                    ccd_aper = last_res[2]
-                    hcam.pgp.pCcdAper(ccd_aper)
-
-        # end of PSF display loop
-
-    if lplot:
-        # plot the light curve
-
-        if tzero is None:
-            # first set the tzero if it is not set yet
-
-            skipbadt = rfile["general"]["skipbadt"]
-            for cnam, res in results:
-                for (
-                    nframe,
-                    store,
-                    ccdaper,
-                    reses,
-                    mjdint,
-                    mjdfrac,
-                    mjdok,
-                    expose,
-                ) in res:
-                    if mjdok or not skipbadt:
-                        tzero = mjdint + mjdfrac
-
-        if tzero is None:
-            # Must have a tzero to get going at all
-            return None
-
-        # track the maximum time
-        tmax = None
-
-        replot, ltmax = plotLight(lpanel, tzero, results, rfile, tkeep, lbuffer)
-        tmax = tmax if ltmax is None else ltmax if tmax is None else max(tmax, ltmax)
+        # need to re-plot
+        replot = True
+        lpanel.x2 = x2
 
         if rfile.position:
-            # plot the positions
-            rep, ptmax = plotPosition(
-                xpanel, ypanel, tzero, results, rfile, tkeep, xbuffer, ybuffer
-            )
-            replot |= rep
-            tmax = (
-                tmax if ptmax is None else ptmax if tmax is None else max(tmax, ptmax)
-            )
+            xpanel.x2 = x2
+            ypanel.x2 = x2
 
         if rfile.transmission:
-            # plot the transmission
-            rep, ttmax = plotTrans(tpanel, tzero, results, rfile, tkeep, tbuffer)
-            replot |= rep
-            tmax = (
-                tmax if ttmax is None else ttmax if tmax is None else max(tmax, ttmax)
-            )
+            tpanel.x2 = x2
 
         if rfile.seeing:
-            # plot the seeing
-            rep, stmax = plotSeeing(spanel, tzero, results, rfile, tkeep, sbuffer)
-            replot |= rep
-            tmax = (
-                tmax if stmax is None else stmax if tmax is None else max(tmax, stmax)
-            )
+            spanel.x2 = x2
 
-        # check the time
-        if tmax is not None and tmax > lpanel.x2:
-            # extend range by multiple of extend_x
-            x2 = lpanel.x2
-            while tmax > x2:
-                x2 += rfile["lcplot"]["extend_x"]
+    if replot:
+        # re-plot.
 
-            # need to re-plot
-            replot = True
-            lpanel.x2 = x2
+        if tkeep > 0:
+            # adjust start time if tkeep in use
+            tstart = max(0, lpanel.x2 - tkeep)
+
+            lpanel.x1 = tstart
 
             if rfile.position:
-                xpanel.x2 = x2
-                ypanel.x2 = x2
+                xpanel.x1 = tstart
+                ypanel.x1 = tstart
 
             if rfile.transmission:
-                tpanel.x2 = x2
+                tpanel.x1 = tstart
 
             if rfile.seeing:
-                spanel.x2 = x2
+                spanel.x1 = tstart
 
-        if replot:
-            # re-plot.
+        # start buffering
+        pgbbuf()
 
-            if tkeep > 0:
-                # adjust start time if tkeep in use
-                tstart = max(0, lpanel.x2 - tkeep)
+        # erase plot
+        pgeras()
 
-                lpanel.x1 = tstart
+        # re-draw the light curve panel
+        lpanel.plot()
 
-                if rfile.position:
-                    xpanel.x1 = tstart
-                    ypanel.x1 = tstart
+        for lc in lbuffer:
+            # convert the buffered data into float32 ndarrays
+            t = np.array(lc.t, dtype=np.float32)
+            f = np.array(lc.f, dtype=np.float32)
+            fe = np.array(lc.fe, dtype=np.float32)
+            symbs = np.array(lc.symb, dtype=np.int32)
+            asymbs = set(symbs)
 
-                if rfile.transmission:
-                    tpanel.x1 = tstart
+            # Plot the error bars
+            if lc.ecol is not None:
+                pgsci(lc.ecol)
+                pgerry(t, f - fe, f + fe, 0)
 
-                if rfile.seeing:
-                    spanel.x1 = tstart
+            # Plot the data
+            pgsci(lc.dcol)
+            pgsch(0.5)
+            for symb in asymbs:
+                ok = symbs == symb
+                pgpt(t[ok], f[ok], symb)
 
-            # start buffering
-            pgbbuf()
+        if rfile.position:
+            # re-draw the position panels
 
-            # erase plot
-            pgeras()
-
-            # re-draw the light curve panel
-            lpanel.plot()
-
-            for lc in lbuffer:
+            xpanel.plot()
+            for xpos in xbuffer:
                 # convert the buffered data into float32 ndarrays
-                t = np.array(lc.t, dtype=np.float32)
-                f = np.array(lc.f, dtype=np.float32)
-                fe = np.array(lc.fe, dtype=np.float32)
-                symbs = np.array(lc.symb, dtype=np.int32)
+                t = np.array(xpos.t, dtype=np.float32)
+                f = np.array(xpos.f, dtype=np.float32)
+                fe = np.array(xpos.fe, dtype=np.float32)
+                symbs = np.array(xpos.symb, dtype=np.int32)
                 asymbs = set(symbs)
 
                 # Plot the error bars
-                if lc.ecol is not None:
-                    pgsci(lc.ecol)
+                if xpos.ecol is not None:
+                    pgsci(xpos.ecol)
                     pgerry(t, f - fe, f + fe, 0)
 
                 # Plot the data
-                pgsci(lc.dcol)
+                pgsci(xpos.dcol)
                 pgsch(0.5)
                 for symb in asymbs:
                     ok = symbs == symb
                     pgpt(t[ok], f[ok], symb)
 
-            if rfile.position:
-                # re-draw the position panels
+            ypanel.plot()
+            for ypos in ybuffer:
+                # convert the buffered data into float32 ndarrays
+                t = np.array(ypos.t, dtype=np.float32)
+                f = np.array(ypos.f, dtype=np.float32)
+                fe = np.array(ypos.fe, dtype=np.float32)
+                symbs = np.array(ypos.symb, dtype=np.int32)
+                asymbs = set(symbs)
 
-                xpanel.plot()
-                for xpos in xbuffer:
-                    # convert the buffered data into float32 ndarrays
-                    t = np.array(xpos.t, dtype=np.float32)
-                    f = np.array(xpos.f, dtype=np.float32)
-                    fe = np.array(xpos.fe, dtype=np.float32)
-                    symbs = np.array(xpos.symb, dtype=np.int32)
+                # Plot the error bars
+                if ypos.ecol is not None:
+                    pgsci(ypos.ecol)
+                    pgerry(t, f - fe, f + fe, 0)
+
+                # Plot the data
+                pgsci(ypos.dcol)
+                pgsch(0.5)
+                for symb in asymbs:
+                    ok = symbs == symb
+                    pgpt(t[ok], f[ok], symb)
+
+        if rfile.transmission:
+            # re-draw the transmission panel
+            tpanel.plot()
+
+            for trans in tbuffer:
+                if trans.fmax:
+                    # convert the buffered data into float32
+                    # ndarrays
+                    t = np.array(trans.t, dtype=np.float32)
+                    f = np.array(trans.f, dtype=np.float32)
+                    fe = np.array(trans.fe, dtype=np.float32)
+                    scale = np.float32(100.0 / trans.fmax)
+                    f *= scale
+                    fe *= scale
+                    symbs = np.array(trans.symb, dtype=np.int32)
                     asymbs = set(symbs)
 
                     # Plot the error bars
-                    if xpos.ecol is not None:
-                        pgsci(xpos.ecol)
+                    if trans.ecol is not None:
+                        pgsci(trans.ecol)
                         pgerry(t, f - fe, f + fe, 0)
 
                     # Plot the data
-                    pgsci(xpos.dcol)
+                    pgsci(trans.dcol)
                     pgsch(0.5)
                     for symb in asymbs:
                         ok = symbs == symb
                         pgpt(t[ok], f[ok], symb)
 
-                ypanel.plot()
-                for ypos in ybuffer:
-                    # convert the buffered data into float32 ndarrays
-                    t = np.array(ypos.t, dtype=np.float32)
-                    f = np.array(ypos.f, dtype=np.float32)
-                    fe = np.array(ypos.fe, dtype=np.float32)
-                    symbs = np.array(ypos.symb, dtype=np.int32)
-                    asymbs = set(symbs)
+        if rfile.seeing:
+            # re-draw the seeing panel
+            spanel.plot()
 
-                    # Plot the error bars
-                    if ypos.ecol is not None:
-                        pgsci(ypos.ecol)
-                        pgerry(t, f - fe, f + fe, 0)
+            for see in sbuffer:
+                # convert the buffered data into float32 ndarrays
+                t = np.array(see.t, dtype=np.float32)
+                f = np.array(see.f, dtype=np.float32)
+                fe = np.array(see.fe, dtype=np.float32)
+                symbs = np.array(see.symb, dtype=np.int32)
+                asymbs = set(symbs)
 
-                    # Plot the data
-                    pgsci(ypos.dcol)
-                    pgsch(0.5)
-                    for symb in asymbs:
-                        ok = symbs == symb
-                        pgpt(t[ok], f[ok], symb)
+                # Plot the error bars
+                if see.ecol is not None:
+                    pgsci(see.ecol)
+                    pgerry(t, f - fe, f + fe, 0)
 
-            if rfile.transmission:
-                # re-draw the transmission panel
-                tpanel.plot()
+                # Plot the data
+                pgsci(see.dcol)
+                pgsch(0.5)
+                for symb in asymbs:
+                    ok = symbs == symb
+                    pgpt(t[ok], f[ok], symb)
 
-                for trans in tbuffer:
-                    if trans.fmax:
-                        # convert the buffered data into float32
-                        # ndarrays
-                        t = np.array(trans.t, dtype=np.float32)
-                        f = np.array(trans.f, dtype=np.float32)
-                        fe = np.array(trans.fe, dtype=np.float32)
-                        scale = np.float32(100.0 / trans.fmax)
-                        f *= scale
-                        fe *= scale
-                        symbs = np.array(trans.symb, dtype=np.int32)
-                        asymbs = set(symbs)
-
-                        # Plot the error bars
-                        if trans.ecol is not None:
-                            pgsci(trans.ecol)
-                            pgerry(t, f - fe, f + fe, 0)
-
-                        # Plot the data
-                        pgsci(trans.dcol)
-                        pgsch(0.5)
-                        for symb in asymbs:
-                            ok = symbs == symb
-                            pgpt(t[ok], f[ok], symb)
-
-            if rfile.seeing:
-                # re-draw the seeing panel
-                spanel.plot()
-
-                for see in sbuffer:
-                    # convert the buffered data into float32 ndarrays
-                    t = np.array(see.t, dtype=np.float32)
-                    f = np.array(see.f, dtype=np.float32)
-                    fe = np.array(see.fe, dtype=np.float32)
-                    symbs = np.array(see.symb, dtype=np.int32)
-                    asymbs = set(symbs)
-
-                    # Plot the error bars
-                    if see.ecol is not None:
-                        pgsci(see.ecol)
-                        pgerry(t, f - fe, f + fe, 0)
-
-                    # Plot the data
-                    pgsci(see.dcol)
-                    pgsch(0.5)
-                    for symb in asymbs:
-                        ok = symbs == symb
-                        pgpt(t[ok], f[ok], symb)
-
-            # end buffering
-            pgebuf()
+        # end buffering
+        pgebuf()
 
     return tzero
