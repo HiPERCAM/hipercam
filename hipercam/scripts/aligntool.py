@@ -431,6 +431,25 @@ def aligntool(args=None):
     imanager = None
     fwhmmanager = None
 
+    # Calibrate and measure spots in reference image
+    # Since this doesn't change, we only need to do it once outside the loop
+    ref_ccd = ref_mccd[ref_cnam]
+    if msub:
+        for wind in ref_ccd.values():
+            wind -= wind.median()
+    try:
+        xpos, ypos, fwhm, rflux = measureSpots(ref_ccd, thresh)
+        lx, ly, _lf, _lp, bx, by, _bf, _bp = separateBigSmallSpots(
+            xpos, ypos, fwhm, rflux
+        )
+        if not small_spots:
+            # use big spots
+            xref, yref = bx, by
+        else:
+            xref, yref = lx, ly
+    except Exception as err:
+        raise ValueError(f"Failed to find spots in reference CCD {ref_cnam}") from err
+
     # Start the main loop
     total_time = 0.0
     with spooler.data_source(source, resource, first) as spool:
@@ -462,23 +481,22 @@ def aligntool(args=None):
                 # crop the bias on the first frame only
                 bias = crop_calib_frame_to(mccd, bias, "bias")
 
-            # get the right classes for the CCD names
-            ccd_data = {'reference': ref_mccd[ref_cnam], 'data': mccd[data_cnam]}
-
             # calibration
+            ccd = mccd[data_cnam]
             if bias is not None:
-                ccd_data['data'] -= bias[data_cnam]
+                ccd -= bias[data_cnam]
             if msub:
-                for wind in ccd_data['data'].values():
+                for wind in ccd.values():
                     wind -= wind.median()
-                for wind in ccd_data['reference'].values():
+                for wind in ref_ccd.values():
                     wind -= wind.median()
 
             # We're ready to start plotting
             if imanager is None:
                 # First time through, create the image plot manager
                 imanager = ImageManager(
-                    ccd_data=ccd_data,
+                    ccd=ccd,
+                    ref_ccd=ref_ccd,
                     iset=iset,
                     ilim=(plo, phi) if iset == "p" else (ilo, ihi),
                     region=(xlo, xhi, ylo, yhi),
@@ -491,7 +509,7 @@ def aligntool(args=None):
                 plt.pause(0.1)
 
             # Update the image plot (done on every loop)
-            imanager.update(ccd_data)
+            imanager.update(ccd)
 
             # Now print progress indicators
             nframe = mccd.head.get("NFRAME", n)
@@ -501,10 +519,10 @@ def aligntool(args=None):
 
             # Get statistics to print out
             message = f"exp= {mccd.head['EXPTIME']:.4f}"
-            for cnam in ccd_data:
+            for cnam, data in {'reference': ref_ccd, 'data': ccd}.items():
                 message += f", CCD {cnam}: "
 
-                if ccd_data[cnam] is None:
+                if not data.is_data():
                     # skipped due to nskip > 0, no data in this frame
                     message += "none"
                     continue
@@ -518,7 +536,7 @@ def aligntool(args=None):
 
             # time for measurement of spots!
             try:
-                xpos, ypos, fwhm, flux = measureSpots(ccd_data['data'], thresh)
+                xpos, ypos, fwhm, flux = measureSpots(ccd, thresh)
                 lx, ly, lf, lp, bx, by, bf, bp = separateBigSmallSpots(
                     xpos, ypos, fwhm, flux
                 )
@@ -529,21 +547,6 @@ def aligntool(args=None):
                     x, y, f, flux = lx, ly, lf, lp
             except Exception as err:
                 print(f"Failed to find spots in frame: {err}")
-                continue
-
-            # also measure spots in reference image
-            try:
-                xpos, ypos, fwhm, rflux = measureSpots(ccd_data['reference'], thresh)
-                lx, ly, lf, lp, bx, by, bf, bp = separateBigSmallSpots(
-                    xpos, ypos, fwhm, rflux
-                )
-                if not small_spots:
-                    # use big spots
-                    xref, yref = bx, by
-                else:
-                    xref, yref = lx, ly
-            except Exception as err:
-                print(f"Failed to find spots in reference: {err}")
                 continue
 
             # We found spots in both images, so let's plot the FWHM and offsets
@@ -593,7 +596,8 @@ class ImageManager(hcam.mpl.AnimationManager):
 
     def __init__(
         self,
-        ccd_data,
+        ccd,
+        ref_ccd,
         iset,
         ilim,
         region,
@@ -604,10 +608,13 @@ class ImageManager(hcam.mpl.AnimationManager):
 
         Arguments:
 
-        ccd_data : dict of {'reference': :class:`CCD`|None, 'data': :class:`CCD`|None}
-            Contains the calibrated CCD, or None if the CCD is being skipped,
-            for both the reference and data frames.
-            Used to create the artists; later frames go through update_images.
+        ccd : :class:`CCD` | None
+            The first frame to display.
+            Used to create the artists on initialisation;
+            new data should be passed to `update`.
+
+        ref_ccd : :class:`CCD` | None
+            The calibrated reference CCD.
 
         ncols : int
             The number of columns in the grid of subplots
@@ -637,7 +644,7 @@ class ImageManager(hcam.mpl.AnimationManager):
         """
         # create empty figure and axes
         self.fig, self.axs = hcam.mpl.create_figure(
-            cnams = ccd_data.keys(),
+            cnams = ['reference', 'data'],
             ncols=1,
             region=region,
             title="CCD display",
@@ -648,6 +655,9 @@ class ImageManager(hcam.mpl.AnimationManager):
         # initialise the animation manager with the figure
         super().__init__(self.fig)
 
+        # store the reference CCD to display
+        self.ref_ccd = ref_ccd
+
         # inputs for the image plots
         self.iset = iset
         self.ilim = ilim
@@ -656,7 +666,7 @@ class ImageManager(hcam.mpl.AnimationManager):
 
         # create and update the artists
         self.artists = {cnam: None for cnam in self.axs}
-        self.update(ccd_data)
+        self.update(ccd)
 
         # adjust the layout to prevent overlap
         # (can only do after the artists are created)
@@ -675,46 +685,70 @@ class ImageManager(hcam.mpl.AnimationManager):
                     for artist in artists:
                         self.fig.draw_artist(artist)
 
-    def update(self, ccd_data):
+    def update(self, ccd):
         """Create or update the artists with new data."""
         new_artists = {}
 
-        # update CCD artists
-        for cnam in ccd_data:
-            if ccd_data[cnam] is None:
-                # no new frame, just pass old artists through
-                new_artists[cnam] = self.artists[cnam]
-            else:
-                # create/update the animated artists
-                old_artists = self.artists[cnam]
-                new_artists[cnam] = {}
+        # First, update the reference CCD artists (only done once)
+        if self.artists['reference'] is None:
+            # get scale limits
+            vmin, vmax = hcam.mpl.get_scale_limits(
+                self.ref_ccd,
+                mode=self.iset,
+                limits=self.ilim,
+                region=self.region,
+            )
 
-                # get scale limits
-                vmin, vmax = hcam.mpl.get_scale_limits(
-                    ccd_data[cnam],
-                    mode=self.iset,
-                    limits=self.ilim,
-                    region=self.region,
-                )
+            # plot the reference CCD
+            new_artists['reference'] = hcam.mpl.pCcd(
+                ax=self.axs['reference'],
+                ccd=self.ref_ccd,
+                vmin=vmin,
+                vmax=vmax,
+                cmap=self.cmap,
+                tlabel='reference',
+                animated=True,
+                artists=None,
+            )
+        else:
+            # the reference doesn't change, so just pass old artists through
+            new_artists['reference'] = self.artists['reference']
 
-                # plot the CCD
-                # if old_artists is not None they will be updated and returned,
-                # otherwise new artists will be created
-                new_artists[cnam] = hcam.mpl.pCcd(
-                    ax=self.axs[cnam],
-                    ccd=ccd_data[cnam],
-                    vmin=vmin,
-                    vmax=vmax,
-                    cmap=self.cmap,
-                    tlabel=cnam,
-                    animated=True,
-                    artists=old_artists,
-                )
+        # now update CCD artists for the current frame
+        if not ccd.is_data():
+            # no new frame, just pass old artists through
+            new_artists['data'] = self.artists['data']
+        else:
+            # create/update the animated artists
+            old_artists = self.artists['data']
+            new_artists['data'] = {}
 
-                # In this case we are setting up for the first time
-                # need to re-draw to avoid irritating distorted image
-                if old_artists is None:
-                    self.fig.canvas.draw()
+            # get scale limits
+            vmin, vmax = hcam.mpl.get_scale_limits(
+                ccd=ccd,
+                mode=self.iset,
+                limits=self.ilim,
+                region=self.region,
+            )
+
+            # plot the CCD
+            # if old_artists is not None they will be updated and returned,
+            # otherwise new artists will be created
+            new_artists['data'] = hcam.mpl.pCcd(
+                ax=self.axs['data'],
+                ccd=ccd,
+                vmin=vmin,
+                vmax=vmax,
+                cmap=self.cmap,
+                tlabel='data',
+                animated=True,
+                artists=old_artists,
+            )
+
+            # In this case we are setting up for the first time
+            # need to re-draw to avoid irritating distorted image
+            if old_artists is None:
+                self.fig.canvas.draw()
 
         # Finally, update the artists and refresh the display
         self.artists = new_artists
