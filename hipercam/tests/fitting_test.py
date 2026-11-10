@@ -22,6 +22,8 @@ def test_profile_evaluation(method, xbin, ybin, ndiv):
     x, y = np.meshgrid(np.array([2.0, 3.2, 4.7]), np.array([4.1, 6.0]))
     pars = (12.0, 150.0, 3.1, 4.7, 3.8)
     beta = 2.5
+    # ndiv=0 samples pixel centres, even when binned; otherwise average
+    # ndiv samples per unbinned pixel in each direction.
     if ndiv:
         xoffsets = (np.arange(xbin * ndiv) + 0.5) / ndiv - xbin / 2
         yoffsets = (np.arange(ybin * ndiv) + 0.5) / ndiv - ybin / 2
@@ -43,16 +45,20 @@ def test_profile_evaluation(method, xbin, ybin, ndiv):
 
 
 def make_window(method, sky=12.0):
+    # The non-unit origin and off-centre star exercise absolute CCD coordinates.
     win = Winhead(11, 21, 21, 21, 1, 1)
     x, y = np.meshgrid(win.x(np.arange(win.nx)), win.y(np.arange(win.ny)))
+    # Parameter order: sky, height, x, y, FWHM, Moffat beta.
     pars = (sky, 150.0, 21.3, 30.7, 4.2, 2.5)
     data = analytic_profile(method, x, y, *pars)
+    # A small deterministic residual avoids a perfect, zero-variance fit.
     data += 0.01 * np.sin(x * 0.7 + y * 0.4)
     return Window(win, data), pars
 
 
 @pytest.mark.parametrize(
     "method,mode",
+    # Mode letters select free sky, FWHM and beta respectively.
     [("g", mode) for mode in ("", "s", "f", "sf")]
     + [("m", mode) for mode in ("", "s", "f", "b", "sf", "sb", "fb", "sfb")],
 )
@@ -60,6 +66,7 @@ def make_window(method, sky=12.0):
 def test_residual_jacobian_matches_finite_differences(method, mode, ndiv):
     win, pars = make_window(method)
     sigma = np.full(win.data.shape, 2.0)
+    # Negative uncertainties mark pixels excluded from the fit.
     sigma[10, 10] = -1.0
     if method == "g":
         model = fitting.Gfit(win, sigma, ndiv, mode, pars[4])
@@ -68,6 +75,8 @@ def test_residual_jacobian_matches_finite_differences(method, mode, ndiv):
         model = fitting.Mfit(win, sigma, ndiv, mode, pars[4], pars[5])
         params = np.array(model.set_par(*pars))
 
+    # Compare the compiled residual Jacobian with central finite differences
+    # for every free parameter, including the effect of masking and weights.
     numerical = []
     for i, value in enumerate(params):
         step = 1e-5 * max(1.0, abs(value))
@@ -97,7 +106,10 @@ def test_combfit_recovers_synthetic_profile(method, fit_sky, fixed_fwhm, fixed_b
         truth[5] if fixed_beta else 2.3, 10.0, fixed_beta,
         100.0,
     )
+    # combFit returns beta=0 for Gaussian fits. Fixed parameters have an
+    # uncertainty of -1; an unfitted sky is zero with uncertainty -1.
     expected = truth if method == "m" else (*truth[:5], 0.0)
+    # Height has a larger absolute tolerance because its scale is much larger.
     np.testing.assert_allclose(result[1], expected[1], rtol=0, atol=0.03)
     np.testing.assert_allclose(
         [result[i] for i in (0, 2, 3, 4, 5)],
@@ -122,7 +134,9 @@ def test_combfit_recovers_synthetic_profile(method, fit_sky, fixed_fwhm, fixed_b
     assert x.shape == y.shape == fit.data.shape == win.data.shape
     assert chisq >= 0 and np.isfinite(chisq)
     assert nok == np.count_nonzero(sigma > 0)
+    # The pre-excluded pixel is counted as rejected within the circular mask.
     assert nrej == 1
+    # Height and position are always free; sky, FWHM and beta are optional.
     assert npar == 3 + fit_sky + (not fixed_fwhm) + (method == "m" and not fixed_beta)
     assert nfev > 0 and message
     assert sigma[10, 10] < 0
@@ -134,6 +148,7 @@ def test_combfit_recovers_binned_subpixel_profile(method):
     win = Winhead(11, 21, 21, 21, 2, 3)
     x, y = np.meshgrid(win.x(np.arange(win.nx)), win.y(np.arange(win.ny)))
     truth = (12.0, 150.0, 31.7, 51.3, 5.2, 2.5)
+    # For 2x3 binning with ndiv=2, average over a 4x6 subpixel grid.
     offsets_x = (np.arange(4) + 0.5) / 2 - 1
     offsets_y = (np.arange(6) + 0.5) / 2 - 1.5
     data = np.mean(
@@ -157,6 +172,7 @@ def test_combfit_recovers_binned_subpixel_profile(method):
 @pytest.mark.parametrize("method", ["g", "m"])
 def test_combfit_constrains_fwhm_at_minimum(method):
     win, _ = make_window(method)
+    # The injected FWHM is 4.2, so the unconstrained fit hits this limit.
     result, errors, extras = fitting.combFit(
         win, np.ones(win.data.shape), method, 12.0, 140.0, 21.0, 31.0,
         5.0, 4.5, False, 1.8, 10.0, False, 100.0,
@@ -168,6 +184,7 @@ def test_combfit_constrains_fwhm_at_minimum(method):
 
 def test_combfit_constrains_beta_at_maximum():
     win, _ = make_window("m")
+    # The injected beta is 2.5; the fit must switch to fixed beta=2.
     result, errors, extras = fitting.combFit(
         win, np.ones(win.data.shape), "m", 12.0, 140.0, 21.0, 31.0,
         5.0, 1.0, False, 1.8, 2.0, False, 100.0,
@@ -184,6 +201,7 @@ def test_combfit_constrains_beta_at_maximum():
 )
 def test_combfit_rejects_outlier_and_recovers_profile(method):
     win, truth = make_window(method)
+    # A single large contaminant should be rejected before the final fit.
     win.data[9, 12] += 500.0
     sigma = np.ones(win.data.shape)
     result, _, extras = fitting.combFit(
