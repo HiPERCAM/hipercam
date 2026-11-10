@@ -38,7 +38,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["check-manifest"]
-test = ["coverage", "nose"]
+test = ["coverage", "pytest"]
 psf = ["photutils>=2.1"]
 
 [project.urls]
