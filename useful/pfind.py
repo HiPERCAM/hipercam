@@ -23,14 +23,16 @@ Uses standard Python + numpy, scipy, matplotlib and astropy.
 Written by T.R.Marsh, Warwick.
 """
 
-import re
 import argparse
-import numpy as np
-from scipy.optimize import least_squares
+import re
+
 import matplotlib.pylab as plt
-from astropy.timeseries import LombScargle
-from astropy.table import Table
+import numpy as np
 from astropy import units as u
+from astropy.table import Table
+from astropy.timeseries import LombScargle
+from scipy.optimize import least_squares
+
 
 def model(p, ts):
     """
@@ -177,7 +179,7 @@ if __name__ == '__main__':
     x0 = (ms.mean(),ms.std(),0.,fmax)
     results = least_squares(res, x0, jac, method='lm', args=(ts,ms,mes))
     print(results.x,results.cost)
-    J = np.matrix(results.jac)
+    J = results.jac
     c,a,t0,f = results.x
     try:
         # Report fit values, subtract fit and re-compute
@@ -186,7 +188,7 @@ if __name__ == '__main__':
 
         # scale uncertainties to give chi**2/dof = 1.
         sfac = np.sqrt(results.cost/(len(ts)-4))
-        ce,ae,t0e,fe = sfac*np.sqrt(np.diag((J.T * J).I))
+        ce,ae,t0e,fe = sfac*np.sqrt(np.diag(np.linalg.inv(J.T @ J)))
         print('Best fit sinusoid parameters:')
         print(f' c  = {c} +/- {ce} mags')
         print(f' a  = {a} +/- {ce} mags')
