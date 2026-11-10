@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 
 import matplotlib.pyplot as plt
@@ -436,11 +437,6 @@ def ftargets(args=None):
     # Initialise the plot manager to None, so we can create it on the first frame
     imanager = None
 
-    # ccd_data and object_data are long-lived
-    # objects passed and stored by reference to plot updating classes
-    ccd_data = {cnam: None for cnam in ccds}
-    object_data = {cnam: None for cnam in ccds}
-
     # values of various parameters - fixed for now?
     method = 'm'
     fwhm_min = 2.0
@@ -453,9 +449,18 @@ def ftargets(args=None):
     read = 5.5
     max_nfev = 100
 
+    # Create the output file (will overwrite if it already exists)
+    hdul = fits.HDUList()
+    hdul.append(fits.PrimaryHDU())
+    hdul.writeto(output, overwrite=True)
+    print(f"ftargets: writing results to {output}")
+
     # Start the main loop
     total_time = 0.0
-    with spooler.data_source(source, resource, first, full=False) as spool:
+    with (
+        spooler.data_source(source, resource, first, full=False) as spool,
+        fits.open(output) as hdul,
+    ):
         for n, mccd in enumerate(spool):
             if server_or_local:
                 # Handle the waiting game ...
@@ -495,13 +500,13 @@ def ftargets(args=None):
                     flat = crop_calib_frame_to(mccd, flat, "flat")
 
             # Process each of the CCDs
+            object_data = {}
             object_messages = {}
             for cnam in ccds:
                 ccd = mccd[cnam]
 
                 if not ccd.is_data():
                     # this is a junk frame from nskip > 0
-                    ccd_data[cnam] = None
                     continue
 
                 # subtract the bias
@@ -545,8 +550,7 @@ def ftargets(args=None):
                 frames = (nframe) * np.ones(len(objects), dtype=np.int32)
                 objects = append_fields([objects], ("nframe"), (frames))
 
-                # store the data and objects for plotting
-                ccd_data[cnam] = ccd
+                # store the objects for plotting
                 object_data[cnam] = objects
                 object_messages[cnam] = messages
 
@@ -554,8 +558,9 @@ def ftargets(args=None):
             if imanager is None:
                 # First time through, create the image plot manager
                 imanager = ImageManager(
-                    ccd_data=ccd_data,
-                    object_data=object_data,
+                    mccd=mccd,
+                    objects=object_data,
+                    cnams=ccds,
                     ncols=nx,
                     iset=iset,
                     ilim=(plo, phi) if iset == "p" else (ilo, ihi),
@@ -570,7 +575,7 @@ def ftargets(args=None):
                 plt.pause(0.1)
 
             # Update the image plot (done on every loop)
-            imanager.update(ccd_data, object_data)
+            imanager.update(mccd, object_data)
 
             # Save objects to file
             for cnam in ccds:
@@ -602,27 +607,18 @@ def ftargets(args=None):
                     ),
                 )
 
-                # open the output file for results
-                # TODO: very inefficient
-                if os.path.exists(output):
-                    with fits.open(output) as hdul:
-                        if cnam not in hdul:
-                            # file exists, but first time for this CCD
-                            hdul.append(fits.BinTableHDU(objs, name=cnam))
-                        else:
-                            # append to existing table
-                            existing_table = Table(hdul[cnam].data)
-                            combined_table = Table(
-                                np.hstack((existing_table, objs))
-                            )
-                            hdul[cnam].data = combined_table.as_array()
-                        hdul.writeto(output, overwrite=True)
-                else:
-                    # file doesn't exist, create it
-                    hdul = fits.HDUList()
-                    hdul.append(fits.PrimaryHDU())
+                # save the objects to the output file
+                if cnam not in hdul:
+                    # file exists, but first time for this CCD
                     hdul.append(fits.BinTableHDU(objs, name=cnam))
-                    hdul.writeto(output, overwrite=True)
+                else:
+                    # append to existing table
+                    existing_table = Table(hdul[cnam].data)
+                    combined_table = Table(
+                        np.hstack((existing_table, objs))
+                    )
+                    hdul[cnam].data = combined_table.as_array()
+                hdul.writeto(output, overwrite=True)
 
             # Now print progress indicators
             tstamp = Time(mccd.head["TIMSTAMP"], format="isot", precision=3)
@@ -634,7 +630,7 @@ def ftargets(args=None):
             for cnam in ccds:
                 message += f"\n  CCD {cnam}: "
 
-                if ccd_data[cnam] is None:
+                if not mccd[cnam].is_data():
                     # skipped due to nskip > 0, no data in this frame
                     message += "none"
                     continue
@@ -872,8 +868,9 @@ class ImageManager(hcam.mpl.AnimationManager):
 
     def __init__(
         self,
-        ccd_data,
-        object_data,
+        mccd,
+        objects,
+        cnams,
         ncols,
         iset,
         ilim,
@@ -886,16 +883,19 @@ class ImageManager(hcam.mpl.AnimationManager):
 
         Arguments:
 
-        ccd_data : dict of {str: :class:`CCD` | None}
-            one entry per CCD being displayed, keys are CCD names.
-            Contains the calibrated CCD, or None if the CCD is being skipped.
-            Used to create the artists; later data should be passed to `update`.
+        mccd : :class:`MCCD`
+            The first frame to display.
+            Used to create the artists on initialisation;
+            new data should be passed to `update`.
 
-        object_data : dict of {str: `np.ndarray` | None}
+        objects : dict of {str: `np.ndarray` | None}
             one entry per CCD being displayed, keys are CCD names.
             Contains an array with object details (see `extraction.findStars`),
             or None if no objects were found in that CCD.
             Used to create the artists; later data should be passed to `update`.
+
+        cnams : list of str
+            The names of the CCDs to plot.
 
         ncols : int
             The number of columns in the grid of subplots
@@ -928,7 +928,7 @@ class ImageManager(hcam.mpl.AnimationManager):
         """
         # create empty figure and axes
         self.fig, self.axs = hcam.mpl.create_figure(
-            cnams=ccd_data.keys(),
+            cnams=cnams,
             ncols=ncols,
             region=region,
             title="CCD display",
@@ -940,6 +940,7 @@ class ImageManager(hcam.mpl.AnimationManager):
         super().__init__(self.fig)
 
         # inputs for the image plots
+        self.cnams = cnams
         self.iset = iset
         self.ilim = ilim
         self.region = region
@@ -949,9 +950,9 @@ class ImageManager(hcam.mpl.AnimationManager):
         self.rmin = rmin
 
         # create and update the artists
-        self.img_artists = {cnam: None for cnam in ccd_data}
-        self.object_artists = {cnam: None for cnam in object_data}
-        self.update(ccd_data, object_data)
+        self.img_artists = {cnam: None for cnam in self.cnams}
+        self.object_artists = {cnam: None for cnam in self.cnams}
+        self.update(mccd, objects)
 
         # adjust the layout to prevent overlap
         # (can only do after the artists are created)
@@ -975,22 +976,22 @@ class ImageManager(hcam.mpl.AnimationManager):
                     for artist in artists:
                         self.fig.draw_artist(artist)
 
-    def update(self, ccd_data, object_data):
+    def update(self, mccd, objects):
         """Create or update the artists with new data."""
         # Update the CCD artists
-        self._update_images(ccd_data)
+        self._update_images(mccd)
 
         # Update the object artists
-        self._update_objects(object_data)
+        self._update_objects(objects)
 
         # Finally, refresh the display
         self.refresh()
 
-    def _update_images(self, ccd_data):
+    def _update_images(self, mccd):
         """Create or update the CCD artists."""
         new_artists = {}
-        for cnam in ccd_data:
-            if ccd_data[cnam] is None:
+        for cnam in self.img_artists:
+            if not mccd[cnam].is_data():
                 # no new frame, just pass old artists through
                 new_artists[cnam] = self.img_artists[cnam]
             else:
@@ -1000,7 +1001,7 @@ class ImageManager(hcam.mpl.AnimationManager):
 
                 # get scale limits
                 vmin, vmax = hcam.mpl.get_scale_limits(
-                    ccd_data[cnam],
+                    mccd[cnam],
                     mode=self.iset,
                     limits=self.ilim,
                     region=self.region,
@@ -1009,7 +1010,7 @@ class ImageManager(hcam.mpl.AnimationManager):
                 # plot the CCD
                 new_artists[cnam] = hcam.mpl.pCcd(
                     ax=self.axs[cnam],
-                    ccd=ccd_data[cnam],
+                    ccd=mccd[cnam],
                     vmin=vmin,
                     vmax=vmax,
                     cmap=self.cmap,
@@ -1086,10 +1087,10 @@ class ImageManager(hcam.mpl.AnimationManager):
         else:
             return [elipse, rect]
 
-    def _update_objects(self, object_data):
+    def _update_objects(self, objects):
         """Create or update the object artists."""
         new_artists = {}
-        for cnam in object_data:
+        for cnam in objects:
             # We can have different numbers of objects in each frame,
             # so each time we have to delete the old artists and create new ones.
             old_artists = self.object_artists[cnam]
@@ -1099,11 +1100,11 @@ class ImageManager(hcam.mpl.AnimationManager):
                         artist.remove()
 
             oartists = []
-            if object_data[cnam] is None:
+            if objects[cnam] is None:
                 # no windows to plot, so just keep an empty list
                 pass
             else:
-                for obj_data in object_data[cnam]:
+                for obj_data in objects[cnam]:
                     oartists.append(self._plot_object(self.axs[cnam], obj_data))
 
             new_artists[cnam] = oartists
