@@ -1,0 +1,43 @@
+hipercam.scripts.hls
+====================
+
+.. py:module:: hipercam.scripts.hls
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   hipercam.scripts.hls.hls
+
+
+Module Contents
+---------------
+
+.. py:function:: hls(args=None)
+
+   
+   Gives an 'ls'-like listing of the runs available on the HiPERCAM file
+   server. Just invoke as 'hls' with no arguments. This should work correctly
+   whether it in fact its the HiPERCAM or ULTRACAM file server that is
+   running.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+

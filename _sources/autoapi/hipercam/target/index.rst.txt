@@ -1,0 +1,421 @@
+hipercam.target
+===============
+
+.. py:module:: hipercam.target
+
+.. autoapi-nested-parse::
+
+   Defines classes to represent astronomical object fields for
+   simulating data.
+
+   ..
+       !! processed by numpydoc !!
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   hipercam.target.Target
+   hipercam.target.Field
+
+
+Module Contents
+---------------
+
+.. py:class:: Target(xcen, ycen, height, fwhm1, fwhm2, angle, beta, fmin)
+
+   
+   Object to represent an astronomical target in terms of its appearance in a
+   CCD image. The representation chosen is 2D "Moffat" function, which takes
+   the form h/(1+(r/r0)**2)**beta, where 'h' is the central height, 'r' is
+   the distance from the centre, 'r0' is a scale, and 'beta' is an exponent
+   which for large values makes the profile Gaussian.
+
+   To allow for trailing, poor focus and to roughly simulate galaxies,
+   :class:`Target` objects can be elliptical in shape.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:attribute:: xcen
+
+
+   .. py:attribute:: ycen
+
+
+   .. py:attribute:: height
+
+
+   .. py:attribute:: fmin
+
+
+   .. py:attribute:: _fwhm1
+
+
+   .. py:attribute:: _fwhm2
+
+
+   .. py:attribute:: _angle
+
+
+   .. py:attribute:: _beta
+
+
+   .. py:method:: copy(memo=None)
+
+      
+      Returns a copy of the :class:`Target`
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __copy__()
+
+
+   .. py:method:: __deepcopy__(memo)
+
+
+   .. py:method:: _comp_abc()
+
+
+   .. py:property:: fwhm1
+
+
+   .. py:property:: fwhm2
+
+
+   .. py:property:: angle
+
+
+   .. py:property:: beta
+
+
+   .. py:method:: offset(dx, dy)
+
+      
+      This generates a new :class:`Target` by offsetting the position
+      of the :class:`Target`
+
+      Arguments::
+
+         dx : float
+           X offset to add to the positions of all targets [unbinned pixels]
+
+         dy : float
+           Y offset to add to the positions of all targets [unbinned pixels]
+
+      Returns:: a shifted version of the :class:`Target`
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: add(wind, scale=1.0)
+
+      
+      Adds the :class:`Target` to a :class:`Window` with
+      an optional scaling factor. Returns 1 if anything added, 0
+      if there was no overlap.
+
+      Arguments::
+
+        wind : Window
+          a Window, i.e. an array that knows where it is located.
+
+        scale : float
+          factor to scale how much is added in.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: __repr__()
+
+
+.. py:class:: Field
+
+   Bases: :py:obj:`list`
+
+
+   
+   Object to represent a star field as a list of :class:`Target`s. This is to
+   help with simulation of star fields.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:method:: add_random(ntarg, x1, x2, y1, y2, h1, h2, angle1, angle2, fwhm1, fwhm2, beta, fmin)
+
+      
+      Adds a random field of ntarg :class:`Target` objects scattered over the
+      range x1, x2, y1, y2, with peak heights from h1 to h2, random angles
+      from angle1 to angle2, but with fixed width parameters. The peak
+      heights are chosen between the limits to have a distribution
+      appropriate to a 3D Euclidean distribution of constant luminosity
+      objects. The distributions over x, y and angle are uniform.
+
+      Arguments::
+
+         ntarg : (int)
+            number of targets to add
+
+         x1 : (float)
+            left limit of region to add targets to
+
+         x2 : (float)
+            right limit of region to add targets to
+
+         y1 : (float)
+            lower limit of region to add targets to
+
+         y2 : (float)
+            upper limit of region to add targets to
+
+         h1 : (float)
+            lowest peak height
+
+         h2 : (float)
+            highest peak height
+
+         angle1 : (float)
+            lowest angle degrees clockwise from the X axis
+
+         angle2 : (float)
+            highest angle degrees clockwise from the X axis
+
+         fwhm1 : (float)
+            FWHM along major axis of objects
+
+         fwhm2 : (float)
+            FWHM along minor axis of objects
+
+         beta : (float)
+            exponent that appears in Moffat functions
+
+         fmin : (float)
+
+            parameter used to restrict region affected by a target: it's the
+            minimum count level to which the profile will be computed.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: modify(transform, fscale)
+
+      
+      This generates a new :class:`Field` by applying `transform` to the x,y
+      locations of each target to change them. It also scales the targets'
+      peak heights by a constant factor fscale.
+
+      Arguments::
+
+         transform : (callable)
+             Should have signature transform(x,y) and when given the centre
+             x,y of a target, it should return the change in x,y needed to
+             get to the new position which will be fed to Target.offset
+
+         fscale : (float)
+             Scaling factor  It should also have an attribute `fscale`
+             that is a scaling factor that will be applied to the targt peak
+             heights.
+
+      See `hipercam.command_line.makedata` for an example.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: add(wind, ndiv=0)
+
+      
+      Adds all the targets of a Field to a Window
+
+      Arguments::
+
+        wind : Window
+           targets will be added to it; modified on exit
+
+        ndiv : int
+           sub-division factor to account for pixellation
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: wjson(fname)
+
+      
+      Writes a :class:`Field` to a file in json format. This is provided as a
+      straightforward way to store all the info of a :class:`Field`.
+
+      Arguments::
+
+         fname : (string)
+            file to write to
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: rjson(fname)
+      :classmethod:
+
+
+      
+      Creates a :class:`Field` from a json format file as saved by `wjson`.
+
+      Arguments::
+
+         fname : (string)
+            the file to read to create the :class:`Field`
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+

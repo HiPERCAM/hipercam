@@ -1,0 +1,82 @@
+hipercam.tests.group_test
+=========================
+
+.. py:module:: hipercam.tests.group_test
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   hipercam.tests.group_test.TestGroup
+
+
+Module Contents
+---------------
+
+.. py:class:: TestGroup(methodName='runTest')
+
+   Bases: :py:obj:`unittest.TestCase`
+
+
+   
+   Provides simple tests of Group methods
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:method:: setUp()
+
+      
+      Hook method for setting up the test fixture before exercising it.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: test_group_copy()
+
+
+   .. py:method:: test_group_setitem()
+
+
+   .. py:method:: test_agroup_iadd()
+
+
+   .. py:method:: test_agroup_isub()
+
+
+   .. py:method:: test_agroup_add()
+
+
