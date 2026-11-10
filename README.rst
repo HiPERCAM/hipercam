@@ -113,6 +113,17 @@ Note: The package includes compiled extensions that need to be built,
 so you'll need a C++ compiler and the build dependencies (numpy, pybind11)
 available during the build process.
 
+Running the Tests
+=================
+
+The tests live in ``hipercam/tests`` and are run with pytest. Install
+the package in editable mode along with the test dependencies, then
+run pytest from the repository root::
+
+  pip install -e ".[test]"
+  python -m pytest
+
+
 Third-Party Modules
 ===================
 
