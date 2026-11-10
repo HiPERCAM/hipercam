@@ -15,23 +15,23 @@ __all__ = ("combFit", "fitMoffat", "fitGaussian", "moffat", "gaussian")
 
 
 def combFit(
-        wind,
-        sigma,
-        method,
-        sky,
-        height,
-        x,
-        y,
-        fwhm,
-        fwhm_min,
-        fwhm_fix,
-        beta,
-        beta_max,
-        beta_fix,
-        thresh,
-        ndiv=0,
-        max_nfev=None,
-        ls_tol=1e-8,
+    wind,
+    sigma,
+    method,
+    sky,
+    height,
+    x,
+    y,
+    fwhm,
+    fwhm_min,
+    fwhm_fix,
+    beta,
+    beta_max,
+    beta_fix,
+    thresh,
+    ndiv=0,
+    max_nfev=None,
+    ls_tol=1e-8,
 ):
     """Fits a stellar profile in a :class:Window using either a 2D Gaussian
     or Moffat profile. This is a convenience wrapper of fitMoffat and
@@ -137,10 +137,21 @@ def combFit(
         (
             (sky, height, x, y, fwhm),
             (esky, eheight, ex, ey, efwhm),
-            (fit, X, Y, chisq, nok, nrej, npar, nfev)
+            (fit, X, Y, chisq, nok, nrej, npar, nfev),
         ) = fitGaussian(
-            wind, sigma, sky, height, x, y, fwhm, fwhm_min, fwhm_fix,
-            thresh, ndiv, max_nfev, ls_tol
+            wind,
+            sigma,
+            sky,
+            height,
+            x,
+            y,
+            fwhm,
+            fwhm_min,
+            fwhm_fix,
+            thresh,
+            ndiv,
+            max_nfev,
+            ls_tol,
         )
 
     elif method == "m":
@@ -148,10 +159,24 @@ def combFit(
         (
             (sky, height, x, y, fwhm, beta),
             (esky, eheight, ex, ey, efwhm, ebeta),
-            (fit, X, Y, chisq, nok, nrej, npar, nfev)
+            (fit, X, Y, chisq, nok, nrej, npar, nfev),
         ) = fitMoffat(
-            wind, sigma, sky, height, x, y, fwhm, fwhm_min, fwhm_fix, beta,
-            beta_max, beta_fix, thresh, ndiv, max_nfev, ls_tol
+            wind,
+            sigma,
+            sky,
+            height,
+            x,
+            y,
+            fwhm,
+            fwhm_min,
+            fwhm_fix,
+            beta,
+            beta_max,
+            beta_fix,
+            thresh,
+            ndiv,
+            max_nfev,
+            ls_tol,
         )
 
     else:
@@ -163,7 +188,7 @@ def combFit(
             f" FWHM= {fwhm:.2f}({efwhm:.2f}),"
             f" peak= {height:.1f}({eheight:.1f}),"
             f" sky= {sky:.1f}({esky:.1f}),"
-            f" counts= {(fit-sky).sum():.0f}, chi**2= {chisq:.1f},"
+            f" counts= {(fit - sky).sum():.0f}, chi**2= {chisq:.1f},"
             f" nok= {nok}, nrej= {nrej}, nfev= {nfev}"
         )
         beta, ebeta = 0.0, -1.0
@@ -173,7 +198,7 @@ def combFit(
             f" FWHM= {fwhm:.2f}({efwhm:.2f}),"
             f" peak= {height:.1f}({eheight:.1f}),"
             f" sky= {sky:.1f}({esky:.1f}),"
-            f" counts= {(fit-sky).sum():.0f}, "
+            f" counts= {(fit - sky).sum():.0f}, "
             f" beta= {beta:.2f}({ebeta:.2f}),"
             f" chi**2= {chisq:.1f},"
             f" nok= {nok}, nrej= {nrej}, nfev= {nfev}"
@@ -194,22 +219,22 @@ def combFit(
 
 
 def fitMoffat(
-        wind,
-        sigma,
-        sky,
-        height,
-        xcen,
-        ycen,
-        fwhm,
-        fwhm_min,
-        fwhm_fix,
-        beta,
-        beta_max,
-        beta_fix,
-        thresh,
-        ndiv,
-        max_nfev=None,
-        ls_tol=1e-8,
+    wind,
+    sigma,
+    sky,
+    height,
+    xcen,
+    ycen,
+    fwhm,
+    fwhm_min,
+    fwhm_fix,
+    beta,
+    beta_max,
+    beta_fix,
+    thresh,
+    ndiv,
+    max_nfev=None,
+    ls_tol=1e-8,
 ):
     """Fits the profile of one target in a Window with a symmetric 2D Moffat
     profile plus a constant "c + h/(1+alpha**2)**beta" where r is the distance
@@ -360,7 +385,6 @@ def fitMoffat(
     first_fit = True
     nfev = 0
     while True:
-
         # retrieve current fit mode
         mode = mfit.mode
 
@@ -386,10 +410,9 @@ def fitMoffat(
         nfev += res.nfev
 
         # get Jacobian
-        J = np.matrix(res.jac)
         try:
             # try / except for singularity
-            covar = (J.T * J).I
+            covar = np.linalg.inv(res.jac.T @ res.jac)
         except (np.linalg.LinAlgError, ValueError) as err:
             raise HipercamError(err)
 
@@ -407,7 +430,6 @@ def fitMoffat(
             mfit.set_mode(mode.replace("f", ""), fwhm_min, beta)
 
         else:
-
             # no mode switch, compute fit
             fit = Window(wind, mfit.model(param))
 
@@ -425,9 +447,9 @@ def fitMoffat(
             # reject any above the defined threshold
             if first_fit:
                 # first fit carried out with higher threshold for safety
-                sigma[ok & (np.abs(resid) > 2*sfac*thresh)] *= -1
+                sigma[ok & (np.abs(resid) > 2 * sfac * thresh)] *= -1
             else:
-                sigma[ok & (np.abs(resid) > sfac*thresh)] *= -1
+                sigma[ok & (np.abs(resid) > sfac * thresh)] *= -1
 
             # check whether any have been rejected
             ok = mfit.mask & (sigma > 0)
@@ -447,29 +469,22 @@ def fitMoffat(
             first_fit = False
 
     # Make sure all regions masked off have sigma < 0
-    sigma[~mfit.mask] = - np.abs(sigma[~mfit.mask])
+    sigma[~mfit.mask] = -np.abs(sigma[~mfit.mask])
 
     # OK we are done.
-    extras = (
-        fit,
-        mfit.x,
-        mfit.y,
-        chisq,
-        nok,
-        nrej,
-        len(param),
-        nfev
-    )
+    extras = (fit, mfit.x, mfit.y, chisq, nok, nrej, len(param), nfev)
 
     if sky is None:
         return (
-            (0., heightf, xf, yf, fwhmf, betaf),
-            (-1., heightfe, xfe, yfe, fwhmfe, betafe), extras
+            (0.0, heightf, xf, yf, fwhmf, betaf),
+            (-1.0, heightfe, xfe, yfe, fwhmfe, betafe),
+            extras,
         )
     else:
         return (
             (skyf, heightf, xf, yf, fwhmf, betaf),
-            (skyfe, heightfe, xfe, yfe, fwhmfe, betafe), extras
+            (skyfe, heightfe, xfe, yfe, fwhmfe, betafe),
+            extras,
         )
 
 
@@ -532,10 +547,14 @@ def moffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv):
     Moffat profile plus constant evaluated at each coordinate pair.
 
     """
-    return _fitting_cpp.moffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv)
+    return _fitting_cpp.moffat(
+        x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv
+    )
 
 
-def dmoffat(x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv, comp_dfwhm, comp_dbeta):
+def dmoffat(
+    x, y, sky, height, xcen, ycen, fwhm, beta, xbin, ybin, ndiv, comp_dfwhm, comp_dbeta
+):
     """Returns a list of numpy arrays corresponding to the ordinate grids
     in xy set to the partial derivatives of a Moffat profile plus a
     constant. Defined by sky + height/(1+alpha*r**2)**beta where r is
@@ -628,7 +647,7 @@ def _mask(wind, x, y):
     y1, y2 = wind.y(0), wind.y(wind.ny - 1)
     xc, yc = (x1 + x2) / 2, (y1 + y2) / 2.0
     rad = 1.01 * min((x2 - x1) / 2, (y2 - y1) / 2)
-    return (x - xc) ** 2 + (y - yc) ** 2 < rad ** 2
+    return (x - xc) ** 2 + (y - yc) ** 2 < rad**2
 
 
 class Mfit:
@@ -936,19 +955,19 @@ class Mfit:
 
 
 def fitGaussian(
-        wind,
-        sigma,
-        sky,
-        height,
-        xcen,
-        ycen,
-        fwhm,
-        fwhm_min,
-        fwhm_fix,
-        thresh,
-        ndiv,
-        max_nfev=None,
-        ls_tol=1e-8,
+    wind,
+    sigma,
+    sky,
+    height,
+    xcen,
+    ycen,
+    fwhm,
+    fwhm_min,
+    fwhm_fix,
+    thresh,
+    ndiv,
+    max_nfev=None,
+    ls_tol=1e-8,
 ):
     """Fits the profile of one target in an Window with a 2D symmetric Gaussian
     profile "c + h*exp(-alpha*r**2)" where r is the distance from the centre
@@ -1073,7 +1092,6 @@ def fitGaussian(
     first_fit = True
     nfev = 0
     while True:
-
         # retrieve current fit mode
         mode = gfit.mode
 
@@ -1099,10 +1117,9 @@ def fitGaussian(
         nfev += res.nfev
 
         # get Jacobian
-        J = np.matrix(res.jac)
         try:
             # try / except for singularity
-            covar = (J.T * J).I
+            covar = np.linalg.inv(res.jac.T @ res.jac)
         except (np.linalg.LinAlgError, ValueError) as err:
             raise HipercamError(err)
 
@@ -1115,7 +1132,6 @@ def fitGaussian(
             gfit.set_mode(mode.replace("f", ""), fwhm_min)
 
         else:
-
             # no mode switch, compute fit
             fit = Window(wind, gfit.model(param))
 
@@ -1133,9 +1149,9 @@ def fitGaussian(
             # reject any above the defined threshold
             if first_fit:
                 # first fit carried out with higher threshold for safety
-                sigma[ok & (np.abs(resid) > 2*sfac*thresh)] *= -1
+                sigma[ok & (np.abs(resid) > 2 * sfac * thresh)] *= -1
             else:
-                sigma[ok & (np.abs(resid) > sfac*thresh)] *= -1
+                sigma[ok & (np.abs(resid) > sfac * thresh)] *= -1
 
             # check whether any have been rejected
             ok = gfit.mask & (sigma > 0)
@@ -1146,40 +1162,29 @@ def fitGaussian(
                 # many have been, re-scale the uncertainties to
                 # reflect the actual chi**2
                 nrej = len(sigma[gfit.mask]) - nok
-                skyfe, heightfe, xfe, yfe, fwhmfe = gfit.get_epar(
-                    sfac * np.sqrt(covs)
-                )
+                skyfe, heightfe, xfe, yfe, fwhmfe = gfit.get_epar(sfac * np.sqrt(covs))
                 if not first_fit:
                     # always carry out at least 1
                     break
             first_fit = False
 
     # Make sure all regions masked off have sigma < 0
-    sigma[~gfit.mask] = - np.abs(sigma[~gfit.mask])
+    sigma[~gfit.mask] = -np.abs(sigma[~gfit.mask])
 
     # OK we are done.
-    extras = (
-        fit,
-        gfit.x,
-        gfit.y,
-        chisq,
-        nok,
-        nrej,
-        len(param),
-        nfev
-    )
+    extras = (fit, gfit.x, gfit.y, chisq, nok, nrej, len(param), nfev)
 
     if sky is None:
         return (
-            (0., heightf, xf, yf, fwhmf),
-            (-1., heightfe, xfe, yfe, fwhmfe),
-            extras
+            (0.0, heightf, xf, yf, fwhmf),
+            (-1.0, heightfe, xfe, yfe, fwhmfe),
+            extras,
         )
     else:
         return (
             (skyf, heightf, xf, yf, fwhmf),
             (skyfe, heightfe, xfe, yfe, fwhmfe),
-            extras
+            extras,
         )
 
 
@@ -1299,7 +1304,9 @@ def dgaussian(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv, comp_dfwhm)
     They come in the same order as they appear in the function call.
 
     """
-    return _fitting_cpp.dgaussian(x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv, comp_dfwhm)
+    return _fitting_cpp.dgaussian(
+        x, y, sky, height, xcen, ycen, fwhm, xbin, ybin, ndiv, comp_dfwhm
+    )
 
 
 class Gfit:
