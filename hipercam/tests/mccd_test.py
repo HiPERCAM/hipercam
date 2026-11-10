@@ -15,7 +15,10 @@ class TestMCCD(unittest.TestCase):
 
         # build an MCCD
         self.level1 = 10.
-        win1 = Winhead(31,41,5,5,1,2)
+        head = fits.Header()
+        head['OBJECT'] = ('Fake 1','Name')
+        head['FILTER'] = ('r','Filter')
+        win1 = Winhead(31,41,5,5,1,2,head=head)
         data1 = np.empty((win1.ny,win1.nx))
         data1[:] = self.level1
         wind1 = Window(win1,data1)
@@ -26,17 +29,14 @@ class TestMCCD(unittest.TestCase):
         data2[:] = self.level3
         wind2 = Window(win2,data2)
 
-        winds = ((1,wind1),(3,wind2))
+        winds = (('1',wind1),('3',wind2))
 
-        head = fits.Header()
-        head['OBJECT'] = ('Fake 1','Name')
-        head['FILTER'] = ('r','Filter')
-        ccd1 = CCD(winds, 2048, 1024, head)
+        ccd1 = CCD(winds, 2048, 1024)
 
         ccd2 = ccd1.copy()
         ccd2.head['FILTER'] = ('g','Filter')
 
-        ccds = ((3,ccd1),(5,ccd2))
+        ccds = (('3',ccd1),('5',ccd2))
         head = fits.Header()
         head['TEST'] = 'This is HiPERCAM'
 
@@ -45,18 +45,18 @@ class TestMCCD(unittest.TestCase):
     def test_mccd_copy(self):
 
         mccd = self.mccd.copy()
-        mccd[3][1].data[0,0] = 0.
-        self.assertEqual(mccd[3][1].data[0,0]+self.level1,self.mccd[3][1].data[0,0],
+        mccd['3']['1'].data[0,0] = 0.
+        self.assertEqual(mccd['3']['1'].data[0,0]+self.level1,self.mccd['3']['1'].data[0,0],
                          'copy of MCCD failed')
 
         mccd = copy.copy(self.mccd)
-        mccd[3][1].data[0,0] = 0.
-        self.assertEqual(mccd[3][1].data[0,0]+self.level1,self.mccd[3][1].data[0,0],
+        mccd['3']['1'].data[0,0] = 0.
+        self.assertEqual(mccd['3']['1'].data[0,0]+self.level1,self.mccd['3']['1'].data[0,0],
                          'copy.copy of MCCD failed')
 
         mccd = copy.deepcopy(self.mccd)
-        mccd[3][1].data[0,0] = 0.
-        self.assertEqual(mccd[3][1].data[0,0]+self.level1,self.mccd[3][1].data[0,0],
+        mccd['3']['1'].data[0,0] = 0.
+        self.assertEqual(mccd['3']['1'].data[0,0]+self.level1,self.mccd['3']['1'].data[0,0],
                          'copy.deepcopy of MCCD failed')
 
 
