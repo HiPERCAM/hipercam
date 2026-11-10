@@ -454,6 +454,7 @@ def reduce(args=None):
     # Containers for the processed, debiassed and raw MCCD groups
     # and their frame numbers
     pccds, bccds, mccds, nframes = [], [], [], []
+    tzero = None
 
     # get hipercam version to write into the reduce log file
     hipercam_version = hcam.version()
@@ -631,8 +632,9 @@ def reduce(args=None):
                     print("\n".join(alerts))
 
                 # update the plots with the new results
-                update_plots(
+                tzero = update_plots(
                     results,
+                    tzero,
                     rfile,
                     implot,
                     lplot,
@@ -684,8 +686,9 @@ def reduce(args=None):
                 print("\n".join(alerts))
 
             # update the plots with the new results
-            update_plots(
+            tzero = update_plots(
                 results,
+                tzero,
                 rfile,
                 implot,
                 lplot,
@@ -1790,19 +1793,9 @@ def setup_plot_buffers(rfile):
     return lbuffer, xbuffer, ybuffer, tbuffer, sbuffer
 
 
-# Some fancy stuff to keep tzero internal to update_plots
-def static_vars(**kwargs):
-    def decorate(func):
-        for k in kwargs:
-            setattr(func, k, kwargs[k])
-        return func
-
-    return decorate
-
-
-@static_vars(tzero=None)
 def update_plots(
     results,
+    tzero,
     rfile,
     implot,
     lplot,
@@ -2024,7 +2017,7 @@ def update_plots(
     if lplot:
         # plot the light curve
 
-        if update_plots.tzero is None:
+        if tzero is None:
             # first set the tzero if it is not set yet
 
             skipbadt = rfile["general"]["skipbadt"]
@@ -2040,16 +2033,11 @@ def update_plots(
                     expose,
                 ) in res:
                     if mjdok or not skipbadt:
-                        update_plots.tzero = mjdint + mjdfrac
-                        break
-                if update_plots.tzero is not None:
-                    break
+                        tzero = mjdint + mjdfrac
 
-        if update_plots.tzero is None:
+        if tzero is None:
             # Must have a tzero to get going at all
-            return
-
-        tzero = update_plots.tzero
+            return None
 
         # track the maximum time
         tmax = None
@@ -2252,3 +2240,5 @@ def update_plots(
 
             # end buffering
             pgebuf()
+
+    return tzero
