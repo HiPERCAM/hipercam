@@ -2,6 +2,7 @@ import copy
 import os
 import signal
 import sys
+import tempfile
 import warnings
 
 import numpy as np
@@ -68,6 +69,56 @@ def new_wcs(wbase, dx, dy):
     return wnew
 
 
+def _mask_reprojected(data, wind, frame_offset_x, frame_offset_y):
+    """Keep only the shifted window footprint, using the original slice bounds."""
+    xstart = wind.llx // wind.xbin - int(frame_offset_x)
+    ystart = wind.lly // wind.ybin - int(frame_offset_y)
+    xstart, xend, _ = slice(xstart, xstart + wind.nx).indices(data.shape[1])
+    ystart, yend, _ = slice(ystart, ystart + wind.ny).indices(data.shape[0])
+    data[:ystart, :] = np.nan
+    data[yend:, :] = np.nan
+    data[ystart:yend, :xstart] = np.nan
+    data[ystart:yend, xend:] = np.nan
+
+
+def _combine_stack(arr3d, method, sigma=None, maxiters=None, tile_bytes=32 * 1024**2):
+    """Combine disk-backed planes in tiles, retaining all samples per pixel."""
+    nplanes, ny, nx = arr3d.shape
+    pixels = max(1, tile_bytes // (nplanes * arr3d.dtype.itemsize))
+    tile_nx = min(nx, pixels)
+    tile_ny = max(1, pixels // tile_nx)
+    stack = np.empty((ny, nx), dtype=arr3d.dtype)
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore", category=RuntimeWarning, message="All-NaN slice encountered"
+        )
+        for y in range(0, ny, tile_ny):
+            for x in range(0, nx, tile_nx):
+                ys = slice(y, min(y + tile_ny, ny))
+                xs = slice(x, min(x + tile_nx, nx))
+                tile = np.array(arr3d[:, ys, xs], copy=True)
+                if method == "m":
+                    stack[ys, xs] = medianfunc(tile, axis=0)
+                elif method == "c" and sigma > 0:
+                    mask = sigma_clip(
+                        tile,
+                        sigma_lower=sigma,
+                        sigma_upper=sigma,
+                        axis=0,
+                        copy=False,
+                        maxiters=maxiters,
+                        cenfunc="mean",
+                        stdfunc="std",
+                        masked=True,
+                    )
+                    tile[mask.mask] = np.nan
+                    stack[ys, xs] = meanfunc(tile, axis=0)
+                else:
+                    stack[ys, xs] = meanfunc(tile, axis=0)
+    return stack
+
+
 def wcs_from_header(mccd):
     """
     Try and make a WCS object from the header of an MCCD.
@@ -125,6 +176,11 @@ def shiftadd(args=None):
 
     Averages images from a run using mean combination, but shifting each
     image based on the positions of stars.
+
+    Reprojected windows are stored in temporary disk-backed arrays and combined
+    in tiles to limit memory use. Temporary disk space is required for one
+    full-frame, double-precision array per input window on a CCD. Set TMPDIR
+    to select a temporary filesystem with sufficient space.
 
     Parameters:
 
@@ -438,7 +494,7 @@ def shiftadd(args=None):
 
     # at this point 'resource' is a list of files, no matter the input
     # method.
-    with CleanUp(resource, server_or_local):
+    with CleanUp(resource, server_or_local), tempfile.TemporaryDirectory() as tempdir:
         # First we want to calculate how offset each frame is relative to the apertures
         print(f"calculating pixel shifts using CCD {ref_cnam}")
         offsets = []
@@ -546,7 +602,9 @@ def shiftadd(args=None):
         header_string = "nframes="
         for cnam in output_mccd:
             print(f"stacking CCD {cnam}")
-            arrs = []
+            stack_path = os.path.join(tempdir, "stack.dat")
+            nplanes = 0
+            stack_shape = None
             nframes_used = 0
             with hcam.spooler.HcamListSpool(resource, cnam) as spool:
                 # Here we only open the CCD we're interested in
@@ -574,6 +632,12 @@ def shiftadd(args=None):
                         ccd.nytot // ccd.head.ybin,
                         ccd.nxtot // ccd.head.xbin,
                     )
+                    if stack_shape is None:
+                        stack_shape = output_shape
+                    elif output_shape != stack_shape:
+                        raise hcam.HipercamError(
+                            f"inconsistent full-frame dimensions for CCD {cnam}"
+                        )
 
                     # Go through each window in the CCD
                     for wnam, wind in ccd.items():
@@ -588,35 +652,56 @@ def shiftadd(args=None):
                             crval2 + frame_offset_y / wind.ybin - window_offset_y,
                         )
 
+                        # Write each full-frame plane directly to temporary storage.
+                        plane_bytes = (
+                            np.prod(output_shape) * np.dtype("float64").itemsize
+                        )
+                        reprojected_data = np.memmap(
+                            stack_path,
+                            mode="w+" if nplanes == 0 else "r+",
+                            dtype=np.float64,
+                            shape=output_shape,
+                            offset=nplanes * plane_bytes,
+                        )
+                        reproject_options = {
+                            "output_array": reprojected_data,
+                            "return_footprint": False,
+                            "block_size": (256, 256),
+                        }
+                        input_data = wind.data.astype(np.float64, copy=False)
+
                         # Carry out the re-projection
                         if reprmethod == "interp":
-                            reprojected_data, _ = reproject_interp(
-                                (wind.data, pixel_wcs),
+                            reproject_interp(
+                                (input_data, pixel_wcs),
                                 orig_wcs,
                                 output_shape,
                                 order=reprorder,
+                                **reproject_options,
                             )
                         elif reprmethod == "exact":
-                            reprojected_data, _ = reproject_exact(
-                                (wind.data, pixel_wcs),
+                            reproject_exact(
+                                (input_data, pixel_wcs),
                                 orig_wcs,
                                 output_shape,
+                                **reproject_options,
                             )
                         # OK - we are using adaptive then
                         # note we force boundary_mode to 'nearest'
                         # to avoid NaNs around the edge of the output
                         elif reprkernel == "Hann":
-                            reprojected_data, _ = reproject_adaptive(
-                                (wind.data, pixel_wcs),
+                            reproject_adaptive(
+                                (input_data, pixel_wcs),
                                 orig_wcs,
                                 output_shape,
                                 conserve_flux=consflux,
                                 kernel="Hann",
                                 boundary_mode="nearest",
+                                **reproject_options,
                             )
                         else:
-                            reprojected_data, _ = reproject_adaptive(
-                                (wind.data, pixel_wcs),
+                            reproject_adaptive(
+                                (input_data, pixel_wcs),
                                 orig_wcs,
                                 output_shape,
                                 conserve_flux=consflux,
@@ -624,65 +709,41 @@ def shiftadd(args=None):
                                 sample_region_width=regwidth,
                                 kernel="Gaussian",
                                 boundary_mode="nearest",
+                                **reproject_options,
                             )
 
                         # We need to mask the area outside of the offset window with NaNs,
                         # so there's no bleedover into other windows when stacking
                         # when using 'nearest' interpolation for adaptive
-                        mask = np.zeros_like(reprojected_data, dtype=bool)
-                        xstart = wind.llx // wind.xbin
-                        xend = xstart + wind.nx
-                        ystart = wind.lly // wind.ybin
-                        yend = ystart + wind.ny
-                        mask[
-                            ystart - int(frame_offset_y) : yend - int(frame_offset_y),
-                            xstart - int(frame_offset_x) : xend - int(frame_offset_x),
-                        ] = True
-                        reprojected_data[~mask] = np.nan
-
-                        # Save the FF reprojected data
-                        arrs.append(reprojected_data)
+                        _mask_reprojected(
+                            reprojected_data, wind, frame_offset_x, frame_offset_y
+                        )
+                        reprojected_data.flush()
+                        del reproject_options
+                        del reprojected_data
+                        del input_data
+                        nplanes += 1
 
             # Average over the stack of FF images
             print(f"combining {nframes_used} frames for CCD {cnam}")
             header_string += f"CCD{cnam}({nframes_used:d}),"
 
-            if len(arrs) == 0 or nframes_used == 0:
+            if nplanes == 0 or nframes_used == 0:
                 raise hcam.HipercamError(
                     f"found no data for CCD {cnam} in the selected frames"
                 )
 
-            arr3d = np.stack(arrs)
-
-            with warnings.catch_warnings():
-                # ignore warnings about all-nan slices
-                # (we set NaNs outside of the windows)
-                warnings.filterwarnings(
-                    "ignore",
-                    category=RuntimeWarning,
-                    message="All-NaN slice encountered",
-                )
-                if method == "m":
-                    stack = medianfunc(arr3d, axis=0)
-                elif method == "c" and sigma > 0:
-                    # clipped mean
-                    mask = sigma_clip(
-                        arr3d,
-                        sigma_lower=sigma,
-                        sigma_upper=sigma,
-                        axis=0,
-                        copy=False,
-                        maxiters=maxiters,
-                        cenfunc="mean",
-                        stdfunc="std",
-                        masked=True,
-                    )
-                    # fill mask with nans
-                    arr3d[mask.mask] = np.nan
-                    stack = meanfunc(arr3d, axis=0)
-                else:
-                    # simple mean
-                    stack = meanfunc(arr3d, axis=0)
+            arr3d = np.memmap(
+                stack_path, mode="r", dtype=np.float64, shape=(nplanes, *stack_shape)
+            )
+            stack = _combine_stack(
+                arr3d,
+                method,
+                sigma if method == "c" else None,
+                maxiters if method == "c" else None,
+            )
+            del arr3d
+            os.remove(stack_path)
 
             # Crop the FF images back into the individual windows
             for wnam, wind in output_mccd[cnam].items():
@@ -699,7 +760,9 @@ def shiftadd(args=None):
                         f"NaN values detected in combined data for CCD {cnam}, window {wnam}"
                     )
 
-                output_mccd[cnam][wnam].data = crop
+                output_mccd[cnam][wnam].data = crop.copy()
+                del crop
+            del stack
 
         # Add history and other keywords to the header
         output_mccd.head.add_history("Result of shiftadd")

@@ -71,6 +71,14 @@ as an engine. The documentation for the reproject package is the best place to l
 of the various algorithms used to resample the data. Here we only outline a few issues which are
 worth considering for different use cases.
 
+To limit memory use for large runs, |shiftadd| stores reprojected windows in temporary
+disk-backed arrays and combines them in spatial tiles. Processing each CCD requires
+temporary space for one full-frame, double-precision array per input window in the
+accepted frames. Temporary files are removed on normal completion, errors, or a
+keyboard interrupt; an abrupt process termination may leave them behind. Set
+the ``TMPDIR`` environment variable before running |shiftadd| to choose a
+filesystem with enough free space.
+
 Exact pixel shifts
 ------------------
 For very faint sources, you may want to avoid any resampling of the data, which can wash out the signal. 
@@ -87,6 +95,7 @@ gains, bias levels and readout noise. The output amplifiers naturally divide the
 regions (2 in the case of ULTRACAM and 4 in the case of |hiper|). In addition, the observer can define 
 *windows* which fill some, or all, of these regions.
 
-The |shiftadd| command treats data from each region/window as entirely separate. Data from one region/window
-is never combined with data from another when stacking data.
-
+The |shiftadd| command reprojects each region/window separately and masks data outside
+its shifted footprint. However, the reprojected windows are combined on a common
+full-frame grid. If shifted footprints of neighbouring windows from different frames
+overlap, their pixels can be combined at the overlap, including at a window edge.
