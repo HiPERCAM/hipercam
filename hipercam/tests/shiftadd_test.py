@@ -83,20 +83,21 @@ class TestShiftadd(unittest.TestCase):
         self.assertGreater(len(sizes), 1)
         self.assertLessEqual(max(sizes), budget)
 
-    def test_window_mask_matches_original_slicing(self):
-        wind = hcam.Winhead(3, 5, 6, 4, 1, 1, "")
-        for offset in ((0, 0), (1.2, -2.7), (10, 0), (-20, 3)):
-            with self.subTest(offset=offset):
-                data = np.arange(12 * 14, dtype=float).reshape(12, 14)
-                expected = data.copy()
-                mask = np.zeros_like(data, dtype=bool)
-                xstart = wind.llx // wind.xbin
-                ystart = wind.lly // wind.ybin
-                mask[
-                    ystart - int(offset[1]) : ystart + wind.ny - int(offset[1]),
-                    xstart - int(offset[0]) : xstart + wind.nx - int(offset[0]),
-                ] = True
-                expected[~mask] = np.nan
+    def test_window_mask_coordinates(self):
+        cases = (
+            (hcam.Winhead(1, 1, 3, 2, 1, 1, ""), (0, 0), (0, 2, 0, 3)),
+            (hcam.Winhead(3, 5, 3, 2, 1, 1, ""), (1, -1), (5, 7, 1, 4)),
+            (hcam.Winhead(1, 1, 3, 2, 1, 1, ""), (1, 1), (0, 1, 0, 2)),
+            (hcam.Winhead(1, 1, 3, 2, 1, 1, ""), (10, 0), (0, 0, 0, 0)),
+            (hcam.Winhead(5, 7, 3, 2, 2, 3, ""), (2, 3), (1, 3, 1, 4)),
+            (hcam.Winhead(5, 7, 3, 2, 2, 3, ""), (-2, -3), (3, 5, 3, 6)),
+            (hcam.Winhead(4, 6, 3, 2, 2, 3, ""), (0, 0), (1, 3, 1, 4)),
+        )
+        for wind, offset, (y1, y2, x1, x2) in cases:
+            with self.subTest(wind=wind, offset=offset):
+                data = np.arange(8 * 8, dtype=float).reshape(8, 8)
+                expected = np.full_like(data, np.nan)
+                expected[y1:y2, x1:x2] = data[y1:y2, x1:x2]
                 shiftadd._mask_reprojected(data, wind, *offset)
                 np.testing.assert_array_equal(data, expected)
 
@@ -134,15 +135,25 @@ class TestShiftadd(unittest.TestCase):
                     mapped, expected, rtol=1e-8, atol=1e-8, equal_nan=True
                 )
 
-    def setup_run(self, method, invalid=False, shifts=None, second_llx=9):
+    def setup_run(
+        self, method, invalid=False, shifts=None, second_llx=9, full_frame=False,
+        binning=1,
+    ):
         paths = []
         for frame in range(4):
             ccds = []
             for cnam in ("1", "2"):
                 windows = []
-                for wnam, llx, level in (("a", 1, 10), ("b", second_llx, 100)):
-                    head = hcam.Winhead(llx, 1, 4, 4, 1, 1, "")
-                    data = np.full((4, 4), level + frame, dtype=float)
+                window_specs = (
+                    (("a", 1, 10),) if full_frame
+                    else (("a", 1, 10), ("b", second_llx, 100))
+                )
+                for wnam, llx, level in window_specs:
+                    nx, ny = (16 // binning, 8 // binning) if full_frame else (4, 4)
+                    head = hcam.Winhead(llx, 1, nx, ny, binning, binning, "")
+                    data = np.full((ny, nx), level + frame, dtype=float)
+                    if full_frame:
+                        data += np.arange(nx * ny).reshape(ny, nx)
                     if invalid:
                         data[1, 1] = np.nan
                     window = hcam.Window(head, data)
@@ -241,7 +252,7 @@ class TestShiftadd(unittest.TestCase):
         self.assertIn("CCD1(3),CCD2(2)", str(result.head["HISTORY"]))
         self.assertFalse(list(self.tmp.glob("tmp*")))
 
-    def test_shifted_windows_match_original_combination(self):
+    def test_shifted_windows_match_combination(self):
         outfile = self.setup_run("m", shifts=[0, 1, -1, 0], second_llx=5)
         shiftadd.shiftadd()
         result = hcam.MCCD.read(str(outfile))
@@ -256,17 +267,18 @@ class TestShiftadd(unittest.TestCase):
                 for wind in ccd.values():
                     input_wcs = orig_wcs.deepcopy()
                     input_wcs.wcs.crpix = [
-                        offsets[frame] - wind.llx // wind.xbin,
-                        -wind.lly // wind.ybin,
+                        offsets[frame] - (wind.llx - 1) // wind.xbin,
+                        -(wind.lly - 1) // wind.ybin,
                     ]
                     data, _ = shiftadd.reproject_interp(
                         (wind.data, input_wcs), orig_wcs, (8, 16), order=0
                     )
                     mask = np.zeros(data.shape, dtype=bool)
-                    x, y = wind.llx // wind.xbin, wind.lly // wind.ybin
+                    x = (wind.llx - 1) // wind.xbin
+                    y = (wind.lly - 1) // wind.ybin
                     mask[
                         y : y + wind.ny,
-                        x - offsets[frame] : x + wind.nx - offsets[frame],
+                        max(0, x - offsets[frame]) : x + wind.nx - offsets[frame],
                     ] = True
                     data[~mask] = np.nan
                     planes.append(data)
@@ -274,10 +286,34 @@ class TestShiftadd(unittest.TestCase):
                 warnings.simplefilter("ignore", RuntimeWarning)
                 expected = shiftadd.medianfunc(np.stack(planes), axis=0)
             for wind in result[cnam].values():
-                x, y = wind.llx // wind.xbin, wind.lly // wind.ybin
+                x = (wind.llx - 1) // wind.xbin
+                y = (wind.lly - 1) // wind.ybin
                 np.testing.assert_allclose(
                     wind.data, expected[y : y + wind.ny, x : x + wind.nx]
                 )
+
+    def test_full_frame_preserves_pixels_at_all_edges(self):
+        outfile = self.setup_run("c", full_frame=True)
+        shiftadd.shiftadd()
+        result = hcam.MCCD.read(str(outfile))
+        expected = np.arange(128).reshape(8, 16)
+        for cnam, frame_mean in (("1", 4 / 3), ("2", 1.5)):
+            self.assertEqual(result[cnam]["a"].data.shape, (8, 16))
+            np.testing.assert_allclose(
+                result[cnam]["a"].data, 10 + frame_mean + expected
+            )
+
+    def test_binned_full_frame_shift(self):
+        outfile = self.setup_run(
+            "c", full_frame=True, binning=2, shifts=[0, 2, -2, 0]
+        )
+        shiftadd.shiftadd()
+        result = hcam.MCCD.read(str(outfile))
+        gradient = np.arange(32).reshape(4, 8)
+        expected = gradient + 35 / 3
+        expected[:, -1] = gradient[:, -1] + 11.5
+        np.testing.assert_allclose(result["1"]["a"].data, expected)
+        np.testing.assert_allclose(result["2"]["a"].data, gradient + 11.5)
 
     def test_nan_failure_cleans_temporary_files(self):
         outfile = self.setup_run("m", invalid=True)

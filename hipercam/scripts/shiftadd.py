@@ -69,12 +69,20 @@ def new_wcs(wbase, dx, dy):
     return wnew
 
 
+def _window_origin(wind):
+    """Return the zero-based binned origin of a window in the full frame."""
+    return (wind.llx - 1) // wind.xbin, (wind.lly - 1) // wind.ybin
+
+
 def _mask_reprojected(data, wind, frame_offset_x, frame_offset_y):
-    """Keep only the shifted window footprint, using the original slice bounds."""
-    xstart = wind.llx // wind.xbin - int(frame_offset_x)
-    ystart = wind.lly // wind.ybin - int(frame_offset_y)
-    xstart, xend, _ = slice(xstart, xstart + wind.nx).indices(data.shape[1])
-    ystart, yend, _ = slice(ystart, ystart + wind.ny).indices(data.shape[0])
+    """Keep only the portion of the shifted window within the full frame."""
+    xstart, ystart = _window_origin(wind)
+    xstart -= int(frame_offset_x / wind.xbin)
+    ystart -= int(frame_offset_y / wind.ybin)
+    xend = max(0, min(data.shape[1], xstart + wind.nx))
+    yend = max(0, min(data.shape[0], ystart + wind.ny))
+    xstart = max(0, min(data.shape[1], xstart))
+    ystart = max(0, min(data.shape[0], ystart))
     data[:ystart, :] = np.nan
     data[yend:, :] = np.nan
     data[ystart:yend, :xstart] = np.nan
@@ -645,8 +653,7 @@ def shiftadd(args=None):
                         # (binned) array
                         pixel_wcs = copy.deepcopy(orig_wcs)
                         crval1, crval2 = pixel_wcs.wcs.crpix
-                        window_offset_x = wind.llx // wind.xbin
-                        window_offset_y = wind.lly // wind.ybin
+                        window_offset_x, window_offset_y = _window_origin(wind)
                         pixel_wcs.wcs.crpix = (
                             crval1 + frame_offset_x / wind.xbin - window_offset_x,
                             crval2 + frame_offset_y / wind.ybin - window_offset_y,
@@ -747,9 +754,8 @@ def shiftadd(args=None):
 
             # Crop the FF images back into the individual windows
             for wnam, wind in output_mccd[cnam].items():
-                xstart = wind.llx // wind.xbin
+                xstart, ystart = _window_origin(wind)
                 xend = xstart + wind.nx
-                ystart = wind.lly // wind.ybin
                 yend = ystart + wind.ny
                 crop = stack[ystart:yend, xstart:xend]
 
