@@ -675,6 +675,10 @@ def shiftadd(args=None):
                             "return_footprint": False,
                             "block_size": (256, 256),
                         }
+                        # reproject returns float64, so we must convert the input
+                        # data to float64 as reproject requires input and output
+                        # data types to match when using a memory-mapped array for
+                        # the output.
                         input_data = wind.data.astype(np.float64, copy=False)
 
                         # Carry out the re-projection
