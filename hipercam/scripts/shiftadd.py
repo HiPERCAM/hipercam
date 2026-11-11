@@ -4,6 +4,7 @@ import signal
 import sys
 import tempfile
 import warnings
+from contextlib import nullcontext
 
 import numpy as np
 from astropy.stats import sigma_clip
@@ -90,12 +91,50 @@ def _mask_reprojected(data, wind, frame_offset_x, frame_offset_y):
 
 
 def _combine_stack(arr3d, method, sigma=None, maxiters=None, tile_bytes=32 * 1024**2):
-    """Combine disk-backed planes in tiles, retaining all samples per pixel."""
-    nplanes, ny, nx = arr3d.shape
-    pixels = max(1, tile_bytes // (nplanes * arr3d.dtype.itemsize))
+    """Combine reprojected planes in spatial tiles, ignoring NaNs.
+
+    Parameters
+    ----------
+    arr3d : numpy.ndarray or list of numpy.ndarray
+        Stack of shape ``(nplanes, ny, nx)``, typically a read-only memmap,
+        or a list of same-shaped planes. Each plane is a reprojected window;
+        NaNs mark pixels without data.
+    method : str
+        ``'m'`` for a median or ``'c'`` for a mean with optional sigma clipping.
+    sigma : float, optional
+        Rejection threshold for ``'c'``. A non-positive value disables
+        clipping; required when ``method`` is ``'c'``.
+    maxiters : int or None, optional
+        Maximum sigma-clipping iterations; ``None`` iterates to convergence.
+    tile_bytes : int, optional
+        Target maximum size in bytes of the input copy for each tile. If all
+        samples for one pixel exceed this size, one pixel is processed at a
+        time. The output array and temporary clipping/reduction allocations are
+        additional to this budget.
+
+    Returns
+    -------
+    numpy.ndarray
+        Combined image of shape ``(ny, nx)`` and the same dtype as the input
+        planes. Pixels with no valid samples are NaN.
+
+    Notes
+    -----
+    Every tile retains all planes for its pixels, so clipping and median
+    calculations use the full sample set. Tiles are copied before combination
+    to avoid modifying the input, including when clipping rejects samples.
+    """
+    if isinstance(arr3d, list):
+        nplanes = len(arr3d)
+        ny, nx = arr3d[0].shape
+        dtype = arr3d[0].dtype
+    else:
+        nplanes, ny, nx = arr3d.shape
+        dtype = arr3d.dtype
+    pixels = max(1, tile_bytes // (nplanes * dtype.itemsize))
     tile_nx = min(nx, pixels)
     tile_ny = max(1, pixels // tile_nx)
-    stack = np.empty((ny, nx), dtype=arr3d.dtype)
+    stack = np.empty((ny, nx), dtype=dtype)
 
     with warnings.catch_warnings():
         warnings.filterwarnings(
@@ -105,7 +144,10 @@ def _combine_stack(arr3d, method, sigma=None, maxiters=None, tile_bytes=32 * 102
             for x in range(0, nx, tile_nx):
                 ys = slice(y, min(y + tile_ny, ny))
                 xs = slice(x, min(x + tile_nx, nx))
-                tile = np.array(arr3d[:, ys, xs], copy=True)
+                if isinstance(arr3d, list):
+                    tile = np.stack([plane[ys, xs] for plane in arr3d])
+                else:
+                    tile = np.array(arr3d[:, ys, xs], copy=True)
                 if method == "m":
                     stack[ys, xs] = medianfunc(tile, axis=0)
                 elif method == "c" and sigma > 0:
@@ -180,13 +222,14 @@ def shiftadd(args=None):
     """
     ``shiftadd [source]  (run first last twait tmax | flist) rfilen refccd
     fthresh reprmethod [(reprorder | consflux reprkernel kwidth regwidth)]
-    trim ([ncol nrow]) method [(sigma maxiters)] [overwrite] output``
+    trim ([ncol nrow]) method [(sigma maxiters)] [overwrite] output [memmap]``
 
     Averages images from a run using mean combination, but shifting each
     image based on the positions of stars.
 
-    Reprojected windows are stored in temporary disk-backed arrays and combined
-    in tiles to limit memory use. Temporary disk space is required for one
+    By default, reprojected windows are stored in temporary disk-backed arrays
+    and combined in tiles to limit memory use. Set ``memmap=False`` to keep them
+    in memory instead. Disk-backed storage requires temporary space for one
     full-frame, double-precision array per input window on a CCD. Set TMPDIR
     to select a temporary filesystem with sufficient space.
 
@@ -321,6 +364,11 @@ def shiftadd(args=None):
 
         output  : string
            output file
+
+        memmap : bool [hidden; defaults to True]
+           Store reprojected windows in temporary memory-mapped arrays. Set to
+           False for in-memory stacking, which may be faster for small datasets
+           but requires enough RAM for every reprojected window on one CCD.
     """
     # can we run at all (need reproject)?
     if not HAS_REPROJECT:
@@ -358,6 +406,7 @@ def shiftadd(args=None):
         cl.register("maxiters", Cline.LOCAL, Cline.HIDE)
         cl.register("overwrite", Cline.LOCAL, Cline.HIDE)
         cl.register("output", Cline.LOCAL, Cline.PROMPT)
+        cl.register("memmap", Cline.LOCAL, Cline.HIDE)
 
         # get inputs
         default_source = os.environ.get("HIPERCAM_DEFAULT_SOURCE", "hl")
@@ -466,6 +515,7 @@ def shiftadd(args=None):
                 cline.Fname.NEW if overwrite else cline.Fname.NOCLOBBER,
             ),
         )
+        memmap = cl.get_value("memmap", "use disk-backed arrays for stacking", True)
 
     # inputs done with.
     rfile = hcam.reduction.Rfile.read(rfilen)
@@ -502,7 +552,8 @@ def shiftadd(args=None):
 
     # at this point 'resource' is a list of files, no matter the input
     # method.
-    with CleanUp(resource, server_or_local), tempfile.TemporaryDirectory() as tempdir:
+    temp_storage = tempfile.TemporaryDirectory() if memmap else nullcontext()
+    with CleanUp(resource, server_or_local), temp_storage as tempdir:
         # First we want to calculate how offset each frame is relative to the apertures
         print(f"calculating pixel shifts using CCD {ref_cnam}")
         offsets = []
@@ -610,7 +661,8 @@ def shiftadd(args=None):
         header_string = "nframes="
         for cnam in output_mccd:
             print(f"stacking CCD {cnam}")
-            stack_path = os.path.join(tempdir, "stack.dat")
+            stack_path = os.path.join(tempdir, "stack.dat") if memmap else None
+            planes = []
             nplanes = 0
             stack_shape = None
             nframes_used = 0
@@ -659,26 +711,28 @@ def shiftadd(args=None):
                             crval2 + frame_offset_y / wind.ybin - window_offset_y,
                         )
 
-                        # Write each full-frame plane directly to temporary storage.
-                        plane_bytes = (
-                            np.prod(output_shape) * np.dtype("float64").itemsize
-                        )
-                        reprojected_data = np.memmap(
-                            stack_path,
-                            mode="w+" if nplanes == 0 else "r+",
-                            dtype=np.float64,
-                            shape=output_shape,
-                            offset=nplanes * plane_bytes,
-                        )
+                        if memmap:
+                            plane_bytes = (
+                                np.prod(output_shape) * np.dtype("float64").itemsize
+                            )
+                            reprojected_data = np.memmap(
+                                stack_path,
+                                mode="w+" if nplanes == 0 else "r+",
+                                dtype=np.float64,
+                                shape=output_shape,
+                                offset=nplanes * plane_bytes,
+                            )
+                        else:
+                            reprojected_data = np.empty(output_shape, dtype=np.float64)
                         reproject_options = {
                             "output_array": reprojected_data,
                             "return_footprint": False,
-                            "block_size": (256, 256),
                         }
+                        if memmap:
+                            reproject_options["block_size"] = (256, 256)
                         # reproject returns float64, so we must convert the input
                         # data to float64 as reproject requires input and output
-                        # data types to match when using a memory-mapped array for
-                        # the output.
+                        # data types to match when providing an output array.
                         input_data = wind.data.astype(np.float64, copy=False)
 
                         # Carry out the re-projection
@@ -729,7 +783,10 @@ def shiftadd(args=None):
                         _mask_reprojected(
                             reprojected_data, wind, frame_offset_x, frame_offset_y
                         )
-                        reprojected_data.flush()
+                        if memmap:
+                            reprojected_data.flush()
+                        else:
+                            planes.append(reprojected_data)
                         del reproject_options
                         del reprojected_data
                         del input_data
@@ -744,9 +801,15 @@ def shiftadd(args=None):
                     f"found no data for CCD {cnam} in the selected frames"
                 )
 
-            arr3d = np.memmap(
-                stack_path, mode="r", dtype=np.float64, shape=(nplanes, *stack_shape)
-            )
+            if memmap:
+                arr3d = np.memmap(
+                    stack_path,
+                    mode="r",
+                    dtype=np.float64,
+                    shape=(nplanes, *stack_shape),
+                )
+            else:
+                arr3d = planes
             stack = _combine_stack(
                 arr3d,
                 method,
@@ -754,7 +817,10 @@ def shiftadd(args=None):
                 maxiters if method == "c" else None,
             )
             del arr3d
-            os.remove(stack_path)
+            if memmap:
+                os.remove(stack_path)
+            else:
+                planes.clear()
 
             # Crop the FF images back into the individual windows
             for wnam, wind in output_mccd[cnam].items():

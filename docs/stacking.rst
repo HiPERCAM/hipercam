@@ -77,7 +77,13 @@ temporary space for one full-frame, double-precision array per input window in t
 accepted frames. Temporary files are removed on normal completion, errors, or a
 keyboard interrupt; an abrupt process termination may leave them behind. Set
 the ``TMPDIR`` environment variable before running |shiftadd| to choose a
-filesystem with enough free space.
+filesystem with enough free space. For small datasets, the hidden option
+``memmap=False`` keeps reprojected windows in RAM instead, avoiding disk-backed
+stack storage and blocked reprojection. This can be faster, but requires RAM
+for one full-frame, double-precision array per input window on a CCD, in
+addition to combination and reprojection working memory.
+As with other hidden |shiftadd| parameters, the chosen value is remembered for
+later runs; use ``memmap=True`` to switch back to disk-backed storage.
 
 Exact pixel shifts
 ------------------
