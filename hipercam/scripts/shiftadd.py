@@ -70,14 +70,50 @@ def new_wcs(wbase, dx, dy):
     return wnew
 
 
-def _window_origin(wind):
-    """Return the zero-based binned origin of a window in the full frame."""
+def window_origin(wind):
+    """Return the zero-based binned origin of a window in the full frame.
+
+    LLX and LLY for windows are 1-based and in unbinned pixels, so we need to convert to
+    0-based binned to give the array index of the window start.
+
+    Parameters
+    ----------
+    wind : hcam.Window
+        The window for which to calculate the origin.
+
+    Returns
+    -------
+    tuple
+        The zero-based binned origin of the window in the full frame.
+    """
     return (wind.llx - 1) // wind.xbin, (wind.lly - 1) // wind.ybin
 
 
-def _mask_reprojected(data, wind, frame_offset_x, frame_offset_y):
-    """Keep only the portion of the shifted window within the full frame."""
-    xstart, ystart = _window_origin(wind)
+def mask_reprojected(data, wind, frame_offset_x, frame_offset_y):
+    """Mask pixels outside the shifted window footprint in a full-frame array.
+
+    The footprint starts at the window's zero-based binned origin, minus the
+    frame offset in binned pixels. Fractional offsets are truncated toward zero.
+    Its bounds are clipped to the full-frame array; pixels outside them are set
+    to NaN in place. Pixels inside the footprint are left unchanged, including
+    any NaNs already present after reprojection.
+
+    Parameters
+    ----------
+    data : numpy.ndarray
+        Writable two-dimensional full-frame reprojection of the window. Must
+        have a floating-point dtype capable of representing NaN.
+    wind : hcam.Window
+        Input window defining the unshifted origin, dimensions and binning.
+    frame_offset_x, frame_offset_y : float
+        Frame offsets along each axis, in unbinned pixels.
+
+    Returns
+    -------
+    None
+        The input array is modified in place.
+    """
+    xstart, ystart = window_origin(wind)
     xstart -= int(frame_offset_x / wind.xbin)
     ystart -= int(frame_offset_y / wind.ybin)
     xend = max(0, min(data.shape[1], xstart + wind.nx))
@@ -90,7 +126,7 @@ def _mask_reprojected(data, wind, frame_offset_x, frame_offset_y):
     data[ystart:yend, xend:] = np.nan
 
 
-def _combine_stack(arr3d, method, sigma=None, maxiters=None, tile_bytes=32 * 1024**2):
+def combine_stack(arr3d, method, sigma=None, maxiters=None, tile_bytes=32 * 1024**2):
     """Combine reprojected planes in spatial tiles, ignoring NaNs.
 
     Parameters
@@ -705,7 +741,7 @@ def shiftadd(args=None):
                         # (binned) array
                         pixel_wcs = copy.deepcopy(orig_wcs)
                         crval1, crval2 = pixel_wcs.wcs.crpix
-                        window_offset_x, window_offset_y = _window_origin(wind)
+                        window_offset_x, window_offset_y = window_origin(wind)
                         pixel_wcs.wcs.crpix = (
                             crval1 + frame_offset_x / wind.xbin - window_offset_x,
                             crval2 + frame_offset_y / wind.ybin - window_offset_y,
@@ -780,7 +816,7 @@ def shiftadd(args=None):
                         # We need to mask the area outside of the offset window with NaNs,
                         # so there's no bleedover into other windows when stacking
                         # when using 'nearest' interpolation for adaptive
-                        _mask_reprojected(
+                        mask_reprojected(
                             reprojected_data, wind, frame_offset_x, frame_offset_y
                         )
                         if memmap:
@@ -810,7 +846,7 @@ def shiftadd(args=None):
                 )
             else:
                 arr3d = planes
-            stack = _combine_stack(
+            stack = combine_stack(
                 arr3d,
                 method,
                 sigma if method == "c" else None,
@@ -824,7 +860,7 @@ def shiftadd(args=None):
 
             # Crop the FF images back into the individual windows
             for wnam, wind in output_mccd[cnam].items():
-                xstart, ystart = _window_origin(wind)
+                xstart, ystart = window_origin(wind)
                 xend = xstart + wind.nx
                 yend = ystart + wind.ny
                 crop = stack[ystart:yend, xstart:xend]
