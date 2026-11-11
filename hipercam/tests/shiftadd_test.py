@@ -58,12 +58,12 @@ class TestShiftadd(unittest.TestCase):
                         )
                         expected_data[mask.mask] = np.nan
                     expected = shiftadd.meanfunc(expected_data, axis=0)
-                actual = shiftadd._combine_stack(
+                actual = shiftadd.combine_stack(
                     mapped, method, sigma, 3, tile_bytes=11 * 8 * 5
                 )
                 np.testing.assert_allclose(actual, expected, equal_nan=True)
                 np.testing.assert_array_equal(mapped, data)
-                in_memory = shiftadd._combine_stack(
+                in_memory = shiftadd.combine_stack(
                     [plane.copy() for plane in data],
                     method,
                     sigma,
@@ -88,7 +88,7 @@ class TestShiftadd(unittest.TestCase):
 
         self.stack.enter_context(patch.object(shiftadd, "meanfunc", checked_mean))
         budget = shape[0] * 8 * 7
-        result = shiftadd._combine_stack(mapped, "c", 0, 3, tile_bytes=budget)
+        result = shiftadd.combine_stack(mapped, "c", 0, 3, tile_bytes=budget)
         np.testing.assert_allclose(result, 149.5)
         self.assertGreater(len(sizes), 1)
         self.assertLessEqual(max(sizes), budget)
@@ -108,7 +108,7 @@ class TestShiftadd(unittest.TestCase):
                 data = np.arange(8 * 8, dtype=float).reshape(8, 8)
                 expected = np.full_like(data, np.nan)
                 expected[y1:y2, x1:x2] = data[y1:y2, x1:x2]
-                shiftadd._mask_reprojected(data, wind, *offset)
+                shiftadd.mask_reprojected(data, wind, *offset)
                 np.testing.assert_array_equal(data, expected)
 
     def test_block_reprojection_matches_full_image(self):
@@ -146,8 +146,14 @@ class TestShiftadd(unittest.TestCase):
                 )
 
     def setup_run(
-        self, method, invalid=False, shifts=None, second_llx=9, full_frame=False,
-        binning=1, memmap=True,
+        self,
+        method,
+        invalid=False,
+        shifts=None,
+        second_llx=9,
+        full_frame=False,
+        binning=1,
+        memmap=True,
     ):
         paths = []
         for frame in range(4):
@@ -155,7 +161,8 @@ class TestShiftadd(unittest.TestCase):
             for cnam in ("1", "2"):
                 windows = []
                 window_specs = (
-                    (("a", 1, 10),) if full_frame
+                    (("a", 1, 10),)
+                    if full_frame
                     else (("a", 1, 10), ("b", second_llx, 100))
                 )
                 for wnam, llx, level in window_specs:
@@ -320,9 +327,7 @@ class TestShiftadd(unittest.TestCase):
             )
 
     def test_binned_full_frame_shift(self):
-        outfile = self.setup_run(
-            "c", full_frame=True, binning=2, shifts=[0, 2, -2, 0]
-        )
+        outfile = self.setup_run("c", full_frame=True, binning=2, shifts=[0, 2, -2, 0])
         shiftadd.shiftadd()
         result = hcam.MCCD.read(str(outfile))
         gradient = np.arange(32).reshape(4, 8)
