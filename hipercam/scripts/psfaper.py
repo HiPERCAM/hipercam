@@ -929,7 +929,7 @@ def daophot(
         maxiters=niters,
         mode="all",
         aperture_radius=1.7 * fwhm,
-        localbkg_estimator=None,
+        local_bkg_estimator=None,
     )
 
     results = photometry_task(wind.data - bkg, error=sigma)

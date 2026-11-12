@@ -663,7 +663,7 @@ def extractFluxPSF(cnam, ccd, bccd, rccd, read, gain, ccdwin, rfile, store):
         psf_model=psf_model,
         aperture_radius=aperture_radius,
         fit_shape=fit_shape,
-        localbkg_estimator=bkg,
+        local_bkg_estimator=bkg,
         xy_bounds=rfile["apertures"]["fit_max_shift"] / bin_fac,
     )
     # do the PSF photometry
@@ -681,7 +681,7 @@ def extractFluxPSF(cnam, ccd, bccd, rccd, read, gain, ccdwin, rfile, store):
         psf_model=psf_model,
         aperture_radius=aperture_radius,
         fit_shape=fit_shape,
-        localbkg_estimator=bkg,
+        local_bkg_estimator=bkg,
         xy_bounds=rfile["apertures"]["fit_max_shift"] / bin_fac,
     )
     photom_results = photometry_task(swdata.data, error=sigma, init_params=positions)
