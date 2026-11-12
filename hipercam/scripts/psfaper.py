@@ -709,8 +709,8 @@ class PickRef:
         The final apertures are then saved to the aperture file and the program exits.
         """
         for cnam, ccdaper in self.mccdaper.items():
-            xlo, xhi = self.anams[cnam].get_xlim()
-            ylo, yhi = self.anams[cnam].get_ylim()
+            xlo, xhi = self.axs[cnam].get_xlim()
+            ylo, yhi = self.axs[cnam].get_ylim()
 
             if cnam not in self.psf_data:
                 warnings.warn(
