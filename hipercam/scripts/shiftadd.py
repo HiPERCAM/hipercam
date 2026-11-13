@@ -588,8 +588,9 @@ def shiftadd(args=None):
 
     # at this point 'resource' is a list of files, no matter the input
     # method.
-    temp_storage = tempfile.TemporaryDirectory() if memmap else nullcontext()
-    with CleanUp(resource, server_or_local), temp_storage as tempdir:
+    with CleanUp(resource, server_or_local), (
+        tempfile.TemporaryDirectory() if memmap else nullcontext()
+    ) as tempdir:
         # First we want to calculate how offset each frame is relative to the apertures
         print(f"calculating pixel shifts using CCD {ref_cnam}")
         offsets = []
