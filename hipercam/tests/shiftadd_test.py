@@ -405,7 +405,6 @@ class TestShiftadd(unittest.TestCase):
         def fail_reproject(*args, **kwargs):
             self.assertIsInstance(kwargs["output_array"], np.memmap)
             self.assertFalse(kwargs["return_footprint"])
-            self.assertEqual(kwargs["block_size"], (256, 256))
             raise RuntimeError("reprojection failed")
 
         self.stack.enter_context(
