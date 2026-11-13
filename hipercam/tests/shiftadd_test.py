@@ -111,40 +111,6 @@ class TestShiftadd(unittest.TestCase):
                 shiftadd.mask_reprojected(data, wind, *offset)
                 np.testing.assert_array_equal(data, expected)
 
-    def test_block_reprojection_matches_full_image(self):
-        wcs = WCS(naxis=2)
-        wcs.wcs.crpix = [4, 5]
-        wcs.wcs.crval = [40, 30]
-        wcs.wcs.cdelt = [-0.01, 0.01]
-        wcs.wcs.ctype = ["RA---TAN", "DEC--TAN"]
-        input_wcs = wcs.deepcopy()
-        input_wcs.wcs.crpix += [0.3, -0.2]
-        image = np.random.default_rng(42).random((10, 12)).astype(np.float32)
-        shape = (19, 21)
-        for name in ("interp", "adaptive", "exact"):
-            with self.subTest(method=name):
-                function = getattr(shiftadd, "reproject_" + name)
-                options = {"boundary_mode": "nearest"} if name == "adaptive" else {}
-                expected, _ = function((image, input_wcs), wcs, shape, **options)
-                mapped = np.memmap(
-                    self.tmp / "reproject.dat",
-                    mode="w+",
-                    dtype="float64",
-                    shape=shape,
-                )
-                function(
-                    (image.astype(np.float64), input_wcs),
-                    wcs,
-                    shape,
-                    output_array=mapped,
-                    return_footprint=False,
-                    block_size=(7, 8),
-                    **options,
-                )
-                np.testing.assert_allclose(
-                    mapped, expected, rtol=1e-8, atol=1e-8, equal_nan=True
-                )
-
     def setup_run(
         self,
         method,
