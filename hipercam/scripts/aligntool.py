@@ -649,7 +649,6 @@ class ImageManager(hcam.mpl.AnimationManager):
             region=region,
             title="CCD display",
             figsize=figsize,
-            animated=True,
         )
 
         # initialise the animation manager with the figure
@@ -665,7 +664,7 @@ class ImageManager(hcam.mpl.AnimationManager):
         self.cmap = cmap
 
         # create and update the artists
-        self.artists = {cnam: None for cnam in self.axs}
+        self.img_artists = {cnam: None for cnam in self.axs}
         self.update(ccd)
 
         # adjust the layout to prevent overlap
@@ -675,13 +674,9 @@ class ImageManager(hcam.mpl.AnimationManager):
     def draw_artists(self):
         """Draw all of the animated artists."""
         for cnam in self.axs:
-            # Draw the axes
-            self.fig.draw_artist(self.axs[cnam])
-
-            # Draw the artists for this CCD, if they exist
-            if self.artists[cnam] is not None:
-                # pCCD returns lists of artists
-                for artists in self.artists[cnam].values():
+            # Draw the CCD artists
+            if self.img_artists[cnam] is not None:
+                for artists in self.img_artists[cnam].values():
                     for artist in artists:
                         self.fig.draw_artist(artist)
 
@@ -690,7 +685,7 @@ class ImageManager(hcam.mpl.AnimationManager):
         new_artists = {}
 
         # First, update the reference CCD artists (only done once)
-        if self.artists['reference'] is None:
+        if self.img_artists['reference'] is None:
             # get scale limits
             vmin, vmax = hcam.mpl.get_scale_limits(
                 self.ref_ccd,
@@ -712,15 +707,15 @@ class ImageManager(hcam.mpl.AnimationManager):
             )
         else:
             # the reference doesn't change, so just pass old artists through
-            new_artists['reference'] = self.artists['reference']
+            new_artists['reference'] = self.img_artists['reference']
 
         # now update CCD artists for the current frame
         if not ccd.is_data():
             # no new frame, just pass old artists through
-            new_artists['data'] = self.artists['data']
+            new_artists['data'] = self.img_artists['data']
         else:
             # create/update the animated artists
-            old_artists = self.artists['data']
+            old_artists = self.img_artists['data']
             new_artists['data'] = {}
 
             # get scale limits
@@ -751,12 +746,12 @@ class ImageManager(hcam.mpl.AnimationManager):
                 self.fig.canvas.draw()
 
         # Finally, update the artists and refresh the display
-        self.artists = new_artists
+        self.img_artists = new_artists
         self.refresh(redraw=True)
 
     def get_ilim(self, cnam):
         """Returns the current intensity limits for the specified CCD."""
-        if self.artists[cnam] is None:
+        if self.img_artists[cnam] is None:
             return None
         imgs = self.axs[cnam].get_images()
         return imgs[0].get_clim()  # for the first window, but should be the same

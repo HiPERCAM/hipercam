@@ -937,7 +937,6 @@ def create_figure(
     region: tuple[int, int, int, int] | None = None,
     title: str | None = None,
     figsize: tuple[float, float] | None = None,
-    animated: bool = False,
 ):
     """
     Sets up the figure and axes for plotting an MCCD.
@@ -963,12 +962,6 @@ def create_figure(
         figsize : tuple[float, float] | None
             The width and height of the figure, in inches.
             If None, the default size is used.
-
-        animated : bool
-            whether to use animated artists or not.
-            If used for movie-style display, set animated=True.
-            Note if animated=True, you need to update the axes after each draw using
-            `fig.draw_artist(ax)`, in addition to updating other artists.
 
     Returns::
         fig: matplotlib.figure.Figure
@@ -997,7 +990,7 @@ def create_figure(
     axs = {}
     for n, cnam in enumerate(cnams):
         if n == 0:
-            ax = first_ax = fig.add_subplot(nrows, ncols, n + 1, animated=animated)
+            ax = first_ax = fig.add_subplot(nrows, ncols, n + 1)
             ax.set_aspect("equal", adjustable="box")
             ax.set_xlim(*xlim)
             ax.set_ylim(*ylim)
@@ -1009,7 +1002,6 @@ def create_figure(
                 n + 1,
                 sharex=first_ax,
                 sharey=first_ax,
-                animated=animated,
             )
             ax.set_aspect("equal")
 
@@ -1134,7 +1126,11 @@ def plot_frame(
 
 
 class AnimationManager(ABC):
-    """Abstract class to manage an animated matplotlib plot."""
+    """Abstract class to manage an animated matplotlib plot.
+
+    Basic design comes from the example in the matplotlib documentation:
+    https://matplotlib.org/stable/users/explain/animations/blitting.html
+    """
 
     def __init__(self, fig):
         """Initialises the animated plot using the given figure."""

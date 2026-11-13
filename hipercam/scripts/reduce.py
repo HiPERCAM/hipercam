@@ -2210,7 +2210,6 @@ class ImageManager(hcam.mpl.AnimationManager):
             region=region,
             title="CCD display" if not plot_psf_residuals else "PSF residuals",
             figsize=figsize,
-            animated=True,
         )
 
         # initialise the animation manager with the figure
@@ -2238,9 +2237,6 @@ class ImageManager(hcam.mpl.AnimationManager):
     def draw_artists(self):
         """Draw all of the animated artists."""
         for cnam in self.axs:
-            # Draw the axes
-            self.fig.draw_artist(self.axs[cnam])
-
             # Draw the CCD artists
             if self.img_artists[cnam] is not None:
                 for artists in self.img_artists[cnam].values():

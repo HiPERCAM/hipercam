@@ -1348,7 +1348,6 @@ class ImageManager(hcam.mpl.AnimationManager):
             region=region,
             title="CCD display",
             figsize=figsize,
-            animated=True,
         )
 
         # initialise the animation manager with the figure
@@ -1401,9 +1400,6 @@ class ImageManager(hcam.mpl.AnimationManager):
     def draw_artists(self):
         """Draw all of the animated artists."""
         for cnam in self.axs:
-            # Draw the axes
-            self.fig.draw_artist(self.axs[cnam])
-
             # Draw the CCD artists
             if self.img_artists[cnam] is not None:
                 # 'ccd' has values which are all lists of artists
