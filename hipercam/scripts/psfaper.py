@@ -19,9 +19,9 @@ try:
 except (ModuleNotFoundError, ImportError):
     raise ValueError("'psf photometry requries photutils to be installed")
 from trm import cline
-from trm.cline import Cline
 
 import hipercam as hcam
+from hipercam.cline import Cline
 from hipercam.psf_reduction import MoffatPSF, create_psf_model
 
 # DEBUG writes  out stars to FITS table for debugging purposes. It is not needed for normal operation.

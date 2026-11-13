@@ -7,10 +7,10 @@ import matplotlib.pylab as plt
 import numpy as np
 from scipy import stats
 from trm import cline
-from trm.cline import Cline
 
 import hipercam as hcam
 from hipercam import spooler, ucam
+from hipercam.cline import Cline
 
 __all__ = [
     "tanalysis",

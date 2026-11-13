@@ -13,11 +13,11 @@ from astropy.time import Time
 from matplotlib.ticker import NullFormatter
 from sklearn.cluster import KMeans
 from trm import cline
-from trm.cline import Cline
 
 import hipercam as hcam
 from hipercam import spooler
 from hipercam.ccd import crop_calib_frame_to
+from hipercam.cline import Cline
 from hipercam.extraction import findStars
 from hipercam.instruments import available_instruments
 

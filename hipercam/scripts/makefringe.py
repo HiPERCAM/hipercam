@@ -7,10 +7,10 @@ import numpy as np
 from astropy.convolution import Gaussian2DKernel, convolve, convolve_fft
 
 from trm import cline
-from trm.cline import Cline
 
 import hipercam as hcam
 from hipercam import utils, spooler, fringe
+from hipercam.cline import Cline
 from hipercam.instruments import available_instruments
 
 __all__ = [
@@ -134,7 +134,7 @@ def makefringe(args=None):
         output  : str
            output file. Set by default to match the last part of "run"
            (but it will have a different extension so they won't
-           clash). The default is 
+           clash). The default is
 
       .. Note::
 
@@ -448,5 +448,3 @@ class CleanUp:
                 os.remove(fname)
 
         print('temporary files removed')
-
-

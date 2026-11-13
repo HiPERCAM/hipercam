@@ -14,11 +14,11 @@ from astropy.coordinates import Angle
 from astropy.time import Time
 from matplotlib.patches import Circle
 from trm import cline
-from trm.cline import Cline
 
 import hipercam as hcam
 from hipercam import defect, fringe, spooler
 from hipercam.ccd import crop_calib_frame_to
+from hipercam.cline import Cline
 from hipercam.instruments import available_instruments
 
 try:

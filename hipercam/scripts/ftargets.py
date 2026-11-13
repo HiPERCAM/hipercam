@@ -11,11 +11,11 @@ from matplotlib.patches import Circle, Ellipse, Rectangle
 from numpy.lib.recfunctions import append_fields
 from scipy import spatial
 from trm import cline
-from trm.cline import Cline
 
 import hipercam as hcam
 from hipercam import spooler
 from hipercam.ccd import crop_calib_frame_to
+from hipercam.cline import Cline
 from hipercam.extraction import findStars
 from hipercam.instruments import available_instruments
 

@@ -6,9 +6,9 @@ from astropy.io import fits
 from astropy.time import Time
 
 from trm import cline
-from trm.cline import Cline
 
 import hipercam as hcam
+from hipercam.cline import Cline
 from hipercam.core import *
 
 ############################################
@@ -65,8 +65,8 @@ def fits2hcm(args=None):
            WHTCAM :
              Camera used by Richard Ashley in Feb 2021.
 
-           OSIRIS+ : 
-             Imager and spectrograph on the GTC. Added by Alex Brown in Nov 2023. 
+           OSIRIS+ :
+             Imager and spectrograph on the GTC. Added by Alex Brown in Nov 2023.
              Only tested with 2x2 binning and full frame
 
       overwrite : bool

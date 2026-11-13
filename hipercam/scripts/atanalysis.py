@@ -4,9 +4,9 @@ import re
 import time
 
 from trm import cline
-from trm.cline import Cline
 
 import hipercam as hcam
+from hipercam.cline import Cline
 
 __all__ = [
     "atanalysis",

@@ -2,10 +2,10 @@ import os
 
 import matplotlib.pyplot as plt
 from trm import cline
-from trm.cline import Cline
 
 import hipercam as hcam
 from hipercam import fringe, utils
+from hipercam.cline import Cline
 
 __all__ = [
     "setfringe",

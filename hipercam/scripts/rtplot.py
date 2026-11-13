@@ -7,11 +7,11 @@ from astropy.time import Time
 
 from trm.pgplot import *
 from trm import cline
-from trm.cline import Cline
 
 import hipercam as hcam
-from hipercam.ccd import crop_calib_frame_to
 from hipercam import spooler, defect
+from hipercam.ccd import crop_calib_frame_to
+from hipercam.cline import Cline
 from hipercam.instruments import available_instruments
 
 import requests
@@ -165,7 +165,7 @@ def rtplot(args=None):
 
         drurl : str [if setup; hidden]
            URL needed to access window setting from the camera
-           driver (ultracam, ultraspec, hipercam). The internal server 
+           driver (ultracam, ultraspec, hipercam). The internal server
            in the camera driver must be switched on which can be done
            from the GUI.
 

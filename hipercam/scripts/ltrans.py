@@ -8,10 +8,10 @@ from scipy.spatial import cKDTree
 from astropy.io import fits
 
 from trm import cline
-from trm.cline import Cline
 
 import hipercam as hcam
 from hipercam import core, spooler, defect
+from hipercam.cline import Cline
 
 __all__ = [
     "ltrans",

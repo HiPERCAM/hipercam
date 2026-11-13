@@ -3,9 +3,9 @@ import os
 from time import gmtime, strftime
 
 from trm import cline
-from trm.cline import Cline
 
 import hipercam as hcam
+from hipercam.cline import Cline
 
 # get hipercam version to write into the reduce file
 hipercam_version = hcam.version()

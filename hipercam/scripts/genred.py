@@ -4,10 +4,10 @@ import warnings
 from time import gmtime, strftime
 
 from trm import cline
-from trm.cline import Cline
 
 import hipercam as hcam
 from hipercam import reduction
+from hipercam.cline import Cline
 
 # get hipercam version to write into the reduce file
 hipercam_version = hcam.version()
@@ -1046,7 +1046,7 @@ fit_diff = {asec["fit_diff"]:.2f} # Maximum differential shift of multiple refer
 [extraction]
 {extraction}
 
-# The next lines are specific to the PSF photometry option. 
+# The next lines are specific to the PSF photometry option.
 # In PSF photometry, the PSF model is fit to the reference stars and
 # then the shape of the PSF is held fixed and only the scaling of the PSF
 # [and optionally the position] is fit for other sources.

@@ -2,10 +2,10 @@ import sys
 import os
 
 from trm import cline
-from trm.cline import Cline
 
 import hipercam as hcam
 from hipercam import spooler
+from hipercam.cline import Cline
 
 __all__ = [
     "tbytes",

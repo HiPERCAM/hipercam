@@ -1,13 +1,13 @@
 import multiprocessing
 import os
 import sys
+from contextlib import suppress
 from functools import partial
 
 import matplotlib.pyplot as plt
 import numpy as np
 from astropy.time import Time
 from trm import cline
-from trm.cline import Cline
 from trm.pgplot import (
     pgbbuf,
     pgbox,
@@ -30,6 +30,7 @@ from trm.pgplot import (
 
 import hipercam as hcam
 from hipercam import spooler
+from hipercam.cline import Cline
 from hipercam.instruments import available_instruments
 from hipercam.reduction import (
     LogWriter,
@@ -513,7 +514,7 @@ def reduce(args=None):
     # Start the main loop
     total_time = 0.0
     with (
-        StayOpenOnInterrupt(),
+        suppress(KeyboardInterrupt),  # catch Ctrl-C to exit the loop cleanly
         spooler.data_source(source, resource, first, full=False) as spool,
         LogWriter(log, rfile, hipercam_version, plist) as logfile
     ):

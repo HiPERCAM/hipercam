@@ -13,10 +13,10 @@ from astropy.coordinates import SkyCoord, Angle
 import astropy.units as u
 
 from trm import cline
-from trm.cline import Cline
 
 import hipercam as hcam
 from hipercam import spooler, defect, fringe
+from hipercam.cline import Cline
 
 __all__ = [
     "hpackage",

@@ -5,9 +5,9 @@ import time
 import numpy as np
 
 from trm import cline
-from trm.cline import Cline
 
 import hipercam as hcam
+from hipercam.cline import Cline
 
 __all__ = [
     "splice",
@@ -41,7 +41,7 @@ def splice(args=None):
 
        win : str [hidden]
            the window(s) to transfer, '0' for all of them (default). The
-           same windows must exist in the selected CCDs of both inputs 
+           same windows must exist in the selected CCDs of both inputs
 
        output : str
            output file.

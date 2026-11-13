@@ -9,9 +9,9 @@ from astropy.io import fits
 from astropy.time import Time, TimeDelta
 
 from trm import cline
-from trm.cline import Cline
 
 import hipercam as hcam
+from hipercam.cline import Cline
 
 
 __all__ = ["makemccd", "makefield"]

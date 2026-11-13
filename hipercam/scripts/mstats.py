@@ -7,10 +7,10 @@ import time
 import numpy as np
 
 from trm import cline
-from trm.cline import Cline
 
 import hipercam as hcam
 from hipercam import spooler
+from hipercam.cline import Cline
 
 __all__ = [
     "mstats",
@@ -27,7 +27,7 @@ def mstats(args=None):
     """``mstats [source] run [temp] (ndigit) first last [twait tmax] bias
     [dtype]``
 
-    This downloads a sequence of images from a raw data file and writes 
+    This downloads a sequence of images from a raw data file and writes
     out stats (min, max, mean, median, rms) for each window to a file
 
     Parameters:

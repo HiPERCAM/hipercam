@@ -5,10 +5,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from trm import cline
-from trm.cline import Cline
 
 import hipercam as hcam
 from hipercam.ccd import crop_calib_frame_to
+from hipercam.cline import Cline
 from hipercam import support, spooler
 
 __all__ = [

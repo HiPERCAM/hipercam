@@ -4,9 +4,9 @@ import os
 import numpy as np
 
 from trm import cline
-from trm.cline import Cline
 
 import hipercam as hcam
+from hipercam.cline import Cline
 
 __all__ = ["add", "div", "mul", "sub"]
 

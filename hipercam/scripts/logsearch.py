@@ -10,9 +10,9 @@ import numpy as np
 import pandas as pd
 
 from trm import cline
-from trm.cline import Cline
 
 import hipercam as hcam
+from hipercam.cline import Cline
 from hipercam.utils import target_lookup
 
 __all__ = [

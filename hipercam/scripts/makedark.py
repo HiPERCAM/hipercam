@@ -9,9 +9,9 @@ import signal
 import numpy as np
 
 from trm import cline
-from trm.cline import Cline
 
 import hipercam as hcam
+from hipercam.cline import Cline
 from hipercam.instruments import available_instruments
 
 __all__ = [

@@ -8,9 +8,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from astropy.timeseries import LombScargle
 from trm import cline, utils
-from trm.cline import Cline
 
 import hipercam as hcam
+from hipercam.cline import Cline
 
 
 def pbands(args=None):

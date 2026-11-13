@@ -8,9 +8,9 @@ import numpy as np
 from astropy.stats import sigma_clip
 from astropy.wcs import wcs
 from trm import cline
-from trm.cline import Cline
 
 import hipercam as hcam
+from hipercam.cline import Cline
 from hipercam.instruments import available_instruments
 
 HAS_REPROJECT = True

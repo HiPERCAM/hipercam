@@ -5,9 +5,9 @@ import numpy as np
 from astropy.convolution import Gaussian2DKernel, convolve, convolve_fft
 
 from trm import cline
-from trm.cline import Cline
 
 import hipercam as hcam
+from hipercam.cline import Cline
 
 #######################################
 #

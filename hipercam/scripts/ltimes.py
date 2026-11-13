@@ -6,10 +6,10 @@ import numpy as np
 from astropy.time import Time, TimeISO
 
 from trm import cline
-from trm.cline import Cline
 
 import hipercam as hcam
 from hipercam import spooler
+from hipercam.cline import Cline
 
 __all__ = [
     "ltimes",

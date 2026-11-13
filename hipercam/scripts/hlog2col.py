@@ -5,9 +5,9 @@ import numpy as np
 from astropy.time import Time
 
 from trm import cline
-from trm.cline import Cline
 
 import hipercam as hcam
+from hipercam.cline import Cline
 
 __all__ = [
     "hlog2col",
