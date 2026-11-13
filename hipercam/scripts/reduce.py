@@ -3,6 +3,7 @@ import os
 import sys
 from functools import partial
 
+import matplotlib.pyplot as plt
 import numpy as np
 from astropy.time import Time
 from trm import cline
@@ -12,19 +13,16 @@ from trm.pgplot import (
     pgbox,
     pgdraw,
     pgebuf,
-    pgenv,
     pgeras,
     pgerry,
     pglab,
     pgmove,
-    pgpanl,
     pgpap,
     pgpt,
     pgpt1,
     pgqvp,
     pgsch,
     pgsci,
-    pgsubp,
     pgsvp,
     pgswin,
     pgvstd,
@@ -62,8 +60,8 @@ NaN = float("NaN")
 ################################################
 def reduce(args=None):
     """``reduce [source] rfile (run first last [twait tmax]| flist) trim
-    ([ncol nrow]) log lcplot implot (ccd nx msub xlo xhi ylo yhi iset
-    (ilo ihi | plo phi))``
+    ([ncol nrow]) log lcplot implot psfplot [tupdate plotall] (ccd nx [cmap] msub
+    xlo xhi ylo yhi iset (ilo ihi | plo phi))``
 
     Reduces a sequence of multi-CCD images, plotting lightcurves as
     images come in. It can extract with either simple aperture
@@ -179,11 +177,32 @@ def reduce(args=None):
            flag to indicate you want to plot images after subtraction of PSF model.
            only valid if 'use_psf' is set to 'yes' in the reduce file.
 
+        tupdate : float [hidden]
+           target number of seconds between plot updates. This is to
+           make the plots more responsive and get round issues with
+           plots freezing until the next frame comes through which can
+           be especially annoying with virtual desktops. Experiments
+           with ULTRACAM@NTT indicated 0.2 to 0.6 secs or so works OK.
+           Main impact seems to be on drpc CPU.
+
+        plotall : bool [hidden]
+           plot all images frames regardless of status (i.e. including blank frames
+           when nskips are enabled). Defaults to False.
+           The reduction will still be disabled for bad frames.
+
         ccd : string [if implot or psfplot]
            CCD(s) to plot, '0' for all, '1 3' to plot '1' and '3' only, etc.
 
         nx : int [if implot or psfplot]
            number of panels across to display.
+
+        cmap : str [hidden]
+           The matplotlib colour map to use. "Greys" gives the usual greyscale.
+           "none" will give whatever the current default is. Many other choices:
+           "viridis", "jet", "hot", "Oranges", etc. Enter an invalid one and
+           the program will fail but return a huge list of possibles in the
+           process. Note that some will not work well with the colours used
+           to plot annotations.
 
         msub : bool [if implot or psfplot]
            subtract the median from each window before scaling for the
@@ -250,8 +269,11 @@ def reduce(args=None):
         cl.register("lcplot", Cline.LOCAL, Cline.PROMPT)
         cl.register("implot", Cline.LOCAL, Cline.PROMPT)
         cl.register("psfplot", Cline.LOCAL, Cline.PROMPT)
+        cl.register("tupdate", Cline.LOCAL, Cline.HIDE)
+        cl.register("plotall", Cline.LOCAL, Cline.HIDE)
         cl.register("ccd", Cline.LOCAL, Cline.PROMPT)
         cl.register("nx", Cline.LOCAL, Cline.PROMPT)
+        cl.register("cmap", Cline.LOCAL, Cline.HIDE)
         cl.register("msub", Cline.GLOBAL, Cline.PROMPT)
         cl.register("iset", Cline.GLOBAL, Cline.PROMPT)
         cl.register("ilo", Cline.GLOBAL, Cline.PROMPT)
@@ -293,7 +315,7 @@ def reduce(args=None):
             twait = cl.get_value(
                 "twait", "time to wait for a new frame [secs]", 1.0, 0.0
             )
-            tmx = cl.get_value(
+            tmax = cl.get_value(
                 "tmax", "maximum time to wait for a new frame [secs]", 10.0, 0.0
             )
 
@@ -356,6 +378,15 @@ def reduce(args=None):
         else:
             psfplot = False
 
+        tupdate = cl.get_value(
+            "tupdate", "target time between plot updates [secs]", 0.2, 0.01
+        )
+
+        cl.set_default("plotall", False)
+        plotall = cl.get_value(
+            "plotall", "plot all frames, regardless of status?", False
+        )
+
         if implot or psfplot:
             # define the panel grid. first get the labels and maximum
             # dimensions
@@ -379,6 +410,12 @@ def reduce(args=None):
             else:
                 nx = 1
                 ccds = list(ccdinf.keys())
+
+            # Some settings for the image plots
+            cmap = cl.get_value(
+                "cmap", "colour map to use ['none' for mpl default]", "Greys"
+            )
+            cmap = None if cmap == "none" else cmap
 
             # define the display intensities
             msub = cl.get_value("msub", "subtract median from each window?", True)
@@ -437,16 +474,6 @@ def reduce(args=None):
     # all the inputs have now been obtained. Get on with doing stuff
 
     # Set up the plot devices and buffers
-    if implot:
-        # image plot
-        imdevice = setup_implot(rfile, ccds, nx, xlo, xhi, ylo, yhi)
-    else:
-        imdevice = None
-    if use_psf and psfplot:
-        # PSF plot
-        psfdevice = setup_implot(rfile, ccds, nx, xlo, xhi, ylo, yhi)
-    else:
-        psfdevice = None
     if lcplot:
         # lightcurve plot
         lpanel, xpanel, ypanel, tpanel, spanel = setup_lcplot(rfile)
@@ -462,6 +489,10 @@ def reduce(args=None):
         ybuffer = None
         sbuffer = None
         tbuffer = None
+
+    # Initialise the plot managers to None, so we can create them on the first frame
+    imanager = None
+    psfmanager = None
 
     # Set up the multiprocessing pool if requested
     ncpu = rfile["general"]["ncpu"]
@@ -482,15 +513,26 @@ def reduce(args=None):
     # Start the main loop
     total_time = 0.0
     with (
+        StayOpenOnInterrupt(),
         spooler.data_source(source, resource, first, full=False) as spool,
         LogWriter(log, rfile, hipercam_version, plist) as logfile
     ):
         for n, mccd in enumerate(spool):
             if server_or_local:
                 # Handle the waiting game ...
+                # Includes some awkward stuff involving updating on a cycle
+                # faster than twait to make the plots more responsive,
+                # if twait is long.
+                updaters = []
+                if imanager is not None:
+                    updaters.append(imanager.refresh)
+                if psfmanager is not None:
+                    updaters.append(psfmanager.refresh)
+
                 give_up, try_again, total_time = spooler.hang_about(
-                    mccd, twait, tmx, total_time
+                    mccd, twait, tmax, total_time, updaters, tupdate
                 )
+
                 if give_up:
                     break
                 elif try_again:
@@ -634,122 +676,88 @@ def reduce(args=None):
             # If we have enough frames, process them in parallel.
             # Otherwise we keep spooling for more until the group is full
             # (or we run out of frames and break out early).
-            if len(pccds) == rfile["general"]["ngroup"]:
-                # carry out parallel processing
-                results = processor(pccds, bccds, mccds, nframes)
+            if len(pccds) < rfile["general"]["ngroup"]:
+                # keep spooling for more frames
+                continue
 
-                # write out results to the log file
-                alerts = logfile.write_results(results)
-
-                # print out any accumulated alert messages
-                if len(alerts):
-                    print("\n".join(alerts))
-
-                # update the plots with the new results
-                if implot:
-                    update_implot(
-                        results,
-                        rfile,
-                        imdevice,
-                        pccds[-1],
-                        ccds,
-                        msub,
-                        nx,
-                        iset,
-                        plo,
-                        phi,
-                        ilo,
-                        ihi,
-                        xlo,
-                        xhi,
-                        ylo,
-                        yhi,
-                    )
-                if use_psf and psfplot:
-                    update_psfplot(
-                        results,
-                        rfile,
-                        psfdevice,
-                        pccds[-1],
-                        ccds,
-                        nx,
-                        plo,
-                        phi,
-                        xlo,
-                        xhi,
-                        ylo,
-                        yhi,
-                    )
-                if lcplot:
-                    tzero = update_lcplot(
-                        results,
-                        rfile,
-                        tzero,
-                        tkeep,
-                        lpanel,
-                        xpanel,
-                        ypanel,
-                        tpanel,
-                        spanel,
-                        lbuffer,
-                        xbuffer,
-                        ybuffer,
-                        tbuffer,
-                        sbuffer,
-                    )
-
-                # reset the frame buffers
-                pccds, bccds, mccds, nframes = [], [], [], []
-
-        # Out of the loop now.
-        # If ngroup > 1, we might have some frames left over that haven't been
-        # processed yet. If so, process them now.
-        if len(mccds):
-            # carry out parallel processing
+            # Carry out parallel processing (where all the fun stuff happens)
             results = processor(pccds, bccds, mccds, nframes)
 
-            # write out results to the log file
-            alerts = logfile.write_results(results)
-
-            # print out any accumulated alert messages
-            if len(alerts):
-                print("\n".join(alerts))
-
-            # update the plots with the new results
+            # Finally we're ready to start plotting
+            # First the main image plot
             if implot:
-                update_implot(
-                    results,
-                    rfile,
-                    imdevice,
-                    pccd,
-                    ccds,
-                    msub,
-                    nx,
-                    iset,
-                    plo,
-                    phi,
-                    ilo,
-                    ihi,
-                    xlo,
-                    xhi,
-                    ylo,
-                    yhi,
-                )
+                if imanager is None:
+                    # First time through, create the image plot manager
+                    imanager = ImageManager(
+                        mccd=mccd,
+                        results=results,
+                        cnams=ccds,
+                        plot_psf_residuals=False,
+                        plotall=plotall,
+                        ncols=nx,
+                        iset=iset,
+                        ilim=(plo, phi) if iset == "p" else (ilo, ihi),
+                        region=(xlo, xhi, ylo, yhi),
+                        msub=msub,
+                        cmap=cmap,
+                        figsize=(  # these are the only plot params in the reduce file
+                            rfile["general"]["iwidth"], rfile["general"]["iheight"]
+                        ),
+                    )
+
+                    # start live display
+                    plt.show(block=False)
+                    plt.pause(0.1)
+
+                # Update the image plot (done on every loop)
+                imanager.update(mccd, results)
+
+                # Get statistics to print out
+                message = f"exp= {mccd.head['EXPTIME']:.4f}"
+                for cnam in ccds:
+                    message += f", CCD {cnam}: "
+
+                    if not mccd[cnam].is_data():
+                        # skipped due to nskip > 0, no data in this frame
+                        message += "none"
+                        continue
+
+                    # add the image limits
+                    vmin, vmax = imanager.get_ilim(cnam)
+                    message += f"{vmin:.1f} to {vmax:.1f}"
+
+                # Print messages
+                print(message)
+
+            # The PSF plot
             if use_psf and psfplot:
-                update_psfplot(
-                    results,
-                    rfile,
-                    psfdevice,
-                    pccd,
-                    ccds,
-                    nx,
-                    plo,
-                    phi,
-                    xlo,
-                    xhi,
-                    ylo,
-                    yhi,
-                )
+                if psfmanager is None:
+                    # First time through, create the PSF plot manager
+                    psfmanager = ImageManager(
+                        mccd=mccd,
+                        results=results,
+                        cnams=ccds,
+                        plot_psf_residuals=True,
+                        plotall=plotall,
+                        ncols=nx,
+                        iset=iset,
+                        ilim=(plo, phi) if iset == "p" else (ilo, ihi),
+                        region=(xlo, xhi, ylo, yhi),
+                        msub=msub,
+                        cmap=cmap,
+                        figsize=(  # these are the only plot params in the reduce file
+                            rfile["general"]["iwidth"], rfile["general"]["iheight"]
+                        ),
+                    )
+
+                    # start live display
+                    plt.show(block=False)
+                    plt.pause(0.1)
+
+                # Update the image plot (done on every loop)
+                psfmanager.update(mccd, results)
+
+            # The Lightcurve plot
             if lcplot:
                 tzero = update_lcplot(
                     results,
@@ -767,6 +775,59 @@ def reduce(args=None):
                     tbuffer,
                     sbuffer,
                 )
+
+            # Write out results to the log file
+            messages = logfile.write_results(results)
+
+            # Print out any accumulated alert messages
+            if len(messages):
+                print("\n".join(messages))
+
+            # Reset the frame buffers
+            pccds, bccds, mccds, nframes = [], [], [], []
+
+        # Out of the loop now.
+        # If ngroup > 1, we might have some frames left over that haven't been
+        # processed yet. If so, process them now.
+        if len(mccds):
+            # carry out parallel processing
+            results = processor(pccds, bccds, mccds, nframes)
+
+            # write out results to the log file
+            messages = logfile.write_results(results)
+
+            # print out any accumulated alert messages
+            if len(messages):
+                print("\n".join(messages))
+
+            # update the plots with the new results
+            if implot:
+                imanager.update(mccd, results)
+                # TODO: we don't print the image limits here
+            if use_psf and psfplot:
+                psfmanager.update(mccd, results)
+            if lcplot:
+                tzero = update_lcplot(
+                    results,
+                    rfile,
+                    tzero,
+                    tkeep,
+                    lpanel,
+                    xpanel,
+                    ypanel,
+                    tpanel,
+                    spanel,
+                    lbuffer,
+                    xbuffer,
+                    ybuffer,
+                    tbuffer,
+                    sbuffer,
+                )
+
+    if implot or psfplot or lcplot:
+        # At the end the plots will close automatically,
+        # so block this by asking the user to confirm
+        input("\nHit carriage return to close the plot(s): ")
 
     # Done
     print("reduce finished")
@@ -1597,61 +1658,6 @@ class Seeing(BaseBuffer):
         return (tmax, fmax)
 
 
-def setup_implot(rfile, ccds, nx, xlo, xhi, ylo, yhi):
-    """Perform initial setup of the image plot for reduction outputs."""
-    device = hcam.pgp.Device(rfile["general"]["idevice"])
-    iwidth = rfile["general"]["iwidth"]
-    iheight = rfile["general"]["iheight"]
-
-    if iwidth > 0 and iheight > 0:
-        pgpap(iwidth, iheight / iwidth)
-
-    # set up panels and axes
-    nccd = len(ccds)
-    ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
-
-    # slice up viewport
-    pgsubp(nx, ny)
-
-    # plot axes, labels, titles. Happens once only
-    for cnam in ccds:
-        pgsci(hcam.pgp.Params["axis.ci"])
-        pgsch(hcam.pgp.Params["axis.number.ch"])
-        pgenv(xlo, xhi, ylo, yhi, 1, 0)
-        pgsci(hcam.pgp.Params["axis.label.ci"])
-        pgsch(hcam.pgp.Params["axis.label.ch"])
-        pglab("X", "Y", "CCD {:s}".format(cnam))
-
-    return device
-
-
-def setup_psfplot(rfile, ccds, nx, xlo, xhi, ylo, yhi):
-    """Perform initial setup of the PSF plot for reduction outputs."""
-    device = hcam.pgp.Device(rfile["general"].get("psfdevice", "/null"))
-    iwidth = rfile["general"]["iwidth"]
-    iheight = rfile["general"]["iheight"]
-
-    if iwidth > 0 and iheight > 0:
-        pgpap(iwidth, iheight / iwidth)
-    # set up panels and axes
-    nccd = len(ccds)
-    ny = nccd // nx if nccd % nx == 0 else nccd // nx + 1
-
-    # slice up viewport
-    pgsubp(nx, ny)
-
-    # plot axes, labels, titles. Happens once only
-    for cnam in ccds:
-        pgsci(hcam.pgp.Params["axis.ci"])
-        pgsch(hcam.pgp.Params["axis.number.ch"])
-        pgenv(xlo, xhi, ylo, yhi, 1, 0)
-        pgsci(hcam.pgp.Params["axis.label.ci"])
-        pgsch(hcam.pgp.Params["axis.label.ch"])
-        pglab("X", "Y", "CCD {:s}".format(cnam))
-
-    return device
-
-
 def setup_lcplot(rfile):
     """Perform initial setup of the lightcurve plot for reduction outputs."""
     device = hcam.pgp.Device(rfile["general"]["ldevice"])
@@ -1843,242 +1849,6 @@ def setup_lcplot_buffers(rfile):
             sbuffer.append(Seeing(plot_config, rfile["general"]["scale"]))
 
     return lbuffer, xbuffer, ybuffer, tbuffer, sbuffer
-
-
-def update_implot(
-    results,
-    rfile,
-    device,
-    pccd,
-    ccds,
-    msub,
-    nx,
-    iset,
-    plo,
-    phi,
-    ilo,
-    ihi,
-    xlo,
-    xhi,
-    ylo,
-    yhi,
-):
-    """Plot updater routine.
-
-    Arguments::
-
-        results : list
-            contains tuples with the results for groups of frames for
-            each CCD. See LogWriter.write for more details on its
-            structure.
-
-        rfile : Rfile
-            reduce file parameters
-
-        device : hipercam.pgp.Device
-            device to use for the plot
-
-        pccd : MCCD
-            current debiassed, flat-fielded frame. In the case of frame
-            groups, this will be the last one added.
-
-        ccds : list
-            list of CCD labels to be plotted
-
-        msub : bool
-            True to force subtraction of median value
-
-        nx : int
-            Number of panels in X for image display
-
-        iset : character
-            'a', 'd', or 'p' to define image display levels
-
-        plo : float [only matters if iset =='p']
-            Lower percentile level
-
-        phi : float [only matters if iset =='p']
-            Upper percentile level
-
-        ilo : float [only matters if iset =='d']
-            Lower intensity level
-
-        ihi : float [only matters if iset =='d']
-            Upper intensity level
-
-        xlo : int
-            left X-limit for determination of percentiles
-
-        xhi : int
-            right X-limit for determination of percentiles
-
-        ylo : int
-            lower Y-limit for determination of percentiles
-
-        yhi : int
-            upper Y-limit for determination of percentiles
-
-    """
-    # select the plot device
-    device.select()
-
-    # display the CCDs chosen
-    message = "; "
-    for nc, cnam in enumerate(ccds):
-        ccd = pccd[cnam]
-
-        if ccd.is_data():
-            # this should be data as opposed to a blank frame
-            # between data frames that occur with nskip > 0
-
-            if msub:
-                # subtract median from each window
-                for wind in ccd.values():
-                    wind -= wind.median()
-
-            # set to the correct panel and then plot CCD
-            ix = (nc % nx) + 1
-            iy = nc // nx + 1
-            pgpanl(ix, iy)
-            vmin, vmax = hcam.pgp.pCcd(
-                ccd, iset, plo, phi, ilo, ihi, xlo=xlo, xhi=xhi, ylo=ylo, yhi=yhi
-            )
-
-            # accumulate string of image scalings
-            if nc:
-                message += ", ccd {:s}: {:.2f} to {:.2f}".format(cnam, vmin, vmax)
-            else:
-                message += "ccd {:s}: {:.2f} to {:.2f}".format(cnam, vmin, vmax)
-
-            # plot apertures
-            if cnam in rfile.aper and len(rfile.aper[cnam]) > 0:
-                # find the result for this ccd name
-                res = next(res for (this_cnam, res) in results if this_cnam == cnam)
-                # we always use the last result in the parallel group
-                last_res = res[-1]
-                ccd_aper = last_res[2]
-                hcam.pgp.pCcdAper(ccd_aper)
-
-    # end of CCD display loop
-    print(message)
-
-
-def update_psfplot(
-    results,
-    rfile,
-    device,
-    pccd,
-    ccds,
-    nx,
-    plo,
-    phi,
-    xlo,
-    xhi,
-    ylo,
-    yhi,
-):
-    """Plot updater routine.
-
-    Arguments::
-
-        results : list
-            contains tuples with the results for groups of frames for
-            each CCD. See LogWriter.write for more details on its
-            structure.
-
-        rfile : Rfile
-            reduce file parameters
-
-        device : hipercam.pgp.Device
-            device to use for the plot
-
-        pccd : MCCD
-            current debiassed, flat-fielded frame. In the case of frame
-            groups, this will be the last one added.
-
-        ccds : list
-            list of CCD labels to be plotted
-
-        nx : int
-            Number of panels in X for image display
-
-        plo : float
-            Lower percentile level
-
-        phi : float
-            Upper percentile level
-
-        xlo : int
-            left X-limit for determination of percentiles
-
-        xhi : int
-            right X-limit for determination of percentiles
-
-        ylo : int
-            lower Y-limit for determination of percentiles
-
-        yhi : int
-            upper Y-limit for determination of percentiles
-
-    """
-    # select the plot device
-    device.select()
-
-    # display the CCDs chosen
-    for nc, cnam in enumerate(ccds):
-        ccd = pccd[cnam]
-
-        if ccd.is_data():
-            # this should be data as opposed to a blank frame
-            # between data frames that occur with nskip > 0
-
-            # set to the correct panel and then plot CCD
-            ix = (nc % nx) + 1
-            iy = nc // nx + 1
-            pgpanl(ix, iy)
-            res = next(res for this_cnam, res in results if this_cnam == cnam)
-            psf_store = res[-1][1]
-            psf_model, box_wnam, box_limits = psf_store.get(
-                f"psf_model_{cnam}", None
-            )
-
-            if psf_model is not None:
-                data_minus_model = ccd.copy()
-
-                # find the indices of the stamp used for PSF photometry
-                window = data_minus_model[box_wnam]
-                x1, x2, y1, y2 = box_limits
-                # code copied from window class
-                winh = super(hcam.Window, window).window(x1, x2, y1, y2)
-                ix1 = (winh.llx - window.llx) // window.xbin
-                iy1 = (winh.lly - window.lly) // window.ybin
-                iy2 = iy1 + winh.ny
-                ix2 = ix1 + winh.nx
-
-                # extract a view of the data array
-                data = window.data[iy1:iy2, ix1:ix2]
-                resid = psf_model.make_residual_image(data)
-                data_minus_model[box_wnam].data[iy1:iy2, ix1:ix2] = resid
-                vmin, vmax = ccd.percentile((plo, phi), xlo, xhi, ylo, yhi)
-                hcam.pgp.pCcd(
-                    data_minus_model,
-                    iset="d",
-                    dlo=vmin,
-                    dhi=vmax,
-                    xlo=xlo,
-                    xhi=xhi,
-                    ylo=ylo,
-                    yhi=yhi,
-                )
-
-            # plot apertures
-            if cnam in rfile.aper and len(rfile.aper[cnam]) > 0:
-                # find the result for this ccd name
-                res = next(res for (this_cnam, res) in results if this_cnam == cnam)
-                # we always use the last result in the parallel group
-                last_res = res[-1]
-                ccd_aper = last_res[2]
-                hcam.pgp.pCcdAper(ccd_aper)
 
 
 def update_lcplot(
@@ -2346,3 +2116,287 @@ def update_lcplot(
         pgebuf()
 
     return tzero
+
+
+class ImageManager(hcam.mpl.AnimationManager):
+    """Class to control the image animation.
+
+    The same class is used for the Image and PSF residual plots, using the
+    `plot_psf_residuals` flag to control which is displayed.
+
+    Initialising it creates the figure and the animated artists for the first frame.
+    After that, call ``update`` once per frame to update the artists,
+    and ``refresh`` as often as needed to keep the window responsive.
+
+    """
+
+    def __init__(
+        self,
+        mccd,
+        results,
+        cnams,
+        plot_psf_residuals,
+        plotall,
+        ncols,
+        iset,
+        ilim,
+        region,
+        msub,
+        cmap,
+        figsize,
+    ):
+        """Initialises and manages the plot.
+
+        Arguments:
+
+        mccd : :class:`MCCD`
+            The first frame to display.
+            Used to create the artists on initialisation;
+            new data should be passed to `update`.
+
+        results : list
+            The results for the first frame, as returned by ProcessCCDs.
+            Used to create the artists on initialisation;
+            new data should be passed to `update`.
+
+        cnams : list of str
+            The names of the CCDs to plot.
+
+        plot_psf_residuals : bool
+            If True, plot the residuals of the PSF fit instead of the CCD data.
+            Used when psfplot is True.
+            Requires there to be PSF fit results in the `results` argument,
+            meaining ProcessCCDs must have been called using `extractFluxPSF`
+            as the process function.
+
+        plotall : bool
+            If True, plot all frames, even if they contain no data.
+
+        ncols : int
+            The number of columns in the grid of subplots
+
+        iset : str
+            How to set the intensity scale for the images:
+                'a' for automatic min/max range
+                'p' for percentiles (set using `ilim`)
+                'd' for direct values (set using `ilim`)
+
+        ilim : tuple[float, float] | None
+            Lower and upper limits for the intensity scaling.
+
+        region : tuple[int, int, int, int] | None
+            The region to plot, values are (xmin, xmax, ymin, ymax)
+            If None, the entire CCD is displayed.
+            If iset='p', only this region is used to compute the percentiles for
+            intensity scaling.
+
+        msub : bool
+            If True, subtract the median value from each window before plotting.
+            Is ignored if `plot_psf_residuals` is True.
+
+        cmap : str  | None
+            Matplotlib colour map. None gives default
+
+        figsize : tuple[float, float] | None
+            The width and height of the figure, in inches.
+            If None, the default size is used.
+
+        """
+        # create empty figure and axes
+        self.fig, self.axs = hcam.mpl.create_figure(
+            cnams=cnams,
+            ncols=ncols,
+            region=region,
+            title="CCD display" if not plot_psf_residuals else "PSF residuals",
+            figsize=figsize,
+            animated=True,
+        )
+
+        # initialise the animation manager with the figure
+        super().__init__(self.fig)
+
+        # inputs for the image plots
+        self.plot_psf_residuals = plot_psf_residuals
+        self.cnams = cnams
+        self.plotall = plotall
+        self.iset = iset
+        self.ilim = ilim
+        self.region = region
+        self.msub = msub
+        self.cmap = cmap
+
+        # create and update the artists
+        self.img_artists = {cnam: None for cnam in self.cnams}
+        self.aper_artists = {cnam: None for cnam in self.cnams}
+        self.update(mccd, results)
+
+        # adjust the layout to prevent overlap
+        # (can only do after the artists are created)
+        self.fig.tight_layout()
+
+    def draw_artists(self):
+        """Draw all of the animated artists."""
+        for cnam in self.axs:
+            # Draw the axes
+            self.fig.draw_artist(self.axs[cnam])
+
+            # Draw the CCD artists
+            if self.img_artists[cnam] is not None:
+                for artists in self.img_artists[cnam].values():
+                    for artist in artists:
+                        self.fig.draw_artist(artist)
+
+            # Draw the aperture artists
+            if self.aper_artists[cnam] is not None:
+                for artists in self.aper_artists[cnam].values():
+                    if artists is not None:
+                        for artist in artists:
+                            self.fig.draw_artist(artist)
+
+    def update(self, mccd, results):
+        """Create or update the artists with new data."""
+        # TODO: results should just be a dict, or some nicer data structure?
+        results = dict(results)
+
+        # Update the artists for the CCDs
+        self._update_images(mccd, results)
+
+        # Update the artists for the apertures
+        self._update_apertures(results)
+
+        # Refresh the display
+        self.refresh()
+
+    def _update_images(self, mccd, results):
+        """Create or update the CCD artists."""
+        new_artists = {}
+        for cnam in self.img_artists:
+            if not mccd[cnam].is_data() and not self.plotall:
+                # no new frame, just pass old artists through (unless plotall is True)
+                new_artists[cnam] = self.img_artists[cnam]
+            else:
+                # create/update the animated artists
+                old_artists = self.img_artists[cnam]
+                new_artists[cnam] = {}
+
+                if not self.plot_psf_residuals:
+                    # Normal case, plot the CCD data
+                    # subtract median from each window
+                    if self.msub:
+                        for wind in mccd[cnam].values():
+                            wind -= wind.median()
+
+                    # get scale limits
+                    vmin, vmax = hcam.mpl.get_scale_limits(
+                        mccd[cnam],
+                        mode=self.iset,
+                        limits=self.ilim,
+                        region=self.region,
+                    )
+
+                    # plot the CCD
+                    new_artists[cnam] = hcam.mpl.pCcd(
+                        ax=self.axs[cnam],
+                        ccd=mccd[cnam],
+                        vmin=vmin,
+                        vmax=vmax,
+                        cmap=self.cmap,
+                        tlabel=f"CCD {cnam}",
+                        animated=True,
+                        artists=old_artists,
+                    )
+                else:
+                    # PSFplot case, plot the residuals of the PSF fit
+                    if cnam not in results:
+                        # no new result, just pass old artists through
+                        new_artists[cnam] = old_artists
+                    else:
+                        # we always use the last result in the parallel group
+                        last_res = results[cnam][-1]
+                        psf_store = last_res[1]
+                        psf_model, box_wnam, box_limits = psf_store.get(
+                            f"psf_model_{cnam}", None
+                        )
+
+                        if psf_model is None:
+                            # no PSF model in the results, just pass old artists through
+                            new_artists[cnam] = old_artists
+                        else:
+                            data_minus_model = mccd[cnam].copy()
+
+                            # find the indices of the stamp used for PSF photometry
+                            window = data_minus_model[box_wnam]
+                            x1, x2, y1, y2 = box_limits
+                            # code copied from window class
+                            winh = super(hcam.Window, window).window(x1, x2, y1, y2)
+                            ix1 = (winh.llx - window.llx) // window.xbin
+                            iy1 = (winh.lly - window.lly) // window.ybin
+                            iy2 = iy1 + winh.ny
+                            ix2 = ix1 + winh.nx
+
+                            # extract a view of the data array
+                            data = window.data[iy1:iy2, ix1:ix2]
+                            resid = psf_model.make_residual_image(data)
+                            data_minus_model[box_wnam].data[iy1:iy2, ix1:ix2] = resid
+
+                            # get scale limits
+                            vmin, vmax = hcam.mpl.get_scale_limits(
+                                data_minus_model,
+                                mode=self.iset,
+                                limits=self.ilim,
+                                region=self.region,
+                            )
+
+                            # plot the CCD residuals
+                            new_artists[cnam] = hcam.mpl.pCcd(
+                                ax=self.axs[cnam],
+                                ccd=data_minus_model,
+                                vmin=vmin,
+                                vmax=vmax,
+                                cmap=self.cmap,
+                                tlabel=f"CCD {cnam}",
+                                animated=True,
+                                artists=old_artists,
+                            )
+
+                # In this case we are setting up for the first time
+                # need to re-draw to avoid irritating distorted image
+                if old_artists is None:
+                    self.fig.canvas.draw()
+
+        # Finally, update the artists
+        self.img_artists = new_artists
+
+    def _update_apertures(self, results):
+        """Create or update the aperture artists."""
+        # TODO: Don't plot apertures if ccd.is_data() is False (for plotall=True)?
+        new_artists = {}
+        for cnam in self.aper_artists:
+            if cnam not in results:
+                # no new result, just pass old artists through
+                new_artists[cnam] = self.aper_artists[cnam]
+            else:
+                # we always use the last result in the parallel group
+                last_res = results[cnam][-1]
+                ccd_aper = last_res[2]
+
+                # create/update the animated artists
+                old_artists = self.aper_artists[cnam]
+
+                # plot all the apertures for this CCD
+                new_artists[cnam] = hcam.mpl.pCcdAper(
+                    ax=self.axs[cnam],
+                    ccdAper=ccd_aper,
+                    animated=True,
+                    artists=old_artists,
+                )
+
+         # Finally, update the artists
+        self.aper_artists = new_artists
+
+    def get_ilim(self, cnam):
+        """Returns the current intensity limits for the specified CCD."""
+        if self.img_artists[cnam] is None:
+            return None
+        imgs = self.axs[cnam].get_images()
+        return imgs[0].get_clim()  # for the first window, but should be the same
