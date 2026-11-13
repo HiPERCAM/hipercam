@@ -985,7 +985,7 @@ class ImageManager(hcam.mpl.AnimationManager):
         self._update_objects(objects)
 
         # Finally, refresh the display
-        self.refresh()
+        self.refresh(redraw=True)
 
     def _update_images(self, mccd):
         """Create or update the CCD artists."""

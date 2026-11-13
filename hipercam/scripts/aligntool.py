@@ -752,7 +752,7 @@ class ImageManager(hcam.mpl.AnimationManager):
 
         # Finally, update the artists and refresh the display
         self.artists = new_artists
-        self.refresh()
+        self.refresh(redraw=True)
 
     def get_ilim(self, cnam):
         """Returns the current intensity limits for the specified CCD."""
@@ -942,4 +942,4 @@ class FwhmManager(hcam.mpl.AnimationManager):
             self.artists['pos_text'].set_text(textstr)
 
         # Finally, refresh the display
-        self.refresh()
+        self.refresh(redraw=True)

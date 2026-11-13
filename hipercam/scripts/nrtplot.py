@@ -1437,7 +1437,7 @@ class ImageManager(hcam.mpl.AnimationManager):
             self._update_targets(pfits)
 
         # Refresh the display
-        self.refresh()
+        self.refresh(redraw=True)
 
     def _update_images(self, mccd, swindows=None):
         """Create or update the CCD artists."""
@@ -1704,7 +1704,7 @@ class FwhmManager(hcam.mpl.AnimationManager):
                     ys.popleft()
 
         # Finally, refresh the display
-        self.refresh()
+        self.refresh(redraw=True)
 
 
 class PickProfitTargets:

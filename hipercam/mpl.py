@@ -1167,16 +1167,17 @@ class AnimationManager(ABC):
         # redraw the animated artists on top of the background
         self.draw_artists()
 
-    def refresh(self):
+    def refresh(self, redraw=False):
         """Redraws the animated artists.
 
         Safe to call repeatedly to keep the window responsive even if the data has
-        not changed.
+        not changed (with `redraw=False`).
+        If the data has changed (i.e. in `update()`), then call with `redraw=True`.
         """
         if self._bg is None:
             # no background saved yet, so just draw everything
             self.on_draw(None)
-        else:
+        elif redraw:
             # restore the background
             self.fig.canvas.restore_region(self._bg)
             # draw the animated artists on top of the background
@@ -1198,7 +1199,8 @@ class AnimationManager(ABC):
         `self.artists`), and then on subsequent calls update the data of the artists
         using `set_data()` or similar methods.
 
-        After updating the data, you should call `self.refresh()` to redraw them.
+        After updating the data, you should call `self.refresh(redraw=True)`
+        to redraw the image artists.
         """
         pass
 
