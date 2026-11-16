@@ -528,7 +528,6 @@ def shiftadd(args=None):
             ncol = cl.get_value("ncol", "number of columns to trim from windows", 0)
             nrow = cl.get_value("nrow", "number of rows to trim from windows", 0)
 
-        cl.set_default("method", "m")
         method = cl.get_value(
             "method", "c(lipped mean), m(edian)", "c", lvals=("c", "m")
         )
