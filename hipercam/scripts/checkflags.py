@@ -44,12 +44,14 @@ def checkflags(args=None):
             for name, flag in flags:
                 count = np.count_nonzero(values & flag)
                 if count:
-                    print(f"  {name}: {count} - {hcam.FLAG_MESSAGES[flag]}")
+                    print(
+                        f"  {name}: {count} flagged with '{hcam.FLAG_MESSAGES[flag]}'"
+                    )
 
             present = int(np.bitwise_or.reduce(values, initial=0))
             unknown = present & (int(hcam.ANY_FLAG) ^ known_mask)
             while unknown:
                 bit = unknown & -unknown
                 count = np.count_nonzero(values & bit)
-                print(f"  UNKNOWN {bit}: {count}")
+                print(f"  UNKNOWN {bit}: {count} flagged with unknown flag")
                 unknown ^= bit
