@@ -198,10 +198,6 @@ your O/S package manager.
   trm.cline :
          handles command line parameters. Available on PyPi.
 
-  trm.utils :
-         generally useful routines used at a few places. Available
-         from PyPi.
-
   websocket-client :
          for talking to the hipercam server.
 
