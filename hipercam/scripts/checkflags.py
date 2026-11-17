@@ -12,7 +12,8 @@ def checkflags(args=None):
 
     Summarise the flags stored in a |reduce| ASCII log for each CCD and
     aperture. Counts are per flag, so a measurement with multiple flags
-    contributes to each count. Unrecognised bits are reported separately.
+    contributes to each count. Unrecognised bits are reported separately
+    as decimal integers.
     The counts use the stored aperture flags, without adding flags inferred
     from other columns such as ``MJDok``.
 
@@ -50,5 +51,5 @@ def checkflags(args=None):
             while unknown:
                 bit = unknown & -unknown
                 count = np.count_nonzero(values & bit)
-                print(f"  UNKNOWN 0x{bit:08x}: {count}")
+                print(f"  UNKNOWN {bit}: {count}")
                 unknown ^= bit

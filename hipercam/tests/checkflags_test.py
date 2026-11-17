@@ -28,7 +28,7 @@ def test_checkflags_log(tmp_path, monkeypatch, capsys):
     target = output.split("CCD 1, aperture target: 3/3 flagged\n")[1].split("CCD 2")[0]
     assert "  NO_SKY: 2 - zero sky pixels" in target
     assert "  BAD_TIME: 1 - the time was flagged as bad" in target
-    assert "  UNKNOWN 0x80000000: 1" in target
+    assert "  UNKNOWN 2147483648: 1" in target
     assert "CCD 1, aperture comp: 0/3 flagged\nCCD 1, aperture target:" in output
     assert "CCD 2, aperture target: 1/1 flagged\n  BAD_TIME: 1" in output
     assert "CCD 3, aperture empty: 0/0 flagged" in output
