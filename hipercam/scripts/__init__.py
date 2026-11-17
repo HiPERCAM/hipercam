@@ -10,6 +10,7 @@ from .atbytes import atbytes
 from .averun import averun
 from .calsearch import calsearch
 from .carith import cadd, cdiv, cmul, csub
+from .checkflags import checkflags
 from .combine import combine
 from .exploss import exploss
 from .filtid import filtid
@@ -68,6 +69,7 @@ __all__ = [
     "averun",
     "cadd",
     "cdiv",
+    "checkflags",
     "cmul",
     "combine",
     "csub",

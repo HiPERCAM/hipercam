@@ -17,6 +17,7 @@
 .. |cadd| replace:: :func:`cadd <hipercam.scripts.cadd>`
 .. |calsearch| replace:: :func:`calsearch <hipercam.scripts.calsearch>`
 .. |cdiv| replace:: :func:`cdiv <hipercam.scripts.cdiv>`
+.. |checkflags| replace:: :func:`checkflags <hipercam.scripts.checkflags>`
 .. |cmul| replace:: :func:`cmul <hipercam.scripts.cmul>`
 .. |combine| replace:: :func:`combine <hipercam.scripts.combine>`
 .. |csub| replace:: :func:`csub <hipercam.scripts.csub>`

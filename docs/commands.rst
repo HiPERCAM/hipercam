@@ -9,6 +9,7 @@
 .. |ol-cadd|     replace:: add a constant to a frame
 .. |ol-calsearch| replace:: find matching calibration runs
 .. |ol-cdiv|     replace:: divide a frame by a constant
+.. |ol-checkflags| replace:: summarise flags in a reduce log
 .. |ol-cmul|     replace:: multiply a frame by a constant
 .. |ol-combine|  replace:: combine a list of frames
 .. |ol-csub|     replace:: subtract a constant from a frame
@@ -93,6 +94,8 @@ useful.
    | |cadd|       | |ol-cadd|      |          |          |         |   Yes     |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |cdiv|       | |ol-cdiv|      |          |          |         |   Yes     |            |
+   +--------------+----------------+----------+----------+---------+-----------+------------+
+   | |checkflags| | |ol-checkflags||          | Yes      |         |           | Yes        |
    +--------------+----------------+----------+----------+---------+-----------+------------+
    | |cmul|       | |ol-cmul|      |          |          |         |   Yes     |            |
    +--------------+----------------+----------+----------+---------+-----------+------------+
@@ -453,6 +456,7 @@ extension '.hcm' to distinguish them, although they are also FITS-format files.
 .. autoapifunction:: hipercam.scripts.averun
 .. autoapifunction:: hipercam.scripts.cadd
 .. autoapifunction:: hipercam.scripts.cdiv
+.. autoapifunction:: hipercam.scripts.checkflags
 .. autoapifunction:: hipercam.scripts.cmul
 .. autoapifunction:: hipercam.scripts.combine
 .. autoapifunction:: hipercam.scripts.csub
