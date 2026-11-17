@@ -31,7 +31,6 @@ dependencies = [
     "requests",
     "sep>=1.4",
     "trm.cline",
-    "trm.utils",
     "urllib3>=1.26.5",
     "websocket-client",
 ]

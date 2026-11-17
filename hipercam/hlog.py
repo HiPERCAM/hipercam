@@ -28,16 +28,16 @@ bitmask array of the objects `targ` and `comp` used to create it.
 
 """
 
-import struct
-import numpy as np
 import copy
+import struct
+
+import astropy.units as u
+import numpy as np
+from astropy.coordinates import AltAz, EarthLocation, SkyCoord
 from astropy.io import fits
 from astropy.stats import sigma_clip
 from astropy.time import Time
-from astropy.coordinates import SkyCoord, EarthLocation, AltAz
-import astropy.units as u
 
-from trm.utils import timcorr
 import hipercam as hcam
 
 __all__ = ("Hlog", "Tseries")
@@ -369,16 +369,16 @@ class Hlog(dict):
         with open(fname) as fin:
             for line in fin:
                 n += 1
-                if line.startswith('# name/number mjd flag nsat'):
+                if line.startswith("# name/number mjd flag nsat"):
                     # old-style log files with number of satellites
                     log_format = 1
-                elif line.startswith('# name/number mjd flag expose'):
+                elif line.startswith("# name/number mjd flag expose"):
                     # post March 2010 log files
                     log_format = 2
                 elif not line.startswith("#"):
                     if log_format is None:
                         raise hcam.HipercamError(
-                            'Could not identify the format of the log file.'
+                            "Could not identify the format of the log file."
                         )
 
                     arr = line.split()
@@ -409,7 +409,9 @@ class Hlog(dict):
                                 (
                                     "First line of CCD {:s} had {:d} apertures,"
                                     " whereas line {:d} of file has {:d}"
-                                ).format(cnam, naps[cnam], n, len(arr[head_cols:]) // 14) #####
+                                ).format(
+                                    cnam, naps[cnam], n, len(arr[head_cols:]) // 14
+                                )  #####
                             )
 
                         for nap in range(naps[cnam]):
@@ -978,15 +980,17 @@ class Tseries:
         if isinstance(other, Tseries):
             with np.errstate(divide="ignore", invalid="ignore"):
                 y = self.y / other.y
-                ye = np.sqrt(
-                    self.ye**2 + (self.y * other.ye / other.y) ** 2
-                ) / np.abs(other.y)
+                ye = np.sqrt(self.ye**2 + (self.y * other.ye / other.y) ** 2) / np.abs(
+                    other.y
+                )
 
             bmask = self.bmask | other.bmask
             te = (
                 self.te.copy()
                 if self.te is not None
-                else other.te.copy() if other.te is not None else None
+                else other.te.copy()
+                if other.te is not None
+                else None
             )
 
         else:
@@ -1035,7 +1039,9 @@ class Tseries:
             te = (
                 self.te.copy()
                 if self.te is not None
-                else other.te.copy() if other.te is not None else None
+                else other.te.copy()
+                if other.te is not None
+                else None
             )
 
         else:
@@ -1076,7 +1082,9 @@ class Tseries:
             te = (
                 self.te.copy()
                 if self.te is not None
-                else other.te.copy() if other.te is not None else None
+                else other.te.copy()
+                if other.te is not None
+                else None
             )
 
         else:
@@ -1118,7 +1126,9 @@ class Tseries:
             te = (
                 self.te.copy()
                 if self.te is not None
-                else other.te.copy() if other.te is not None else None
+                else other.te.copy()
+                if other.te is not None
+                else None
             )
 
         else:
@@ -1550,9 +1560,16 @@ class Tseries:
             new object
 
         """
+        # enforce types of input arguments
+        if not isinstance(position, SkyCoord):
+            position = SkyCoord(position, unit=(u.hourangle, u.deg))
+        if not isinstance(telescope, EarthLocation):
+            telescope = EarthLocation.of_site(telescope)
 
-        # assuming MJDs at this point
-        ts = timcorr(self.t, position, telescope)
+        # assuming MJDs at this point, convert to BMJD(TDB)
+        times = Time(self.t, format="mjd", scale="utc", location=telescope)
+        ltt = times.light_travel_time(position, kind="barycentric")
+        ts = (times.tdb + ltt).mjd
 
         if inplace:
             self.t = ts
