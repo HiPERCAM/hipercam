@@ -1,0 +1,123 @@
+hipercam.scripts.tanalysis
+==========================
+
+.. py:module:: hipercam.scripts.tanalysis
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   hipercam.scripts.tanalysis.tanalysis
+
+
+Module Contents
+---------------
+
+.. py:function:: tanalysis(args=None)
+
+   
+   ``tanalysis [source] run [mintim dcmax] details (plot [check (output)])``
+
+   .. Warning::
+
+      This script should only be run if you know what you are doing.
+
+   Analyses timing data in |hiper|, ULTRACAM or ULTRASPEC data.  You
+   must first have made copy of the timing bytes (see ``tbytes'' and
+   ``atbytes''). It looks for a timing bytes file in a sub-directory
+   of the directory the script is run from called "tbytes". If the
+   file does not exist, the script will exit.
+
+   On occasion there are problems with ULTRACAM, ULTRASPEC and, very
+   rarely, |hiper| timestamps. The main purpose of this script is to
+   provide an analysis of the timing to spot these is as clear a way
+   as possible. Some of the problems are::
+
+     1) ULTRASPEC null timestamps: ULTRASPEC runs occasionally feature
+        weird null timestamps. They don't replace the proper ones but
+        push them down the line so they turn up later.
+
+     2) Extra OK-looking timestamps: on three occasions, genuine but
+        spurious timestamps have been added to the FIFO buffer. Again
+        these are extra, and push the real ones down the line.
+
+   Parameters:
+
+       source : string [hidden]
+          Data source, two options:
+
+             | 'hl' : local HiPERCAM FITS file
+             | 'ul' : ULTRA(CAM|SPEC) server
+
+       run : string
+          run number to access, e.g. 'run0034'. This will also be
+          used to generate the name for the timing bytes file
+          (extension '.tbts'). If a file of this name already exists,
+          the script will attempt to read and compare the bytes of
+          the two files and report any changes.  The timing bytes
+          file will be written to the present working directory, not
+          necessarily the location of the data file.
+
+       mintim : int [hidden]
+          Minimum number of times to attempt to do anything
+          with. This must be at least 4 so that there are 3+ time
+          differences to try to get a median time, but in practice it
+          is probably advisable to use a larger number still.
+
+       dcmax : float [hidden]
+          Maximum differential in terms of cycle number from exact integers
+          to use to indicate "failed" times. Pre 2010-02 needs to be looser
+          than post 2010-02. Number of order 0.002 is fine post 2010-02,
+          whereas 0.02 is more like it pre 2010-02.
+
+       details : bool
+          Print out detailed information on problem times
+
+       plot : bool
+          True to make diagnostic plots if problem runs found
+
+       check : bool [if plot, hidden]
+          True simply to check a run for timing problems, not try to
+          fix them. Defaults to True, and is also hidden by
+          default. If you set check=False, the code also attempts to
+          fix the times and generate a new data file. At the moment
+          it is very specific code set to try to correct for spurious
+          extra timestamps as happened for the following runs:
+          2011-10-31 run022, 2013-12-31 run031 and 2015-06-22
+          run024. It works by calculating its best estimate of cycle
+          numbers and rejecting any too far off being integers. The
+          corrected times are analysed for duplications and gaps. You
+          do not want any duplications (and ideally no gaps either).
+          You will be asked one final time if you want to proceed.
+
+       output : str [if not check]
+          Name of the modified data file. For safety this will not overwrite
+          any existing file. It is up to the user to move / copy / rename files
+          appropriately. Take care to check the results before deleting any
+          original data. Keeping a copy is probably advisable.
+
+   .. Note::
+
+      The final frame on many runs can be terminated early and thus ends with
+      an out of sequence timestamp (it comes earlier than expected). The script
+      regards such a run as being "OK" if there are not other issues.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+

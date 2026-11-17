@@ -1,0 +1,19 @@
+hipercam.scripts.calsearch
+==========================
+
+.. py:module:: hipercam.scripts.calsearch
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   hipercam.scripts.calsearch.calsearch
+
+
+Module Contents
+---------------
+
+.. py:function:: calsearch(args=None)
+

@@ -1,0 +1,62 @@
+hipercam.scripts.splice
+=======================
+
+.. py:module:: hipercam.scripts.splice
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   hipercam.scripts.splice.splice
+
+
+Module Contents
+---------------
+
+.. py:function:: splice(args=None)
+
+   
+   ``splice input1 input2 ccd [win] output``
+
+   Merges two multi-CCD images so that parts of input1 are replaced
+   by equivalent parts of input2. This can be useful e.g. to create
+   a combined flat field out of different frames.
+
+   Parameters:
+
+      input1 : str
+          first input frame
+
+      input2 : str
+          second input frame
+
+      ccd : str
+          the CCD(s) to transfer, '0' for all of them. '1 3', i.e.
+          separate with spaces for more than one CCD.
+
+      win : str [hidden]
+          the window(s) to transfer, '0' for all of them (default). The
+          same windows must exist in the selected CCDs of both inputs 
+
+      output : str
+          output file.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+

@@ -1,0 +1,85 @@
+hipercam.tests.ccd_test
+=======================
+
+.. py:module:: hipercam.tests.ccd_test
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   hipercam.tests.ccd_test.TestCCD
+
+
+Module Contents
+---------------
+
+.. py:class:: TestCCD(methodName='runTest')
+
+   Bases: :py:obj:`unittest.TestCase`
+
+
+   
+   Provides simple tests of CCD methods and attributes.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. py:method:: setUp()
+
+      
+      Hook method for setting up the test fixture before exercising it.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. py:method:: test_ccd_copy()
+
+
+   .. py:method:: test_ccd_iadd()
+
+
+   .. py:method:: test_ccd_isub()
+
+
+   .. py:method:: test_ccd_imul()
+
+
+   .. py:method:: test_ccd_idiv()
+
+
+   .. py:method:: test_ccd_add()
+
+

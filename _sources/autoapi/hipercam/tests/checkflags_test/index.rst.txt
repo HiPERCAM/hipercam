@@ -1,0 +1,19 @@
+hipercam.tests.checkflags_test
+==============================
+
+.. py:module:: hipercam.tests.checkflags_test
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   hipercam.tests.checkflags_test.test_checkflags_log
+
+
+Module Contents
+---------------
+
+.. py:function:: test_checkflags_log(tmp_path, monkeypatch, capsys)
+

@@ -1,0 +1,26 @@
+hipercam.scripts.redplt
+=======================
+
+.. py:module:: hipercam.scripts.redplt
+
+.. autoapi-nested-parse::
+
+   Command line script to generate meta data plots
+
+   ..
+       !! processed by numpydoc !!
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   hipercam.scripts.redplt.redplt
+
+
+Module Contents
+---------------
+
+.. py:function:: redplt(args=None)
+

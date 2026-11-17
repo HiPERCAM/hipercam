@@ -1,0 +1,165 @@
+hipercam.scripts.genred
+=======================
+
+.. py:module:: hipercam.scripts.genred
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   hipercam.scripts.genred.genred
+
+
+Module Contents
+---------------
+
+.. py:function:: genred(args=None)
+
+   
+   ``genred apfile rfile bias dark flat fmap fpair seeing (sworst
+   binfac) template (inst (nccd (ccd) nonlin sat scale readout
+   gain))``
+
+   Generates a reduce file as needed by |reduce|. You
+   give it the name of an aperture file, calibration frames and a few
+   other parameters and it will write out a reduce file which you can
+   then refine by hand. The aim is to try to get a reduce file that
+   is self-consistent and works to get observing started as soon as
+   possible. The parameters are not necessarily the best.
+
+   It is assumed that the target is called '1', the main comparison '2'.
+
+   To avoid endless prompts, genred does not try to prompt for all
+   parameters even via hidden ones (a change from its previous
+   behaviour).  However, if you find yourself always making the samed
+   edits to the file produced by genred, you may start wanting a way
+   to alter some of the otherwise fixed parameters. You can do so by
+   supplying a template file, which can just be from a previous run
+   of genred where such parameters can be altered by editing with a
+   standard text editor before running genred.
+
+   genred recognises some standard instrument telescope combinations
+   which it uses to set parameters such as the pixel scale and
+   readout noise, but if you choose 'other', you will be prompted for
+   these details. The main parameters it does prompt for are
+   calibration files, and it allows you to define a "seeing" which
+   then controls the setting of various profile fit parameters. This
+   can be ignored by setting = 0, in which case any template
+   parameters will be passed unchanged.
+
+   Parameters:
+
+       apfile : str
+          the input aperture file created using |setaper| (default
+          extension .ape). This will be read for the targets. The
+          main target will be assumed to have been called '1', the
+          main comparison '2'. If there is a '3' it will be plotted
+          relative to '2'; all others will be ignored for plotting
+          purposes. Target '2' will be used to define the position
+          and transmission plots for one CCD only [user
+          definable]. Target '1' will be used for the seeing plot
+          unless it is linked when target '2' will be used instead.
+
+       rfile : str
+          the output reduce file created by this script. The main
+          target will be assumed to have been called '1', the main
+          comparison '2'. If there is a '3' it will be plotted
+          relative to '2'; all others will be ignored for plotting
+          purposes.
+
+       bias : str
+          Name of bias frame; 'none' to ignore.
+
+       dark : str
+          Name of dark frame; 'none' to ignore.
+
+       flat : str
+          Name of flat field frame; 'none' to ignore.
+
+       fmap : str
+          Name of fringe frame; 'none' to ignore.
+
+       fpair : str [if fmap not 'none']
+          File defining pairs to measure fringe amplitudes.
+
+       seeing : float
+          estimate of seeing which will be used to define several of
+          the profile fitting parameters. Enter 0 to ignore and use
+          defaults from the template (or genred if no template)
+          instead.
+
+       sworst : float [if seeing > 0]
+          worst seeing expected during run. Expands the search and
+          fitting boxes which can cause difficulties if they are
+          too small. It also sets the maximum target aperture radius
+          which will set to ~ 1.8*sworst, converted to pixels, and the
+          sky annulus radii. It has to be at least 2*seeing. Always
+          remember that you can override the automated settings using
+          a pre-edited template and seeing = 0.
+
+       binfac : int [if seeing > 0]
+          binning factor. e.g. 4 if using 4x4. Needed to optimise some
+          profile parameters.
+
+       template : str
+          Reduce file to use as a template for any parameters not set
+          by genred. This allows one to tweak settings by running
+          genred without a template, then modifying the resultant
+          file and using it as a template. 'none' to ignore, and then
+          these values will be set by genred by default. Some will be
+          modified anyway (e.g. the calibration file names), and if
+          seeing > 0, then several of the profile fitting paramaters
+          will be adapted to the value given along with the
+          instrument parameters.  genred will try to keep as many of
+          the 'extraction', 'position', 'transmission', 'light' etc
+          lines associated with particular CCDs in this case without
+          modification, and will pass readout, saturation levels etc
+          unchanged from the template.
+
+       inst : str [if template == 'none']
+          the instrument. 'hipercam-gtc', 'ultracam-ntt', 'ultraspec-tnt',
+          'ultracam-wht', 'ultracam-vlt',  or 'other'. Sets pixel scale and
+          standard readnoise params.
+
+       nccd : int [if inst == 'other']
+          number of CCDs.
+
+       ccd : int [if nccd > 1]
+          the CCD to use for position plots
+
+       nonlin : list(float) [if inst == 'other']
+          values for warning of non linearity
+
+       sat : list(float) [if inst == 'other']
+          values for warning of saturation
+
+       scale : float [if inst == 'other']
+          image scale in arcsec/pixel
+
+       readout : float | string [if inst == 'other']
+          readout noise, RMS ADU. Can either be a single value or an
+          hcm file.
+
+       gain : float | string [if inst == 'other']
+          gain, electrons per ADU. Can either be a single value or an
+          hcm file.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+

@@ -1,0 +1,98 @@
+hipercam.scripts.hpackage
+=========================
+
+.. py:module:: hipercam.scripts.hpackage
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   hipercam.scripts.hpackage.hpackage
+
+
+Module Contents
+---------------
+
+.. py:function:: hpackage(args=None)
+
+   
+   ``hpackage runs dname tar``
+
+   ``hpackage`` looks for standard reduce data products and bundles
+   them up into a single directory and optionally creates a tar
+   file. The idea is to copy all the files needed to be able to
+   re-run the reduction with the pipeline, while also adding a few
+   helpful extras where possible. This is to make export of a reduction
+   relatively painless.
+
+   Given 'run123' for instance, it looks for:
+
+     run123.hcm -- typically the result from a run of |averun|. This *must*
+                   exist for each run included.
+
+     run123.ape -- file of photometric apertures. Also must exist.
+
+     run123*.red -- reduce file as made by |genred| (* == any string)
+
+     run123*.log -- result from |reduce| (* == any string)
+
+   Note the '*' means that multiple .red / .log pairs are possible to
+   allow for multiple alternative reductions. But they must start
+   'run123' and end '.red' and '.log' to be included. There has to be
+   at least one such pair. It also looks for calibration files inside
+   the reduce file and copies them. It requires them to be within the
+   same directory and will fail if they are not. The reason for this
+   is that they get copied over to the same directory and the
+   directory structure required to store them elsewhere is not
+   created. I often use soft-links to point to calibration files for
+   this reason.
+
+   It produces several extra files which are:
+
+     run123.fits -- FITS version of the log file
+
+     run123_ccd1.fits -- joined-up ds9-able version of run123.hcm
+                         (and ccd2 etc) [but only if the windows are
+                         in sync.
+
+     run123_ccd1.reg -- ds9-region file representing the apertures
+                        from run123.ape [see above re synced windows]
+
+     README -- a file of explanation.
+
+   The files are all copied to a temporary directory.
+
+   Arguments:
+
+     run : str
+        Series of run names of the ones to copy, separated by spaces.
+
+     dname : str
+        Name for the directory to store all files forming the root of
+        any output tar file created from it.
+
+     tar : bool
+        Make a tar.gz file of the directory at the end; the directory and
+        the files in it will be deleted. Otherwise, no tar file is made and
+        the directory is left untouched. The directory will however be deleted
+        if the program is aborted early.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
