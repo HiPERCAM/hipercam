@@ -305,12 +305,12 @@ with 1x1 binning::
 
     from hipercam.window import Winhead, Window
 
-    # Winhead(llx, lly, nx, ny, xbin, ybin, outamp, head=ccd_head)
+    # Winhead(llx, lly, nx, ny, xbin, ybin, head=ccd_head, outamp=None)
     #
     #   llx, lly  — lower-left corner in **unbinned pixels**, 1-based
     #   nx, ny    — window dimensions in **binned** pixels
     #   xbin,ybin — binning factors
-    #   outamp    — output amplifier location; 'UL', 'UR', 'LL' etc. '' means unknown
+    #   outamp    — output amplifier location; 'UL', 'UR', 'LL' etc. None means unknown
     #   head      — per-CCD header created above, attached to
     #               the first (and here only) window
     #
@@ -613,8 +613,8 @@ full-frame 1024×1024 data in multi-extension FITS format.
             #   llx=1, lly=1      lower-left unbinned pixel (1-based)
             #   nx=1024, ny=1024  window size in binned pixels
             #   xbin=1, ybin=1    binning factors
-            #   outamp=''         output amplifier location unknown
-            winhd   = Winhead(1, 1, 1024, 1024, 1, 1, '', head=ccd_head)
+            #   outamp=None       output amplifier location unknown
+            winhd   = Winhead(1, 1, 1024, 1024, 1, 1, outamp=None, head=ccd_head)
             win     = Window(winhd, data=data)
 
             # CCD with total size 1024x1024, no pre/over-scan

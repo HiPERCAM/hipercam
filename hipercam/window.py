@@ -72,7 +72,7 @@ class Winhead(Header):
          Location of output amplifier. Options: '' == unknown; 'LL' ==
          lower-left; 'LR' == lower-right; 'UL' == upper-left; 'UR' ==
          upper-right. Used when trimming to remove the correct part of
-         the window.
+         the window. Defaults to '' if None.
 
      head : :class:`Header`, optional
          Arbitrary header items (excluding ones such as LLX reserved
@@ -135,7 +135,7 @@ class Winhead(Header):
 
     """
 
-    def __init__(self, llx, lly, nx, ny, xbin, ybin, outamp, head=None, copy=False):
+    def __init__(self, llx, lly, nx, ny, xbin, ybin, outamp=None, head=None, copy=False):
         """
         Inits Winheads
         """
@@ -150,6 +150,9 @@ class Winhead(Header):
         self.lly = lly
         self.xbin = xbin
         self.ybin = ybin
+        if outamp is None:
+            outamp = ""
+
         if outamp in ("", "LL", "LR", "UL", "UR"):
             self.outamp = outamp
         else:
