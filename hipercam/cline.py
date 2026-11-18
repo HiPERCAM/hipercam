@@ -6,6 +6,9 @@ is currently not available to make fixes
 (see https://github.com/pypi/support/issues/11906).
 
 """
+import signal
+import sys
+
 from trm.cline import *
 
 
