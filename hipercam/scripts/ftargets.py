@@ -507,6 +507,8 @@ def ftargets(args=None):
 
                 if not ccd.is_data():
                     # this is a junk frame from nskip > 0
+                    object_data[cnam] = None
+                    object_messages[cnam] = []
                     continue
 
                 # subtract the bias
