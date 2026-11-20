@@ -1,0 +1,420 @@
+import importlib
+import itertools
+import tempfile
+import unittest
+import warnings
+from contextlib import ExitStack
+from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
+
+import numpy as np
+from astropy.io import fits
+from astropy.stats import sigma_clip
+from astropy.wcs import WCS
+from trm.cline import Cline
+
+import hipercam as hcam
+
+shiftadd = importlib.import_module("hipercam.scripts.shiftadd")
+
+
+@unittest.skipUnless(shiftadd.HAS_REPROJECT, "reproject is not installed")
+class TestShiftadd(unittest.TestCase):
+    def setUp(self):
+        self.stack = ExitStack()
+        self.addCleanup(self.stack.close)
+        self.tmp = Path(self.stack.enter_context(tempfile.TemporaryDirectory()))
+
+    def test_tiled_combination_matches_full_stack(self):
+        rng = np.random.default_rng(42)
+        data = rng.normal(size=(11, 9, 13))
+        data[0, 2, 3] = 100
+        data[1:4, 4, 5] = np.nan
+        data[:, 0, 0] = np.nan
+        mapped = np.memmap(
+            self.tmp / "stack.dat", mode="w+", dtype="float64", shape=data.shape
+        )
+        mapped[:] = data
+
+        for method, sigma in (("m", None), ("c", 0), ("c", 1.5)):
+            with self.subTest(method=method, sigma=sigma), warnings.catch_warnings():
+                warnings.simplefilter("ignore", RuntimeWarning)
+                expected_data = data.copy()
+                if method == "m":
+                    expected = shiftadd.medianfunc(expected_data, axis=0)
+                else:
+                    if sigma > 0:
+                        mask = sigma_clip(
+                            expected_data,
+                            sigma_lower=sigma,
+                            sigma_upper=sigma,
+                            axis=0,
+                            copy=False,
+                            maxiters=3,
+                            cenfunc="mean",
+                            stdfunc="std",
+                            masked=True,
+                        )
+                        expected_data[mask.mask] = np.nan
+                    expected = shiftadd.meanfunc(expected_data, axis=0)
+                actual = shiftadd.combine_stack(
+                    mapped, method, sigma, 3, tile_bytes=11 * 8 * 5
+                )
+                np.testing.assert_allclose(actual, expected, equal_nan=True)
+                np.testing.assert_array_equal(mapped, data)
+                in_memory = shiftadd.combine_stack(
+                    [plane.copy() for plane in data],
+                    method,
+                    sigma,
+                    3,
+                    tile_bytes=11 * 8 * 5,
+                )
+                np.testing.assert_allclose(in_memory, expected, equal_nan=True)
+
+    def test_combination_limits_tile_size_for_many_frames(self):
+        shape = (300, 12, 17)
+        mapped = np.memmap(
+            self.tmp / "stack.dat", mode="w+", dtype="float64", shape=shape
+        )
+        for frame in range(shape[0]):
+            mapped[frame] = frame
+        sizes = []
+        mean = shiftadd.meanfunc
+
+        def checked_mean(tile, axis):
+            sizes.append(tile.nbytes)
+            return mean(tile, axis=axis)
+
+        self.stack.enter_context(patch.object(shiftadd, "meanfunc", checked_mean))
+        budget = shape[0] * 8 * 7
+        result = shiftadd.combine_stack(mapped, "c", 0, 3, tile_bytes=budget)
+        np.testing.assert_allclose(result, 149.5)
+        self.assertGreater(len(sizes), 1)
+        self.assertLessEqual(max(sizes), budget)
+
+    def test_window_mask_coordinates(self):
+        cases = (
+            (hcam.Winhead(1, 1, 3, 2, 1, 1, ""), (0, 0), (0, 2, 0, 3)),
+            (hcam.Winhead(3, 5, 3, 2, 1, 1, ""), (1, -1), (5, 7, 1, 4)),
+            (hcam.Winhead(1, 1, 3, 2, 1, 1, ""), (1, 1), (0, 1, 0, 2)),
+            (hcam.Winhead(1, 1, 3, 2, 1, 1, ""), (10, 0), (0, 0, 0, 0)),
+            (hcam.Winhead(5, 7, 3, 2, 2, 3, ""), (2, 3), (1, 3, 1, 4)),
+            (hcam.Winhead(5, 7, 3, 2, 2, 3, ""), (-2, -3), (3, 5, 3, 6)),
+            (hcam.Winhead(4, 6, 3, 2, 2, 3, ""), (0, 0), (1, 3, 1, 4)),
+        )
+        for wind, offset, (y1, y2, x1, x2) in cases:
+            with self.subTest(wind=wind, offset=offset):
+                data = np.arange(8 * 8, dtype=float).reshape(8, 8)
+                expected = np.full_like(data, np.nan)
+                expected[y1:y2, x1:x2] = data[y1:y2, x1:x2]
+                shiftadd.mask_reprojected(data, wind, *offset)
+                np.testing.assert_array_equal(data, expected)
+
+    def setup_run(
+        self,
+        method,
+        invalid=False,
+        shifts=None,
+        second_llx=9,
+        full_frame=False,
+        binning=1,
+        memmap=True,
+    ):
+        paths = []
+        for frame in range(4):
+            ccds = []
+            for cnam in ("1", "2"):
+                windows = []
+                window_specs = (
+                    (("a", 1, 10),)
+                    if full_frame
+                    else (("a", 1, 10), ("b", second_llx, 100))
+                )
+                for wnam, llx, level in window_specs:
+                    nx, ny = (16 // binning, 8 // binning) if full_frame else (4, 4)
+                    head = hcam.Winhead(llx, 1, nx, ny, binning, binning, "")
+                    data = np.full((ny, nx), level + frame, dtype=float)
+                    if full_frame:
+                        data += np.arange(nx * ny).reshape(ny, nx)
+                    if invalid:
+                        data[1, 1] = np.nan
+                    window = hcam.Window(head, data)
+                    window["DSTATUS"] = not (cnam == "2" and frame == 1)
+                    windows.append((wnam, window))
+                ccds.append((cnam, hcam.CCD(windows, 16, 8)))
+            head = fits.Header()
+            head["MJDUTC"] = 60000.0 + frame
+            path = self.tmp / f"frame{frame}.hcm"
+            hcam.MCCD(ccds, head).write(path)
+            paths.append(path)
+
+        flist = self.tmp / "frames.lis"
+        flist.write_text("".join(f"{path}\n" for path in paths))
+        outfile = self.tmp / "out.hcm"
+        values = {
+            "source": "hf",
+            "flist": str(flist),
+            "rfilen": "dummy.red",
+            "refccd": "1",
+            "fthresh": 2.0,
+            "reprmethod": "interp",
+            "reprorder": 0,
+            "trim": False,
+            "method": method,
+            "sigma": 1.5,
+            "maxiters": 3,
+            "overwrite": False,
+            "output": str(outfile),
+            "memmap": memmap,
+            "consflux": True,
+            "reprkernel": "Gaussian",
+            "kwidth": 1.3,
+            "regwidth": 4,
+        }
+        self.values = values
+
+        class FakeCline:
+            GLOBAL = LOCAL = HIDE = PROMPT = None
+
+            def __init__(self, *args):
+                pass
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                pass
+
+            def register(self, *args):
+                pass
+
+            def set_default(self, *args):
+                pass
+
+            def get_value(self, name, *args, **kwargs):
+                return values[name]
+
+        aperture = SimpleNamespace(x=2, y=2, ref=True)
+        rfile = SimpleNamespace(aper={"1": {"ref": aperture}})
+        self.stack.enter_context(patch.object(shiftadd, "Cline", FakeCline))
+        self.stack.enter_context(
+            patch.object(shiftadd.cline, "script_args", lambda args: ("shiftadd", []))
+        )
+        self.stack.enter_context(
+            patch.object(hcam.reduction.Rfile, "read", lambda _: rfile)
+        )
+        self.stack.enter_context(
+            patch.object(
+                hcam.reduction,
+                "initial_checks",
+                lambda *args: ({"1": None}, {"1": None}, True),
+            )
+        )
+        calls = itertools.cycle([1.0, 1.0, 3.0, 1.0])
+        offsets = itertools.cycle(shifts or [0.0] * 4)
+
+        def move_apertures(*args):
+            store = args[-1]
+            store["mfwhm"] = next(calls)
+            store["ref"] = {"dx": next(offsets), "dy": 0.0}
+
+        self.stack.enter_context(
+            patch.object(hcam.reduction, "moveApers", move_apertures)
+        )
+        self.stack.enter_context(
+            patch.object(shiftadd.tempfile, "tempdir", str(self.tmp))
+        )
+        self.stack.enter_context(
+            patch.object(shiftadd.signal, "signal", lambda *args: None)
+        )
+        return outfile
+
+    def test_shiftadd_windows_and_missing_ccd(self):
+        outfile = self.setup_run("c")
+        shiftadd.shiftadd()
+        result = hcam.MCCD.read(str(outfile))
+        for cnam, frame_mean in (("1", 4 / 3), ("2", 1.5)):
+            for wnam, level in (("a", 10), ("b", 100)):
+                np.testing.assert_allclose(result[cnam][wnam].data, level + frame_mean)
+        self.assertEqual(result.head["MJDUTC"], 60001.5)
+        self.assertIn("CCD1(3),CCD2(2)", str(result.head["HISTORY"]))
+        self.assertFalse(list(self.tmp.glob("tmp*")))
+
+    def test_shifted_windows_match_combination(self):
+        outfile = self.setup_run("m", shifts=[0, 1, -1, 0], second_llx=5)
+        shiftadd.shiftadd()
+        result = hcam.MCCD.read(str(outfile))
+        orig_wcs = WCS(naxis=2)
+        offsets = (0, 1, 0, 0)
+        for cnam in ("1", "2"):
+            planes = []
+            for frame in (0, 1, 3):
+                ccd = hcam.MCCD.read(str(self.tmp / f"frame{frame}.hcm"))[cnam]
+                if not ccd.is_data():
+                    continue
+                for wind in ccd.values():
+                    input_wcs = orig_wcs.deepcopy()
+                    input_wcs.wcs.crpix = [
+                        offsets[frame] - (wind.llx - 1) // wind.xbin,
+                        -(wind.lly - 1) // wind.ybin,
+                    ]
+                    data, _ = shiftadd.reproject_interp(
+                        (wind.data, input_wcs), orig_wcs, (8, 16), order=0
+                    )
+                    mask = np.zeros(data.shape, dtype=bool)
+                    x = (wind.llx - 1) // wind.xbin
+                    y = (wind.lly - 1) // wind.ybin
+                    mask[
+                        y : y + wind.ny,
+                        max(0, x - offsets[frame]) : x + wind.nx - offsets[frame],
+                    ] = True
+                    data[~mask] = np.nan
+                    planes.append(data)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", RuntimeWarning)
+                expected = shiftadd.medianfunc(np.stack(planes), axis=0)
+            for wind in result[cnam].values():
+                x = (wind.llx - 1) // wind.xbin
+                y = (wind.lly - 1) // wind.ybin
+                np.testing.assert_allclose(
+                    wind.data, expected[y : y + wind.ny, x : x + wind.nx]
+                )
+
+    def test_full_frame_preserves_pixels_at_all_edges(self):
+        outfile = self.setup_run("c", full_frame=True)
+        shiftadd.shiftadd()
+        result = hcam.MCCD.read(str(outfile))
+        expected = np.arange(128).reshape(8, 16)
+        for cnam, frame_mean in (("1", 4 / 3), ("2", 1.5)):
+            self.assertEqual(result[cnam]["a"].data.shape, (8, 16))
+            np.testing.assert_allclose(
+                result[cnam]["a"].data, 10 + frame_mean + expected
+            )
+
+    def test_binned_full_frame_shift(self):
+        outfile = self.setup_run("c", full_frame=True, binning=2, shifts=[0, 2, -2, 0])
+        shiftadd.shiftadd()
+        result = hcam.MCCD.read(str(outfile))
+        gradient = np.arange(32).reshape(4, 8)
+        expected = gradient + 35 / 3
+        expected[:, -1] = gradient[:, -1] + 11.5
+        np.testing.assert_allclose(result["1"]["a"].data, expected)
+        np.testing.assert_allclose(result["2"]["a"].data, gradient + 11.5)
+
+    def test_memory_and_memmap_produce_same_results(self):
+        outfile = self.setup_run("m", shifts=[0, 1, -1, 0], second_llx=5)
+        celestial_wcs = WCS(naxis=2)
+        celestial_wcs.wcs.crpix = [4, 5]
+        celestial_wcs.wcs.crval = [40, 30]
+        celestial_wcs.wcs.cdelt = [-0.01, 0.01]
+        celestial_wcs.wcs.ctype = ["RA---TAN", "DEC--TAN"]
+        self.stack.enter_context(
+            patch.object(shiftadd, "wcs_from_header", return_value=celestial_wcs)
+        )
+        for reprmethod in ("interp", "adaptive", "exact"):
+            for method, sigma in (("m", 1.5), ("c", 1.5), ("c", 0)):
+                with self.subTest(reprmethod=reprmethod, method=method, sigma=sigma):
+                    self.values.update(
+                        reprmethod=reprmethod, method=method, sigma=sigma, memmap=True
+                    )
+                    self.values["overwrite"] = True
+                    shiftadd.shiftadd()
+                    disk = hcam.MCCD.read(str(outfile))
+                    self.values["memmap"] = False
+
+                    def check_memory(function):
+                        def run(*args, **kwargs):
+                            self.assertIs(type(kwargs["output_array"]), np.ndarray)
+                            self.assertNotIn("block_size", kwargs)
+                            self.assertFalse(kwargs["return_footprint"])
+                            return function(*args, **kwargs)
+
+                        return run
+
+                    name = "reproject_" + reprmethod
+                    with patch.object(
+                        shiftadd, name, check_memory(getattr(shiftadd, name))
+                    ):
+                        shiftadd.shiftadd()
+                    memory = hcam.MCCD.read(str(outfile))
+                    for cnam in disk:
+                        for wnam in disk[cnam]:
+                            np.testing.assert_allclose(
+                                memory[cnam][wnam].data,
+                                disk[cnam][wnam].data,
+                                rtol=1e-8,
+                                atol=1e-8,
+                            )
+                    self.assertEqual(memory.head["MJDUTC"], disk.head["MJDUTC"])
+                    self.assertEqual(
+                        str(memory.head["HISTORY"]), str(disk.head["HISTORY"])
+                    )
+                    self.assertFalse(list(self.tmp.glob("tmp*")))
+
+    def test_hidden_memmap_argument_with_real_cline(self):
+        self.setup_run("m")
+        rfile = self.tmp / "dummy.red"
+        rfile.touch()
+        self.stack.enter_context(patch.object(shiftadd, "Cline", Cline))
+        function = shiftadd.reproject_interp
+        observed = []
+
+        def reproject(*args, **kwargs):
+            observed.append(isinstance(kwargs["output_array"], np.memmap))
+            return function(*args, **kwargs)
+
+        self.stack.enter_context(patch.object(shiftadd, "reproject_interp", reproject))
+        for use_memmap in (True, False):
+            with self.subTest(memmap=use_memmap):
+                outfile = self.tmp / f"cline-{use_memmap}.hcm"
+                args = [
+                    "nodefs",
+                    "source=hf",
+                    str(self.tmp / "frames.lis"),
+                    str(rfile),
+                    "1",
+                    "interp",
+                    "no",
+                    str(outfile),
+                ]
+                if not use_memmap:
+                    args.append("memmap=no")
+                with patch.object(
+                    shiftadd.cline, "script_args", return_value=(None, args)
+                ):
+                    shiftadd.shiftadd()
+                self.assertTrue(outfile.exists())
+                self.assertTrue(observed)
+                self.assertTrue(all(value == use_memmap for value in observed))
+                observed.clear()
+
+    def test_nan_failure_cleans_temporary_files(self):
+        outfile = self.setup_run("m", invalid=True)
+        for memmap in (True, False):
+            with self.subTest(memmap=memmap):
+                self.values["memmap"] = memmap
+                with self.assertRaisesRegex(hcam.HipercamError, "NaN values detected"):
+                    shiftadd.shiftadd()
+                self.assertFalse(outfile.exists())
+                self.assertFalse(list(self.tmp.glob("tmp*")))
+
+    def test_reprojection_failure_cleans_temporary_files(self):
+        outfile = self.setup_run("m")
+
+        def fail_reproject(*args, **kwargs):
+            self.assertIsInstance(kwargs["output_array"], np.memmap)
+            self.assertFalse(kwargs["return_footprint"])
+            raise RuntimeError("reprojection failed")
+
+        self.stack.enter_context(
+            patch.object(shiftadd, "reproject_interp", fail_reproject)
+        )
+        with self.assertRaisesRegex(RuntimeError, "reprojection failed"):
+            shiftadd.shiftadd()
+        self.assertFalse(outfile.exists())
+        self.assertFalse(list(self.tmp.glob("tmp*")))
+
+
+if __name__ == "__main__":
+    unittest.main()
