@@ -30,8 +30,9 @@ class TestWindow(unittest.TestCase):
                          'incorrect number of pixels returned')
 
     def test_windat_win(self):
-        self.assertEqual(self.wind1.win, self.win1,
-                         'incorrect Winhead returned')
+        self.assertIsInstance(self.wind1, Winhead)
+        self.assertEqual(self.wind1, self.win1,
+                         'Window does not match its Winhead')
 
     def test_windat_set_const(self):
         self.wind3.set_const(10.)
