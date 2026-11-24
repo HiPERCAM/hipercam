@@ -434,9 +434,6 @@ def ftargets(args=None):
     #
     # all the inputs have now been obtained. Get on with doing stuff
 
-    # Initialise the plot manager to None, so we can create it on the first frame
-    imanager = None
-
     # values of various parameters - fixed for now?
     method = 'm'
     fwhm_min = 2.0
@@ -455,6 +452,18 @@ def ftargets(args=None):
     hdul.writeto(output, overwrite=True)
     print(f"ftargets: writing results to {output}")
 
+    # Initialise the plot manager
+    imanager = ImageManager(
+        cnams=ccds,
+        ncols=nx,
+        iset=iset,
+        ilim=(plo, phi) if iset == "p" else (ilo, ihi),
+        region=(xlo, xhi, ylo, yhi),
+        cmap=cmap,
+        figsize=(width, height),
+        rmin=rmin,
+    )
+
     # Start the main loop
     total_time = 0.0
     with (
@@ -467,10 +476,7 @@ def ftargets(args=None):
                 # Includes some awkward stuff involving updating on a cycle
                 # faster than twait to make the plots more responsive,
                 # if twait is long.
-                updaters = []
-                if imanager is not None:
-                    updaters.append(imanager.refresh)
-
+                updaters = [imanager.refresh]
                 give_up, try_again, total_time = spooler.hang_about(
                     mccd, twait, tmax, total_time, updaters, tupdate
                 )
@@ -556,27 +562,7 @@ def ftargets(args=None):
                 object_data[cnam] = objects
                 object_messages[cnam] = messages
 
-            # We're ready to start plotting
-            if imanager is None:
-                # First time through, create the image plot manager
-                imanager = ImageManager(
-                    mccd=mccd,
-                    objects=object_data,
-                    cnams=ccds,
-                    ncols=nx,
-                    iset=iset,
-                    ilim=(plo, phi) if iset == "p" else (ilo, ihi),
-                    region=(xlo, xhi, ylo, yhi),
-                    cmap=cmap,
-                    figsize=(width, height),
-                    rmin=rmin,
-                )
-
-                # start live display
-                plt.show(block=False)
-                plt.pause(0.1)
-
-            # Update the image plot (done on every loop)
+            # Update the image plot
             imanager.update(mccd, object_data)
 
             # Save objects to file
@@ -870,8 +856,6 @@ class ImageManager(hcam.mpl.AnimationManager):
 
     def __init__(
         self,
-        mccd,
-        objects,
         cnams,
         ncols,
         iset,
@@ -884,17 +868,6 @@ class ImageManager(hcam.mpl.AnimationManager):
         """Initialises and manages the plot.
 
         Arguments:
-
-        mccd : :class:`MCCD`
-            The first frame to display.
-            Used to create the artists on initialisation;
-            new data should be passed to `update`.
-
-        objects : dict of {str: `np.ndarray` | None}
-            one entry per CCD being displayed, keys are CCD names.
-            Contains an array with object details (see `extraction.findStars`),
-            or None if no objects were found in that CCD.
-            Used to create the artists; later data should be passed to `update`.
 
         cnams : list of str
             The names of the CCDs to plot.
@@ -950,32 +923,42 @@ class ImageManager(hcam.mpl.AnimationManager):
         # object parameters
         self.rmin = rmin
 
-        # create and update the artists
-        self.img_artists = {cnam: None for cnam in self.cnams}
-        self.object_artists = {cnam: None for cnam in self.cnams}
-        self.update(mccd, objects)
+        # holding dict for object artists
+        self.object_artists = {}
 
-        # adjust the layout to prevent overlap
-        # (can only do after the artists are created)
-        self.fig.tight_layout()
+        # open the plot
+        self.show()
 
     def draw_artists(self):
         """Draw all of the animated artists."""
-        for cnam in self.axs:
-            # Draw the CCD artists
-            if self.img_artists[cnam] is not None:
-                for artists in self.img_artists[cnam].values():
-                    for artist in artists:
-                        self.fig.draw_artist(artist)
+        # Draw the CCD artists
+        for cnam in self.artists:
+            # each CCD has a dictionary of artists (returned by pCcd)
+            for artists in self.artists[cnam].values():
+                for artist in artists:
+                    self.fig.draw_artist(artist)
 
-            # Draw the object artists
-            if self.object_artists[cnam] is not None:
-                for artists in self.object_artists[cnam]:
-                    for artist in artists:
-                        self.fig.draw_artist(artist)
+        # Draw the object artists (if any)
+        for cnam in self.object_artists:
+            # each CCD has a list of artists for each object (ellipse, box, etc...)
+            for artists in self.object_artists[cnam]:
+                for artist in artists:
+                    self.fig.draw_artist(artist)
 
     def update(self, mccd, objects):
-        """Create or update the artists with new data."""
+        """Create or update the artists with new data.
+
+        Arguments:
+
+        mccd : :class:`MCCD`
+            The frame to display.
+
+        objects : dict of {str: `np.ndarray` | None}
+            one entry per CCD being displayed, keys are CCD names.
+            Contains an array with object details (see `extraction.findStars`),
+            or None if no objects were found in that CCD.
+
+        """
         # Update the CCD artists
         self._update_images(mccd)
 
@@ -987,48 +970,49 @@ class ImageManager(hcam.mpl.AnimationManager):
 
     def _update_images(self, mccd):
         """Create or update the CCD artists."""
-        new_artists = {}
-        for cnam in self.img_artists:
+        # Keep track of if new artists are created
+        new_artists = False
+
+        # Update CCD artists
+        for cnam in self.cnams:
             if not mccd[cnam].is_data():
-                # no new frame, just pass old artists through
-                new_artists[cnam] = self.img_artists[cnam]
-            else:
-                # create/update the animated artists
-                old_artists = self.img_artists[cnam]
-                new_artists[cnam] = {}
+                # no new frame, just keep any existing artists
+                continue
 
-                # get scale limits
-                vmin, vmax = hcam.mpl.get_scale_limits(
-                    mccd[cnam],
-                    mode=self.iset,
-                    limits=self.ilim,
-                    region=self.region,
-                )
+            # get scale limits
+            vmin, vmax = hcam.mpl.get_scale_limits(
+                mccd[cnam],
+                mode=self.iset,
+                limits=self.ilim,
+                region=self.region,
+            )
 
-                # plot the CCD
-                new_artists[cnam] = hcam.mpl.pCcd(
-                    ax=self.axs[cnam],
-                    ccd=mccd[cnam],
-                    vmin=vmin,
-                    vmax=vmax,
-                    cmap=self.cmap,
-                    tlabel=f"CCD {cnam}",
-                    animated=True,
-                    artists=old_artists,
-                )
+            # plot the CCD
+            # pCcd will update the existing artists if they exist,
+            # otherwise it will create new ones
+            if cnam not in self.artists:
+                new_artists = True
+            self.artists[cnam] = hcam.mpl.pCcd(
+                ax=self.axs[cnam],
+                ccd=mccd[cnam],
+                vmin=vmin,
+                vmax=vmax,
+                cmap=self.cmap,
+                tlabel=f"CCD {cnam}",
+                animated=True,
+                artists=self.artists[cnam] if cnam in self.artists else None,
+            )
 
-                # In this case we are setting up for the first time
-                # need to re-draw to avoid irritating distorted image
-                if old_artists is None:
-                    self.fig.canvas.draw()
-
-        # Finally, update the artists
-        self.img_artists = new_artists
+        if new_artists:
+            # In this case we are setting up for the first time
+            # We need to set the layout and re-draw to avoid irritating distorted images
+            self.fig.tight_layout()
+            self.fig.canvas.draw()
 
     def _plot_object(self, ax, obj_data):
         """Plot a single object on the specified axes."""
         # plot the ellipse of 3-sigma size
-        elipse = Ellipse(
+        ellipse = Ellipse(
             (obj_data["x"], obj_data["y"]),
             3 * obj_data["a"],
             3 * obj_data["b"],
@@ -1037,8 +1021,9 @@ class ImageManager(hcam.mpl.AnimationManager):
             facecolor="none",
             lw=1.0,
             alpha=0.5,
+            animated=True,
         )
-        ax.add_artist(elipse)
+        ax.add_artist(ellipse)
 
         # plot the bounding box of the object
         rect = Rectangle(
@@ -1049,6 +1034,7 @@ class ImageManager(hcam.mpl.AnimationManager):
             facecolor="none",
             lw=1.0,
             alpha=0.5,
+            animated=True,
         )
         ax.add_artist(rect)
 
@@ -1061,6 +1047,7 @@ class ImageManager(hcam.mpl.AnimationManager):
                 edgecolor="b",
                 facecolor="none",
                 lw=1.0,
+                animated=True,
             )
             ax.add_artist(sbox)
 
@@ -1069,50 +1056,45 @@ class ImageManager(hcam.mpl.AnimationManager):
                 obj_data["x"], obj_data["y"],
                 color="g" if obj_data["nfev"] > 0 else "r",
                 marker="o",
+                animated=True,
             )
 
             # plot the FWHM circle
             circ = Circle(
                 (obj_data["x"], obj_data["y"]),
-                obj_data["fwhm"],
+                obj_data["ffwhm"],  # note this is the fitted FWHM from combFit
                 color="g" if obj_data["nfev"] > 0 else "r",
                 fill=False,
                 lw=1.0,
+                animated=True,
             )
             ax.add_artist(circ)
 
-            return [elipse, rect, sbox, dot, circ]
+            return [ellipse, rect, sbox, dot, circ]
         else:
-            return [elipse, rect]
+            return [ellipse, rect]
 
     def _update_objects(self, objects):
         """Create or update the object artists."""
-        new_artists = {}
         for cnam in objects:
             # We can have different numbers of objects in each frame,
             # so each time we have to delete the old artists and create new ones.
-            old_artists = self.object_artists[cnam]
-            if old_artists is not None:
-                for artists in old_artists:
+            if cnam in self.object_artists:
+                for artists in self.object_artists[cnam]:
                     for artist in artists:
                         artist.remove()
+                del self.object_artists[cnam]
 
             oartists = []
-            if objects[cnam] is None:
-                # no windows to plot, so just keep an empty list
-                pass
-            else:
+            if objects[cnam] is not None:
                 for obj_data in objects[cnam]:
                     oartists.append(self._plot_object(self.axs[cnam], obj_data))
 
-            new_artists[cnam] = oartists
-
-        # Finally, update the artists
-        self.object_artists = new_artists
+            self.object_artists[cnam] = oartists
 
     def get_ilim(self, cnam):
         """Returns the current intensity limits for the specified CCD."""
-        if self.img_artists[cnam] is None:
+        if self.artists[cnam] is None:
             return None
         imgs = self.axs[cnam].get_images()
         return imgs[0].get_clim()  # for the first window, but should be the same

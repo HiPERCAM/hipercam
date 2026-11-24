@@ -1136,6 +1136,9 @@ class AnimationManager(ABC):
         """Initialises the animated plot using the given figure."""
         self.fig = fig  # ensure we have a reference to the figure
 
+        # default holding dict for animated artists
+        self.artists = {}
+
         # register a callback to save the background when the figure is drawn
         self._bg = None
         self.fig.canvas.mpl_connect("draw_event", self.on_draw)
@@ -1199,6 +1202,11 @@ class AnimationManager(ABC):
         to redraw the image artists.
         """
         pass
+
+    def show(self):
+        """Show the figure."""
+        plt.show(block=False)
+        plt.pause(0.1)
 
 
 def setup_plot(fig, disable_shortcuts=True):

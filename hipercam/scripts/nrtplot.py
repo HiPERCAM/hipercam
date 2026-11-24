@@ -796,6 +796,8 @@ def nrtplot(args=None):
     # Phew. We finally have all the inputs and now can now display stuff.
 
     # Initialise the plot managers to None, so we can create them on the first frame
+    # We don't create them now because otherwise the empty plot(s) will be shown
+    # when the fit plot props up if profit=True, and then the script will be blocked.
     imanager = None
     fwhmmanager = None
 
@@ -1050,7 +1052,7 @@ def nrtplot(args=None):
                     pfit.update_sbox()
 
                 # Carry out fits
-                pfit_results = {ntarg: None for ntarg in pfit_targets}
+                pfit_results = {ntarg: (None, None) for ntarg in pfit_targets}
                 for ntarg, pfit in pfit_targets.items():
                     cnam = pfit.cnam
                     if mccd[cnam].is_data():
@@ -1072,7 +1074,7 @@ def nrtplot(args=None):
                 # We only want to plot the target if the fit was successful,
                 # so 'plot_pfits' is just a filtered version of 'pfit_targets'.
                 for ntarg, pfit in pfit_targets.items():
-                    if pfit_results[ntarg] is not None:
+                    if pfit_results[ntarg][0] is not None:
                         plot_pfits[ntarg] = pfit
                         pfit_fwhms[ntarg][0].append(nframe)
                         pfit_fwhms[ntarg][1].append(pfit.fwhm)
@@ -1080,14 +1082,9 @@ def nrtplot(args=None):
                 plot_pfits = {}
 
             # Finally we're ready to start plotting
-            # First the main image plot
+            # First time through, create the plot manager
             if imanager is None:
-                # First time through, create the image plot manager
                 imanager = ImageManager(
-                    mccd=mccd,
-                    pfits=plot_pfits,
-                    defects=defects,
-                    swindows=swindows,
                     cnams=ccds,
                     plotall=plotall,
                     ncols=nx,
@@ -1116,28 +1113,18 @@ def nrtplot(args=None):
                     )
                     signal(SIGINT, cleanup)
 
-                # start live display
-                plt.show(block=False)
-                plt.pause(0.1)
+            # Update the image plot
+            imanager.update(mccd, plot_pfits, defects, swindows)
 
-            # Update the image plot (done on every loop)
-            imanager.update(mccd, plot_pfits, swindows)
-
+            # Plot change in FWHM over time for any targets
             if pfit_fwhms and fwnmax > 1:
-                # Plot change in FWHM over time
                 if fwhmmanager is None:
-                    # First time through, create the FWHM plot manager
                     fwhmmanager = FwhmManager(
-                        pfit_fwhms,
                         xlo=nframe - 1,
                         xhi=nframe + fwnmax + 1,
                         fwmax=fwymax,
                         figsize=(fwwidth, fwheight),
                     )
-                    plt.show(block=False)
-                    plt.pause(0.1)
-
-                # Update the FWHM plot (done on every loop)
                 fwhmmanager.update(pfit_fwhms)
 
             # Now print progress indicators
@@ -1171,16 +1158,16 @@ def nrtplot(args=None):
             if pfit_targets is not None:
                 # Print out the results of the profile fits, if any
                 for ntarg in pfit_results:
-                    if pfit_results[ntarg] is not None:
-                        message = pfit_results[ntarg][1]
+                    message = pfit_results[ntarg][1]
+                    if message is not None:
                         print(f"  Target {ntarg}, {message}")
 
                 # If we have two (and only two) fitted targets,
                 # then find the angle between them
                 if (
                     len(pfit_targets) == 2
-                    and pfit_results[1] is not None
-                    and pfit_results[2] is not None
+                    and pfit_results[1][0] is not None
+                    and pfit_results[2][0] is not None
                 ):
                     dx = pfit_targets[2].x - pfit_targets[1].x
                     dy = pfit_targets[2].y - pfit_targets[1].y
@@ -1248,21 +1235,14 @@ class CleanUp:
 class ImageManager(hcam.mpl.AnimationManager):
     """Class to control the image animation.
 
-    Initialising it creates the figure and the animated artists for the first frame.
+    Initialising it creates and opens the empty figure.
+
     After that, call ``update`` once per frame to update the artists,
     and ``refresh`` as often as needed to keep the window responsive.
-
-    Allows plotting of defects and setup windows, and the search box and
-    fitted positions of any profile fit targets.
-
     """
 
     def __init__(
         self,
-        mccd,
-        pfits,
-        defects,
-        swindows,
         cnams,
         plotall,
         ncols,
@@ -1286,24 +1266,6 @@ class ImageManager(hcam.mpl.AnimationManager):
         """Initialises and manages the plot.
 
         Arguments:
-
-        mccd : :class:`MCCD`
-            The first frame to display.
-            Used to create the artists on initialisation;
-            new data should be passed to `update`.
-
-        pfits : dict of {int: :class:`Pfit` or None}
-            One entry per target being profile fitted, keys are target numbers.
-            Contains the Pfit class, or None if no fit was made for that target.
-            Used to create the artists on initialisation;
-            new data should be passed to `update`.
-
-        defects : :class:`MccdDefect` | None
-            Group of defects to plot on each frame, if any.
-
-        swindows : list of tuples, or None
-            List of setup windows to plot on the frame,
-            each tuple is (llxh, llyh, nxh, nyh)
 
         cnams : list of str
             The names of the CCDs to plot.
@@ -1357,8 +1319,6 @@ class ImageManager(hcam.mpl.AnimationManager):
         hcam.mpl.setup_plot(self.fig, disable_shortcuts=False)
 
         # inputs for the image plots
-        self.defects = defects
-        self.swindows = None  # will be set in update_images
         self.cnams = cnams
         self.plotall = plotall
         self.iset = iset
@@ -1366,12 +1326,16 @@ class ImageManager(hcam.mpl.AnimationManager):
         self.region = region
         self.cmap = cmap
 
-        # print out instructions for the user
-        print("\n(use the SpaceBar to select targets for one-off profile fits)\n")
+        # save setup windows to detect any changes
+        self.swindows = None
+
+        # holding dicts for defect, swindow and target artists
+        self.defect_artists = {}
+        self.swindow_artists = {}
+        self.targ_artists = {}
 
         # create the picker class and connect it to the figure
         self.picker = PickProfit(
-            mccd,
             self.fig,
             self.axs,
             shbox,
@@ -1387,46 +1351,61 @@ class ImageManager(hcam.mpl.AnimationManager):
             thresh,
         )
         self.fig.canvas.mpl_connect("key_press_event", self.picker._keyPressEvent)
+        print("\n(use the SpaceBar to select targets for one-off profile fits)\n")
 
-        # create and update the artists
-        self.img_artists = {cnam: None for cnam in self.cnams}
-        self.targ_artists = {ntarg: None for ntarg in pfits}
-        self.update(mccd, pfits, swindows)
-
-        # adjust the layout to prevent overlap
-        # (can only do after the artists are created)
-        self.fig.tight_layout()
+        # open the plot
+        self.show()
 
     def draw_artists(self):
         """Draw all of the animated artists."""
-        for cnam in self.axs:
-            # Draw the CCD artists
-            if self.img_artists[cnam] is not None:
-                # 'ccd' has values which are all lists of artists
-                for artists in self.img_artists[cnam]["ccd"].values():
-                    for artist in artists:
-                        self.fig.draw_artist(artist)
-
-                # so does 'defects'
-                for artists in self.img_artists[cnam]["defects"].values():
-                    for artist in artists:
-                        self.fig.draw_artist(artist)
-
-                # but 'swindows' is a plain list of artists
-                for artist in self.img_artists[cnam]["swindows"]:
-                    self.fig.draw_artist(artist)
-
-        # Draw the target artists
-        for artists in self.targ_artists.values():
-            # targ_artists also contains lists (dot, circ, box)
-            if artists is not None:
+        # Draw the CCD artists
+        for cnam in self.artists:
+            # each CCD has a dictionary of artists (returned by pCcd)
+            for artists in self.artists[cnam].values():
                 for artist in artists:
                     self.fig.draw_artist(artist)
 
-    def update(self, mccd, pfits=None, swindows=None):
-        """Create or update the artists with new data."""
-        # Update the artists for the CCDs and setup windows
-        self._update_images(mccd, swindows)
+        # Draw the defect artists (if any)
+        for cnam in self.defect_artists:
+            # each CCD has a dictionary of artists (returned by pCcdDefect)
+            for artists in self.defect_artists[cnam].values():
+                for artist in artists:
+                    self.fig.draw_artist(artist)
+
+        # Draw the setup window artists (if any)
+        for cnam in self.swindow_artists:
+            # each CCD has a list of artists (boxes)
+            for artist in self.swindow_artists[cnam]:
+                self.fig.draw_artist(artist)
+
+        # Draw the target artists (if any)
+        for ntarg in self.targ_artists:
+            # each target has a list of artists (dot, circ, sbox)
+            for artist in self.targ_artists[ntarg]:
+                self.fig.draw_artist(artist)
+
+    def update(self, mccd, pfits=None, defects=None, swindows=None):
+        """Create or update the artists with new data.
+
+        Arguments:
+
+        mccd : :class:`MCCD`
+            The frame to display.
+
+        pfits : dict of {int: :class:`Pfit` or None}
+            One entry per target being profile fitted, keys are target numbers.
+            Contains the Pfit class, or None if no fit was made for that target.
+
+        defects : :class:`MccdDefect` | None
+            Group of defects to plot on each frame, if any.
+
+        swindows : list of tuples, or None
+            List of setup windows to plot on the frame,
+            each tuple is (llxh, llyh, nxh, nyh)
+
+        """
+        # Update the artists for the CCDs, defects and setup windows
+        self._update_images(mccd, defects, swindows)
 
         # Update the artists for the targets, if any
         if pfits is not None:
@@ -1435,91 +1414,86 @@ class ImageManager(hcam.mpl.AnimationManager):
         # Refresh the display
         self.refresh(redraw=True)
 
-    def _update_images(self, mccd, swindows=None):
+    def _update_images(self, mccd, defects, swindows=None):
         """Create or update the CCD artists."""
-        # update the picker with the new data
+        # Update the picker with the new data
         self.fig.canvas.flush_events()
         self.picker.update(mccd)
 
-        # NB img_artists is a dictionary that will be created to contain all of the
-        # artists plotted on each CCD panel.
-        # The dictionary keys are the CCD names, and each value is another dictionary
-        # with keys:
-        #     'ccd' : dictionary as returned by pCcd
-        #     'defects' : dictionary as returned by pCcdDefect. Can be just {}
-        #     'swindows' : list of Artists, can be just []
-        new_artists = {}
+        # Keep track of if new artists are created
+        new_artists = False
 
-        # update CCD (and defect) artists
-        for cnam in self.img_artists:
+        # Update CCD (and defect) artists
+        for cnam in self.cnams:
             if not mccd[cnam].is_data() and not self.plotall:
-                # no new frame, just pass old artists through (unless plotall is True)
-                new_artists[cnam] = self.img_artists[cnam]
-            else:
-                # create/update the animated artists
-                old_artists = self.img_artists[cnam]
-                new_artists[cnam] = {}
+                # no new frame, just keep any existing artists (unless plotall is True)
+                continue
 
-                # get scale limits
-                vmin, vmax = hcam.mpl.get_scale_limits(
-                    mccd[cnam],
-                    mode=self.iset,
-                    limits=self.ilim,
-                    region=self.region,
-                )
+            # get scale limits
+            vmin, vmax = hcam.mpl.get_scale_limits(
+                mccd[cnam],
+                mode=self.iset,
+                limits=self.ilim,
+                region=self.region,
+            )
 
-                # plot the CCD
-                new_artists[cnam]["ccd"] = hcam.mpl.pCcd(
-                    ax=self.axs[cnam],
-                    ccd=mccd[cnam],
-                    vmin=vmin,
-                    vmax=vmax,
-                    cmap=self.cmap,
-                    tlabel=f"CCD {cnam}",
+            # plot the CCD
+            # pCcd will update the existing artists if they exist,
+            # otherwise it will create new ones
+            if cnam not in self.artists:
+                new_artists = True
+            self.artists[cnam] = hcam.mpl.pCcd(
+                ax=self.axs[cnam],
+                ccd=mccd[cnam],
+                vmin=vmin,
+                vmax=vmax,
+                cmap=self.cmap,
+                tlabel=f"CCD {cnam}",
+                animated=True,
+                artists=self.artists[cnam] if cnam in self.artists else None,
+            )
+
+            # plot the defects, if any
+            if defects is not None and cnam in defects:
+                self.defect_artists[cnam] = hcam.mpl.pCcdDefect(
+                    self.axs[cnam],
+                    defects[cnam],
                     animated=True,
-                    artists=old_artists["ccd"] if old_artists is not None else None,
+                    artists=(
+                        self.defect_artists[cnam]
+                        if cnam in self.defect_artists
+                        else None
+                    ),
                 )
 
-                # plot the defects, if any
-                if self.defects is not None and cnam in self.defects:
-                    new_artists[cnam]["defects"] = hcam.mpl.pCcdDefect(
-                        self.axs[cnam],
-                        self.defects[cnam],
-                        animated=True,
-                        artists=(
-                            old_artists["defects"] if old_artists is not None else None
-                        ),
-                    )
-                else:
-                    new_artists[cnam]["defects"] = {}
-
-                # In this case we are setting up for the first time
-                # need to re-draw to avoid irritating distorted image
-                if old_artists is None:
-                    self.fig.canvas.draw()
+        if new_artists:
+            # In this case we are setting up for the first time
+            # We need to set the layout and re-draw to avoid irritating distorted images
+            self.fig.tight_layout()
+            self.fig.canvas.draw()
 
         # update swindow artists
-        for cnam in self.img_artists:
+        for cnam in self.cnams:
             # The setup windows can change in number as well as size.
             # We only need to update the artists if the windows have changed.
             # Note we still do this even if ccd.is_data() is False,
             # because we want to update the windows even on a frame that is skipped,
             # which is why this is a separate loop.
             ax = self.axs[cnam]
-            old_artists = self.img_artists[cnam]
             if swindows is None or self.swindows != swindows:
                 # the windows have changed (or been removed)
                 # delete any existing artists
-                if old_artists is not None and old_artists["swindows"] is not None:
-                    for artist in old_artists["swindows"]:
+                if cnam in self.swindow_artists:
+                    for artist in self.swindow_artists[cnam]:
                         artist.remove()
+                    del self.swindow_artists[cnam]
 
-            sartists = []
             if swindows is None:
-                # no windows to plot, so just keep an empty list
+                # no windows to plot
                 pass
-            elif old_artists is None or self.swindows != swindows:
+            elif cnam not in self.swindow_artists or self.swindows != swindows:
                 # first time, or the windows have changed, so create new artists
+                sartists = []
                 for llxh, llyh, nxh, nyh in swindows:
                     (box,) = ax.plot(
                         [
@@ -1541,62 +1515,43 @@ class ImageManager(hcam.mpl.AnimationManager):
                         animated=True,
                     )
                     sartists.append(box)
-            else:
-                # the windows are the same, so reuse the existing artists (if any)
-                sartists = old_artists["swindows"]
-
-            if new_artists[cnam] is not None:
-                new_artists[cnam]["swindows"] = sartists
+                self.swindow_artists[cnam] = sartists
 
         # save the current windows for comparison next time
         self.swindows = swindows
 
-        # Finally, update the artists
-        self.img_artists = new_artists
-
     def _update_targets(self, pfits):
         """Create or update the target artists."""
-        new_artists = {}
         for ntarg, pfit in pfits.items():
-            old_artists = self.targ_artists[ntarg]
             if pfit is None:
-                # the fit failed on this frame, so just pass through the old artists
-                # TODO: Is this right? Maybe we should mark it red, like in ftargets
-                new_artists[ntarg] = old_artists
-            else:
-                ax = self.axs[pfit.cnam]
-                if old_artists is None:
-                    # First time, create the new artists
-                    # Each target has three artists:
-                    #     - a dot for the target position
-                    #     - a circle of radius equal to the FWHM
-                    #     - a search box
-                    new_artists[ntarg] = pfit.plot(ax, True)
-                else:
-                    # In this case we have already created the artists,
-                    # so we just update them with the new data
-                    if old_artists is None:
-                        # The artists have yet to be made
-                        new_artists[ntarg] = pfit.plot(ax, True)
-                    else:
-                        # they exist already and need updating
-                        dot, circ, sbox = old_artists
-                        # set_data must take a sequence from MPL 3.9
-                        dot.set_data((pfit.x,), (pfit.y,))
-                        circ.set_center((pfit.x, pfit.y))
-                        circ.set_radius(pfit.fwhm)
-                        xlo, xhi, ylo, yhi = pfit.region()
-                        sbox.set_data(
-                            [xlo, xhi, xhi, xlo, xlo], [ylo, ylo, yhi, yhi, ylo]
-                        )
-                        new_artists[ntarg] = (dot, circ, sbox)
+                # No fit for this target, so nothing to create / update
+                # TODO: Maybe if we already have artists for this target we should
+                #       mark it red, like in ftargets?
+                continue
 
-         # Finally, update the artists
-        self.targ_artists = new_artists
+            if ntarg not in self.targ_artists:
+                # First time, create the new artists
+                # Each target has three artists:
+                #     - a dot for the target position
+                #     - a circle of radius equal to the FWHM
+                #     - a search box
+                self.targ_artists[ntarg] = pfit.plot(self.axs[pfit.cnam], True)
+            else:
+                # Old artists exist, so we need to update them with the new data
+                dot, circ, sbox = self.targ_artists[ntarg]
+                # set_data must take a sequence from MPL 3.9
+                dot.set_data((pfit.x,), (pfit.y,))
+                circ.set_center((pfit.x, pfit.y))
+                circ.set_radius(pfit.fwhm)
+                xlo, xhi, ylo, yhi = pfit.region()
+                sbox.set_data(
+                    [xlo, xhi, xhi, xlo, xlo], [ylo, ylo, yhi, yhi, ylo]
+                )
+                self.targ_artists[ntarg] = (dot, circ, sbox)
 
     def get_ilim(self, cnam):
         """Returns the current intensity limits for the specified CCD."""
-        if self.img_artists[cnam] is None:
+        if self.artists[cnam] is None:
             return None
         imgs = self.axs[cnam].get_images()
         return imgs[0].get_clim()  # for the first window, but should be the same
@@ -1605,16 +1560,11 @@ class ImageManager(hcam.mpl.AnimationManager):
 class FwhmManager(hcam.mpl.AnimationManager):
     """Class to start and control the FWHM history animation."""
 
-    def __init__(self, fwhm_data, xlo, xhi, fwmax, figsize=None):
+    def __init__(self, xlo, xhi, fwmax, figsize=None):
         """
         Initialises the FWHM history plot.
 
         Arguments:
-
-        fwhm_data : dict[int, tuple[deque[float], deque[float]]]
-            dict of FWHM data for each target
-            keys are target numbers, values are tuples of (frame numbers, FWHMs)
-            when the deques are full, the oldest data is dropped from the left
 
         xlo : float
             left-hand X -limit (inital) for plot
@@ -1631,6 +1581,7 @@ class FwhmManager(hcam.mpl.AnimationManager):
 
         """
         # create empty figure and axes
+        # note the axes have animated=True for updating the x-range
         self.fig = plt.figure()
         self.fig.canvas.manager.set_window_title("FWHM vs frame number")
         if figsize is not None and figsize[0] > 0 and figsize[1] > 0:
@@ -1649,40 +1600,54 @@ class FwhmManager(hcam.mpl.AnimationManager):
         self.ax.set_xlim(self.xlo, self.xhi)
         self.ax.set_ylim(self.ylo, self.yhi)
 
-        # plot a line for each target
-        self.fwhm_artists = {ntarg: None for ntarg in fwhm_data}
-        self.update(fwhm_data)
-
         # plot formatting
         self.ax.set_xlabel("Frame number")
         self.ax.set_ylabel("FWHM [unbinned pixels]")
-        self.ax.legend()
+
+        # open the plot
+        self.show()
 
     def draw_artists(self):
         """Draw all of the animated artists."""
-        # Draw the axes
+        # Draw the axes (needed to update the x-axis limits)
         self.fig.draw_artist(self.ax)
 
         # Draw the artists
-        for artist in self.fwhm_artists.values():
-            if artist is not None:
-                self.fig.draw_artist(artist)
+        for artist in self.artists.values():
+            self.fig.draw_artist(artist)
 
     def update(self, fwhm_data):
-        """Create or update the artists with new data."""
+        """Create or update the artists with new data.
+
+        Arguments:
+
+        fwhm_data : dict[int, tuple[deque[float], deque[float]]]
+            dict of FWHM data for each target
+            keys are target numbers, values are tuples of (frame numbers, FWHMs)
+            when the deques are full, the oldest data is dropped from the left
+
+        """
+        new_artists = False
         xmax = None
         for ntarg, (xs, ys) in fwhm_data.items():
-            if self.fwhm_artists[ntarg] is None:
+            if ntarg not in self.artists:
                 # First time, create the new artists
                 (artist,) = self.ax.plot(xs, ys, animated=True, label=f"{ntarg}")
-                self.fwhm_artists[ntarg] = artist
+                self.artists[ntarg] = artist
+                new_artists = True
+
             else:
                 # Update existing artists
-                self.fwhm_artists[ntarg].set_data(xs, ys)
+                self.artists[ntarg].set_data(xs, ys)
+
             # Keep track of the maximum x value,
             # so we can adjust the x-axis limits if needed
             if len(xs):
                 xmax = max(xs) if xmax is None else max(xmax, max(xs))
+
+        # Add the legend only on the first update with new lines
+        if new_artists:
+            self.ax.legend()
 
         if xmax is not None and xmax > self.xhi - 1:
             # update axes limits
@@ -1808,7 +1773,6 @@ class PickProfit:
 
     def __init__(
         self,
-        mccd,
         fig,
         axs,
         shbox,
@@ -1823,13 +1787,13 @@ class PickProfit:
         gain,
         thresh,
     ):
-        # image content data
-        self.mccd = mccd
-
         # figure and axes
         self.fig = fig
         self.axs = axs
         self.axnams = {ax: cnam for cnam, ax in axs.items()}  # reverse for events
+
+        # image content data
+        self.mccd = {}  # set by update()
 
         # fitting params
         self.shbox = shbox
@@ -1862,21 +1826,20 @@ class PickProfit:
 
             # extract the CCD
             cnam = self.axnams[ax]
-            ccd = self.mccd[cnam]
-            if not ccd.is_data():
+            if cnam not in self.mccd or not self.mccd[cnam].is_data():
                 # nothing to fit
                 return
 
             # check that the position is inside a window
             x, y = event.xdata, event.ydata
-            wnam = ccd.inside(x, y, 2)
+            wnam = self.mccd[cnam].inside(x, y, 2)
 
             if wnam is not None:
                 # store the position, Window label, target number,
                 # box size fwhm, beta
                 pfit = Pfit(cnam, wnam, x, y, self.shbox, self.fwhm, self.beta)
                 results, message = pfit.fit(
-                    ccd,
+                    self.mccd[cnam],
                     self.method,
                     self.smooth,
                     self.fhbox,

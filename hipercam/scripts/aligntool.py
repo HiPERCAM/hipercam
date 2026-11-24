@@ -427,10 +427,6 @@ def aligntool(args=None):
     #
     # all the inputs have now been obtained. Get on with doing stuff
 
-    # Initialise the plot managers to None, so we can create them on the first frame
-    imanager = None
-    fwhmmanager = None
-
     # Calibrate and measure spots in reference image
     # Since this doesn't change, we only need to do it once outside the loop
     ref_ccd = ref_mccd[ref_cnam]
@@ -450,6 +446,17 @@ def aligntool(args=None):
     except Exception as err:
         raise ValueError(f"Failed to find spots in reference CCD {ref_cnam}") from err
 
+    # Initialise the plot managers
+    imanager = ImageManager(
+        ref_ccd=ref_ccd,
+        iset=iset,
+        ilim=(plo, phi) if iset == "p" else (ilo, ihi),
+        region=(xlo, xhi, ylo, yhi),
+        cmap=cmap,
+        figsize=(width, height),
+    )
+    fwhmmanager = FwhmManager(fix_fwhm_scale=False)
+
     # Start the main loop
     total_time = 0.0
     with spooler.data_source(source, resource, first) as spool:
@@ -460,12 +467,7 @@ def aligntool(args=None):
                 # Includes some awkward stuff involving updating on a cycle
                 # faster than twait to make the plots more responsive,
                 # if twait is long.
-                updaters = []
-                if imanager is not None:
-                    updaters.append(imanager.refresh)
-                if fwhmmanager is not None:
-                    updaters.append(fwhmmanager.refresh)
-
+                updaters = [imanager.refresh, fwhmmanager.refresh]
                 give_up, try_again, total_time = spooler.hang_about(
                     mccd, twait, tmax, total_time, updaters, tupdate
                 )
@@ -491,24 +493,7 @@ def aligntool(args=None):
                 for wind in ref_ccd.values():
                     wind -= wind.median()
 
-            # We're ready to start plotting
-            if imanager is None:
-                # First time through, create the image plot manager
-                imanager = ImageManager(
-                    ccd=ccd,
-                    ref_ccd=ref_ccd,
-                    iset=iset,
-                    ilim=(plo, phi) if iset == "p" else (ilo, ihi),
-                    region=(xlo, xhi, ylo, yhi),
-                    cmap=cmap,
-                    figsize=(width, height),
-                )
-
-                # start live display
-                plt.show(block=False)
-                plt.pause(0.1)
-
-            # Update the image plot (done on every loop)
+            # Update the image plot
             imanager.update(ccd)
 
             # Now print progress indicators
@@ -558,16 +543,6 @@ def aligntool(args=None):
                 "fwhm": f,
                 "flux": flux,
             }
-            if fwhmmanager is None:
-                # First time through, create the FWHM plot manager
-                fwhmmanager = FwhmManager(
-                    fwhm_data,
-                    fix_fwhm_scale=False,
-                )
-                plt.show(block=False)
-                plt.pause(0.1)
-
-            # Update the FWHM plot (done on every loop)
             fwhmmanager.update(fwhm_data)
 
             if pause > 0.0:
@@ -592,11 +567,16 @@ def aligntool(args=None):
 
 
 class ImageManager(hcam.mpl.AnimationManager):
-    """Class to control the image animation."""
+    """Class to control the image animation.
+
+    Initialising it creates and opens the empty figure.
+
+    After that, call ``update`` once per frame to update the artists,
+    and ``refresh`` as often as needed to keep the window responsive.
+    """
 
     def __init__(
         self,
-        ccd,
         ref_ccd,
         iset,
         ilim,
@@ -607,11 +587,6 @@ class ImageManager(hcam.mpl.AnimationManager):
         """Initialises and manages the plot.
 
         Arguments:
-
-        ccd : :class:`CCD` | None
-            The first frame to display.
-            Used to create the artists on initialisation;
-            new data should be passed to `update`.
 
         ref_ccd : :class:`CCD` | None
             The calibrated reference CCD.
@@ -663,29 +638,34 @@ class ImageManager(hcam.mpl.AnimationManager):
         self.region = region
         self.cmap = cmap
 
-        # create and update the artists
-        self.img_artists = {cnam: None for cnam in self.axs}
-        self.update(ccd)
-
-        # adjust the layout to prevent overlap
-        # (can only do after the artists are created)
-        self.fig.tight_layout()
+        # open the plot
+        self.show()
 
     def draw_artists(self):
         """Draw all of the animated artists."""
-        for cnam in self.axs:
-            # Draw the CCD artists
-            if self.img_artists[cnam] is not None:
-                for artists in self.img_artists[cnam].values():
-                    for artist in artists:
-                        self.fig.draw_artist(artist)
+        # Draw the CCD artists
+        for cnam in self.artists:
+            # each CCD has a dictionary of artists (returned by pCcd)
+            for artists in self.artists[cnam].values():
+                for artist in artists:
+                    self.fig.draw_artist(artist)
 
     def update(self, ccd):
-        """Create or update the artists with new data."""
-        new_artists = {}
+        """Create or update the artists with new data.
 
-        # First, update the reference CCD artists (only done once)
-        if self.img_artists['reference'] is None:
+        Arguments:
+
+        ccd : :class:`CCD` | None
+            The frame to display.
+
+        """
+        # Keep track of if new artists are created
+        new_artists = False
+
+        # First, plot the reference CCD (only done once)
+        if 'reference' not in self.artists:
+            new_artists = True
+
             # get scale limits
             vmin, vmax = hcam.mpl.get_scale_limits(
                 self.ref_ccd,
@@ -695,7 +675,7 @@ class ImageManager(hcam.mpl.AnimationManager):
             )
 
             # plot the reference CCD
-            new_artists['reference'] = hcam.mpl.pCcd(
+            self.artists['reference'] = hcam.mpl.pCcd(
                 ax=self.axs['reference'],
                 ccd=self.ref_ccd,
                 vmin=vmin,
@@ -705,19 +685,9 @@ class ImageManager(hcam.mpl.AnimationManager):
                 animated=True,
                 artists=None,
             )
-        else:
-            # the reference doesn't change, so just pass old artists through
-            new_artists['reference'] = self.img_artists['reference']
 
-        # now update CCD artists for the current frame
-        if not ccd.is_data():
-            # no new frame, just pass old artists through
-            new_artists['data'] = self.img_artists['data']
-        else:
-            # create/update the animated artists
-            old_artists = self.img_artists['data']
-            new_artists['data'] = {}
-
+        # Update CCD artists for the new data frame
+        if ccd.is_data():
             # get scale limits
             vmin, vmax = hcam.mpl.get_scale_limits(
                 ccd=ccd,
@@ -727,9 +697,11 @@ class ImageManager(hcam.mpl.AnimationManager):
             )
 
             # plot the CCD
-            # if old_artists is not None they will be updated and returned,
-            # otherwise new artists will be created
-            new_artists['data'] = hcam.mpl.pCcd(
+            # pCcd will update the existing artists if they exist,
+            # otherwise it will create new ones
+            if "data" not in self.artists:
+                new_artists = True
+            self.artists['data'] = hcam.mpl.pCcd(
                 ax=self.axs['data'],
                 ccd=ccd,
                 vmin=vmin,
@@ -737,21 +709,21 @@ class ImageManager(hcam.mpl.AnimationManager):
                 cmap=self.cmap,
                 tlabel='data',
                 animated=True,
-                artists=old_artists,
+                artists=self.artists['data'] if 'data' in self.artists else None,
             )
 
+        if new_artists:
             # In this case we are setting up for the first time
-            # need to re-draw to avoid irritating distorted image
-            if old_artists is None:
-                self.fig.canvas.draw()
+            # We need to set the layout and re-draw to avoid irritating distorted images
+            self.fig.tight_layout()
+            self.fig.canvas.draw()
 
-        # Finally, update the artists and refresh the display
-        self.img_artists = new_artists
+        # Refresh the display
         self.refresh(redraw=True)
 
     def get_ilim(self, cnam):
         """Returns the current intensity limits for the specified CCD."""
-        if self.img_artists[cnam] is None:
+        if self.artists[cnam] is None:
             return None
         imgs = self.axs[cnam].get_images()
         return imgs[0].get_clim()  # for the first window, but should be the same
@@ -760,7 +732,7 @@ class ImageManager(hcam.mpl.AnimationManager):
 class FwhmManager(hcam.mpl.AnimationManager):
     """Class to start and control the FWHM history animation."""
 
-    def __init__(self, data, fix_fwhm_scale=False, bins=20):
+    def __init__(self, fix_fwhm_scale=False, bins=20):
         """Initialises the FWHM history plot."""
         # create empty figure
         self.fig = plt.figure()
@@ -811,9 +783,8 @@ class FwhmManager(hcam.mpl.AnimationManager):
             self.axs['y'].set_xlim(1.9, 2.8)
             self.axs['x'].set_ylim(1.9, 2.8)
 
-        # create and update the artists
-        self.artists = {}
-        self.update(data)
+        # open the plot
+        self.show()
 
     def draw_artists(self):
         """Draw all of the animated artists."""

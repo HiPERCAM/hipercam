@@ -491,9 +491,6 @@ def reduce(args=None):
         sbuffer = None
         tbuffer = None
 
-    # Initialise the plot managers to None, so we can create them on the first frame
-    imanager = None
-    psfmanager = None
 
     # Set up the multiprocessing pool if requested
     ncpu = rfile["general"]["ncpu"]
@@ -510,7 +507,39 @@ def reduce(args=None):
     # get hipercam version to write into the reduce log file
     hipercam_version = hcam.version()
 
-    ############################################
+    # Initialise the plot managers
+    # These both use the exact same base class, aside from `plot_psf_residuals`
+    if implot:
+        imanager = ImageManager(
+            plot_psf_residuals=False,
+            cnams=ccds,
+            plotall=plotall,
+            ncols=nx,
+            iset=iset,
+            ilim=(plo, phi) if iset == "p" else (ilo, ihi),
+            region=(xlo, xhi, ylo, yhi),
+            msub=msub,
+            cmap=cmap,
+            figsize=(  # these are the only plot params in the reduce file
+                rfile["general"]["iwidth"], rfile["general"]["iheight"]
+            ),
+        )
+    if psfplot:
+        psfmanager = ImageManager(
+            plot_psf_residuals=True,
+            cnams=ccds,
+            plotall=plotall,
+            ncols=nx,
+            iset=iset,
+            ilim=(plo, phi) if iset == "p" else (ilo, ihi),
+            region=(xlo, xhi, ylo, yhi),
+            msub=msub,
+            cmap=cmap,
+            figsize=(  # these are the only plot params in the reduce file
+                rfile["general"]["iwidth"], rfile["general"]["iheight"]
+            ),
+        )
+
     # Start the main loop
     total_time = 0.0
     with (
@@ -525,9 +554,9 @@ def reduce(args=None):
                 # faster than twait to make the plots more responsive,
                 # if twait is long.
                 updaters = []
-                if imanager is not None:
+                if implot:
                     updaters.append(imanager.refresh)
-                if psfmanager is not None:
+                if psfplot:
                     updaters.append(psfmanager.refresh)
 
                 give_up, try_again, total_time = spooler.hang_about(
@@ -687,31 +716,9 @@ def reduce(args=None):
             # Finally we're ready to start plotting
             # First the main image plot
             if implot:
-                if imanager is None:
-                    # First time through, create the image plot manager
-                    imanager = ImageManager(
-                        mccd=mccd,
-                        results=results,
-                        cnams=ccds,
-                        plot_psf_residuals=False,
-                        plotall=plotall,
-                        ncols=nx,
-                        iset=iset,
-                        ilim=(plo, phi) if iset == "p" else (ilo, ihi),
-                        region=(xlo, xhi, ylo, yhi),
-                        msub=msub,
-                        cmap=cmap,
-                        figsize=(  # these are the only plot params in the reduce file
-                            rfile["general"]["iwidth"], rfile["general"]["iheight"]
-                        ),
-                    )
-
-                    # start live display
-                    plt.show(block=False)
-                    plt.pause(0.1)
-
-                # Update the image plot (done on every loop)
-                imanager.update(mccd, results)
+                # Update the image plot
+                # (note plotting the processed data)
+                imanager.update(pccd, results)
 
                 # Get statistics to print out
                 message = f"exp= {mccd.head['EXPTIME']:.4f}"
@@ -732,31 +739,7 @@ def reduce(args=None):
 
             # The PSF plot
             if use_psf and psfplot:
-                if psfmanager is None:
-                    # First time through, create the PSF plot manager
-                    psfmanager = ImageManager(
-                        mccd=mccd,
-                        results=results,
-                        cnams=ccds,
-                        plot_psf_residuals=True,
-                        plotall=plotall,
-                        ncols=nx,
-                        iset=iset,
-                        ilim=(plo, phi) if iset == "p" else (ilo, ihi),
-                        region=(xlo, xhi, ylo, yhi),
-                        msub=msub,
-                        cmap=cmap,
-                        figsize=(  # these are the only plot params in the reduce file
-                            rfile["general"]["iwidth"], rfile["general"]["iheight"]
-                        ),
-                    )
-
-                    # start live display
-                    plt.show(block=False)
-                    plt.pause(0.1)
-
-                # Update the image plot (done on every loop)
-                psfmanager.update(mccd, results)
+                psfmanager.update(pccd, results)
 
             # The Lightcurve plot
             if lcplot:
@@ -803,10 +786,10 @@ def reduce(args=None):
 
             # update the plots with the new results
             if implot:
-                imanager.update(mccd, results)
-                # TODO: we don't print the image limits here
+                imanager.update(pccd, results)
+                # TODO: we don't print the image limits here (could be in update?)
             if use_psf and psfplot:
-                psfmanager.update(mccd, results)
+                psfmanager.update(pccd, results)
             if lcplot:
                 tzero = update_lcplot(
                     results,
@@ -2125,7 +2108,8 @@ class ImageManager(hcam.mpl.AnimationManager):
     The same class is used for the Image and PSF residual plots, using the
     `plot_psf_residuals` flag to control which is displayed.
 
-    Initialising it creates the figure and the animated artists for the first frame.
+    Initialising it creates and opens the empty figure.
+
     After that, call ``update`` once per frame to update the artists,
     and ``refresh`` as often as needed to keep the window responsive.
 
@@ -2133,10 +2117,8 @@ class ImageManager(hcam.mpl.AnimationManager):
 
     def __init__(
         self,
-        mccd,
-        results,
-        cnams,
         plot_psf_residuals,
+        cnams,
         plotall,
         ncols,
         iset,
@@ -2150,25 +2132,14 @@ class ImageManager(hcam.mpl.AnimationManager):
 
         Arguments:
 
-        mccd : :class:`MCCD`
-            The first frame to display.
-            Used to create the artists on initialisation;
-            new data should be passed to `update`.
-
-        results : list
-            The results for the first frame, as returned by ProcessCCDs.
-            Used to create the artists on initialisation;
-            new data should be passed to `update`.
+        plot_psf_residuals : bool
+            If True, plot the residuals of the PSF fit instead of the CCD data.
+            Requires there to be PSF fit results in the `results` argument
+            passed to `update()`, meaining ProcessCCDs must have been called
+            using `extractFluxPSF` as the process function.
 
         cnams : list of str
             The names of the CCDs to plot.
-
-        plot_psf_residuals : bool
-            If True, plot the residuals of the PSF fit instead of the CCD data.
-            Used when psfplot is True.
-            Requires there to be PSF fit results in the `results` argument,
-            meaining ProcessCCDs must have been called using `extractFluxPSF`
-            as the process function.
 
         plotall : bool
             If True, plot all frames, even if they contain no data.
@@ -2225,33 +2196,42 @@ class ImageManager(hcam.mpl.AnimationManager):
         self.msub = msub
         self.cmap = cmap
 
-        # create and update the artists
-        self.img_artists = {cnam: None for cnam in self.cnams}
-        self.aper_artists = {cnam: None for cnam in self.cnams}
-        self.update(mccd, results)
+        # holding dict for aperture artists
+        self.aper_artists = {}
 
-        # adjust the layout to prevent overlap
-        # (can only do after the artists are created)
-        self.fig.tight_layout()
+        # open the plot
+        self.show()
 
     def draw_artists(self):
         """Draw all of the animated artists."""
-        for cnam in self.axs:
-            # Draw the CCD artists
-            if self.img_artists[cnam] is not None:
-                for artists in self.img_artists[cnam].values():
-                    for artist in artists:
-                        self.fig.draw_artist(artist)
+        # Draw the CCD artists
+        for cnam in self.artists:
+            # each CCD has a dictionary of artists (returned by pCcd)
+            for artists in self.artists[cnam].values():
+                for artist in artists:
+                    self.fig.draw_artist(artist)
 
-            # Draw the aperture artists
-            if self.aper_artists[cnam] is not None:
-                for artists in self.aper_artists[cnam].values():
-                    if artists is not None:
-                        for artist in artists:
-                            self.fig.draw_artist(artist)
+        # Draw the aperture artists
+        for cnam in self.aper_artists:
+            # each CCD has a dictionary of artists (returned by pCcdAper)
+            for artists in self.aper_artists[cnam].values():
+                for artist in artists:
+                    self.fig.draw_artist(artist)
 
     def update(self, mccd, results):
-        """Create or update the artists with new data."""
+        """Create or update the artists with new data.
+
+        Arguments :
+
+        mccd : :class:`MCCD`
+            The frame to display.
+
+        results : list
+            The results for the frame, as returned by ProcessCCDs.
+            If `plot_psf_residuals` is True, the results must contain PSF fit results
+            for each CCD, otherwise the residuals cannot be computed.
+
+        """
         # TODO: results should just be a dict, or some nicer data structure?
         results = dict(results)
 
@@ -2266,134 +2246,108 @@ class ImageManager(hcam.mpl.AnimationManager):
 
     def _update_images(self, mccd, results):
         """Create or update the CCD artists."""
-        new_artists = {}
-        for cnam in self.img_artists:
+        # Keep track of if new artists are created
+        new_artists = False
+
+        for cnam in self.cnams:
             if not mccd[cnam].is_data() and not self.plotall:
-                # no new frame, just pass old artists through (unless plotall is True)
-                new_artists[cnam] = self.img_artists[cnam]
+                # no new frame, just keep any existing artists (unless plotall is True)
+                continue
+
+            if not self.plot_psf_residuals:
+                # Normal case, plot the CCD data
+                ccd = mccd[cnam].copy()
+
+                # subtract median from each window
+                if self.msub:
+                    for wind in ccd.values():
+                        wind -= wind.median()
+
             else:
-                # create/update the animated artists
-                old_artists = self.img_artists[cnam]
-                new_artists[cnam] = {}
+                # PSFplot case, plot the residuals of the PSF fit
+                if cnam not in results:
+                    # no new result, just keep any existing artists
+                    continue
 
-                if not self.plot_psf_residuals:
-                    # Normal case, plot the CCD data
-                    # subtract median from each window
-                    if self.msub:
-                        for wind in mccd[cnam].values():
-                            wind -= wind.median()
+                # we always use the last result in the parallel group
+                last_res = results[cnam][-1]
+                psf_store = last_res[1]
+                psf_model, box_wnam, box_limits = psf_store.get(
+                    f"psf_model_{cnam}", None
+                )
 
-                    # get scale limits
-                    vmin, vmax = hcam.mpl.get_scale_limits(
-                        mccd[cnam],
-                        mode=self.iset,
-                        limits=self.ilim,
-                        region=self.region,
-                    )
+                if psf_model is None:
+                    # no PSF model in the results, just keep any existing artists
+                    continue
 
-                    # plot the CCD
-                    new_artists[cnam] = hcam.mpl.pCcd(
-                        ax=self.axs[cnam],
-                        ccd=mccd[cnam],
-                        vmin=vmin,
-                        vmax=vmax,
-                        cmap=self.cmap,
-                        tlabel=f"CCD {cnam}",
-                        animated=True,
-                        artists=old_artists,
-                    )
-                else:
-                    # PSFplot case, plot the residuals of the PSF fit
-                    if cnam not in results:
-                        # no new result, just pass old artists through
-                        new_artists[cnam] = old_artists
-                    else:
-                        # we always use the last result in the parallel group
-                        last_res = results[cnam][-1]
-                        psf_store = last_res[1]
-                        psf_model, box_wnam, box_limits = psf_store.get(
-                            f"psf_model_{cnam}", None
-                        )
+                ccd = mccd[cnam].copy()
 
-                        if psf_model is None:
-                            # no PSF model in the results, just pass old artists through
-                            new_artists[cnam] = old_artists
-                        else:
-                            data_minus_model = mccd[cnam].copy()
+                # find the indices of the stamp used for PSF photometry
+                window = ccd[box_wnam]
+                x1, x2, y1, y2 = box_limits
+                # code copied from window class
+                winh = super(hcam.Window, window).window(x1, x2, y1, y2)
+                ix1 = (winh.llx - window.llx) // window.xbin
+                iy1 = (winh.lly - window.lly) // window.ybin
+                iy2 = iy1 + winh.ny
+                ix2 = ix1 + winh.nx
 
-                            # find the indices of the stamp used for PSF photometry
-                            window = data_minus_model[box_wnam]
-                            x1, x2, y1, y2 = box_limits
-                            # code copied from window class
-                            winh = super(hcam.Window, window).window(x1, x2, y1, y2)
-                            ix1 = (winh.llx - window.llx) // window.xbin
-                            iy1 = (winh.lly - window.lly) // window.ybin
-                            iy2 = iy1 + winh.ny
-                            ix2 = ix1 + winh.nx
+                # extract a view of the data array
+                data = window.data[iy1:iy2, ix1:ix2]
+                resid = psf_model.make_residual_image(data)
+                ccd[box_wnam].data[iy1:iy2, ix1:ix2] = resid
 
-                            # extract a view of the data array
-                            data = window.data[iy1:iy2, ix1:ix2]
-                            resid = psf_model.make_residual_image(data)
-                            data_minus_model[box_wnam].data[iy1:iy2, ix1:ix2] = resid
+            # get scale limits
+            vmin, vmax = hcam.mpl.get_scale_limits(
+                ccd,
+                mode=self.iset,
+                limits=self.ilim,
+                region=self.region,
+            )
 
-                            # get scale limits
-                            vmin, vmax = hcam.mpl.get_scale_limits(
-                                data_minus_model,
-                                mode=self.iset,
-                                limits=self.ilim,
-                                region=self.region,
-                            )
+            # plot the CCD residuals
+            if cnam not in self.artists:
+                new_artists = True
+            self.artists[cnam] = hcam.mpl.pCcd(
+                ax=self.axs[cnam],
+                ccd=ccd,
+                vmin=vmin,
+                vmax=vmax,
+                cmap=self.cmap,
+                tlabel=f"CCD {cnam}",
+                animated=True,
+                artists=self.artists[cnam] if cnam in self.artists else None,
+                )
 
-                            # plot the CCD residuals
-                            new_artists[cnam] = hcam.mpl.pCcd(
-                                ax=self.axs[cnam],
-                                ccd=data_minus_model,
-                                vmin=vmin,
-                                vmax=vmax,
-                                cmap=self.cmap,
-                                tlabel=f"CCD {cnam}",
-                                animated=True,
-                                artists=old_artists,
-                            )
-
-                # In this case we are setting up for the first time
-                # need to re-draw to avoid irritating distorted image
-                if old_artists is None:
-                    self.fig.canvas.draw()
-
-        # Finally, update the artists
-        self.img_artists = new_artists
+        if new_artists:
+            # In this case we are setting up for the first time
+            # We need to set the layout and re-draw to avoid irritating distorted images
+            self.fig.tight_layout()
+            self.fig.canvas.draw()
 
     def _update_apertures(self, results):
         """Create or update the aperture artists."""
         # TODO: Don't plot apertures if ccd.is_data() is False (for plotall=True)?
-        new_artists = {}
-        for cnam in self.aper_artists:
+        for cnam in self.cnams:
             if cnam not in results:
-                # no new result, just pass old artists through
-                new_artists[cnam] = self.aper_artists[cnam]
-            else:
-                # we always use the last result in the parallel group
-                last_res = results[cnam][-1]
-                ccd_aper = last_res[2]
+                # no new result, just keep any existing artists
+                continue
 
-                # create/update the animated artists
-                old_artists = self.aper_artists[cnam]
+            # we always use the last result in the parallel group
+            last_res = results[cnam][-1]
+            ccd_aper = last_res[2]
 
-                # plot all the apertures for this CCD
-                new_artists[cnam] = hcam.mpl.pCcdAper(
-                    ax=self.axs[cnam],
-                    ccdAper=ccd_aper,
-                    animated=True,
-                    artists=old_artists,
-                )
-
-         # Finally, update the artists
-        self.aper_artists = new_artists
+            # plot all the apertures for this CCD
+            self.aper_artists[cnam] = hcam.mpl.pCcdAper(
+                ax=self.axs[cnam],
+                ccdAper=ccd_aper,
+                animated=True,
+                artists=self.aper_artists[cnam] if cnam in self.aper_artists else None,
+            )
 
     def get_ilim(self, cnam):
         """Returns the current intensity limits for the specified CCD."""
-        if self.img_artists[cnam] is None:
+        if self.artists[cnam] is None:
             return None
         imgs = self.axs[cnam].get_images()
         return imgs[0].get_clim()  # for the first window, but should be the same
