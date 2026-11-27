@@ -418,6 +418,25 @@ def reduce(args=None):
             "imheight", "image plot height [inches, 0 for default]", 0.0, 0.0
         )
 
+        # iwidth and iheight are also options in the reduce file.
+        # for backwards-compatibility, use them if given
+        # TODO: is this right? Once we read them once they're saved in the Cline file
+        # TODO: just remove them from the reduce file, along with all the PGPLOT bits
+        if (
+            rfile["general"]["iwidth"] > 0
+            and rfile["general"]["iheight"] > 0
+        ):
+            if (
+                imwidth != 0
+                and imheight != 0
+                and imwidth != rfile["general"]["iwidth"]
+                and imheight != rfile["general"]["iheight"]
+            ):
+                # TODO: this will print every time, unless we overwrite the Cline file
+                print("Using iwidth and iheight from reduce file")
+            imwidth = rfile["general"]["iwidth"]
+            imheight = rfile["general"]["iheight"]
+
         imxpos = cl.get_value(
             "imxpos", "image plot X position [screen pixels]", 0,
         )
@@ -444,6 +463,19 @@ def reduce(args=None):
             psfheight = cl.get_value(
                 "psfheight", "PSF plot height [inches, 0 for default]", 0.0, 0.0
             )
+
+            # like imwidth and imheight, use iwidth and iheight from the reduce file
+            # if given for backwards-compatibility
+            if rfile["general"]["iwidth"] > 0 and rfile["general"]["iheight"] > 0:
+                if (
+                    psfwidth != 0
+                    and psfheight != 0
+                    and psfwidth != rfile["general"]["iwidth"]
+                    and psfheight != rfile["general"]["iheight"]
+                ):
+                    print("Using iwidth and iheight from reduce file")
+                psfwidth = rfile["general"]["iwidth"]
+                psfheight = rfile["general"]["iheight"]
 
             psfxpos = cl.get_value(
                 "psfxpos", "PSF plot X position [screen pixels]", 0,
