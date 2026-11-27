@@ -6,6 +6,7 @@ matplotlib plotting functions.
 from __future__ import annotations
 
 import os
+import re
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
@@ -14,6 +15,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 
 from . import defect, utils
+from .cline import Cline
 from .core import CIS, HipercamError
 
 if TYPE_CHECKING:
@@ -931,12 +933,117 @@ def get_scale_limits(ccd, mode, limits, region=None):
     return vmin, vmax
 
 
+def get_window_position(fig):
+    """Extracts the position of an open figure window."""
+    manager = fig.canvas.manager
+    backend = plt.get_backend().lower()
+
+    if "qt" in backend:
+        # Qt uses QRect: x(), y()
+        rect = manager.window.geometry()
+        xpos, ypos = rect.x(), rect.y()
+        return [xpos, ypos]
+
+    elif "tk" in backend:
+        # Tk returns a string formatted as 'WxH+X+Y', or '-X-Y' for negative positions
+        geom = manager.window.geometry()
+        match = re.match(r"(\d+)x(\d+)([+-]\d+)([+-]\d+)", geom)
+        _width, _height, xpos, ypos = match.groups()
+        return [int(xpos), int(ypos)]
+
+    elif "wx" in backend:
+        # wxPython uses tuples for position and size
+        xpos, ypos = manager.frame.GetPosition()
+        return [xpos, ypos]
+
+    else:
+        raise NotImplementedError(
+            f"Window position extraction not implemented for backend '{backend}', "
+            "set memory=False."
+        )
+
+
+def set_window_position(fig, xpos, ypos):
+    """Sets the position of the figure window."""
+    manager = fig.canvas.manager
+    backend = plt.get_backend().lower()
+    xpos = int(xpos)
+    ypos = int(ypos)
+
+    if "qt" in backend:
+        rect = manager.window.geometry()
+        manager.window.setGeometry(xpos, ypos, rect.width(), rect.height())
+    elif "tk" in backend:
+        xpos_str = f"-{-xpos}" if xpos < 0 else f"+{xpos}"
+        ypos_str = f"-{-ypos}" if ypos < 0 else f"+{ypos}"
+        manager.window.geometry(f"{xpos_str}{ypos_str}")
+    elif "wx" in backend:
+        width, height = manager.frame.GetSize()
+        manager.frame.SetSize(xpos, ypos, width, height)
+
+
+def store_window(fig, command, args, prefix="im"):
+    """Store the figure size and position in the Cline file for a script.
+
+    This is to replicate the PGPLOT behaviour of keeping the windows open
+    after a script has finished. We can't do that without a long-lasting server,
+    but this allows you to position the window and have it reopen in the same
+    position when the script is restarted.
+
+    Arguments::
+
+        fig : matplotlib.figure.Figure
+            The figure to store the size and position for.
+
+        command : str
+            The command to store the window size and position for.
+            This is sent directly to Cline, so should be the name of the script
+            that is calling this function.
+
+        args : list[str]
+            The arguments to the script command, which will be stored in the Cline file.
+            See `trm.cline.script_args()` for details.
+
+        prefix : str
+            The prefix to use for the parameter names in the Cline file.
+            Parameters will be stored as:
+                {prefix}width, {prefix}height, {prefix}xpos, {prefix}ypos
+            Default is "im", so the parameters will be:
+                "imwidth", "imheight", "imxpos", "imypos"
+
+    """
+    with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
+        # get config param names
+        width_param = f"{prefix}width"
+        height_param = f"{prefix}height"
+        xpos_param = f"{prefix}xpos"
+        ypos_param = f"{prefix}ypos"
+
+        # get and store the current figure size (in inches)
+        width = fig.get_figwidth()
+        height = fig.get_figheight()
+        cl.register(width_param, Cline.LOCAL, Cline.HIDE)
+        cl.register(height_param, Cline.LOCAL, Cline.HIDE)
+        cl.set_default(width_param, width)
+        cl.set_default(height_param, height)
+
+        # get and store the current screen position of the figure (in pixels)
+        xpos, ypos = get_window_position(fig)
+        cl.register(xpos_param, Cline.LOCAL, Cline.HIDE)
+        cl.register(ypos_param, Cline.LOCAL, Cline.HIDE)
+        cl.set_default(xpos_param, xpos)
+        cl.set_default(ypos_param, ypos)
+
+    return width, height, xpos, ypos
+
+
 def create_figure(
     cnams: list[str],
     ncols: int,
     region: tuple[int, int, int, int] | None = None,
     title: str | None = None,
     figsize: tuple[float, float] | None = None,
+    position: tuple[int, int] | None = None,
 ):
     """
     Sets up the figure and axes for plotting an MCCD.
@@ -963,6 +1070,10 @@ def create_figure(
             The width and height of the figure, in inches.
             If None, the default size is used.
 
+        position : tuple[int, int] | None
+            The position of the figure window on the screen, in pixels.
+            If None, the default position is used.
+
     Returns::
         fig: matplotlib.figure.Figure
             The figure object.
@@ -981,6 +1092,8 @@ def create_figure(
         fig.canvas.manager.set_window_title(title)
     if figsize is not None and figsize[0] > 0 and figsize[1] > 0:
         fig.set_size_inches(figsize)
+    if position is not None:
+        set_window_position(fig, position[0], position[1])
 
     # Define the panel grid
     ncols = min(len(cnams), ncols) if len(cnams) > 1 else 1
@@ -1023,6 +1136,7 @@ def plot_frame(
     region: tuple[int, int, int, int] | None = None,
     title: str | None = None,
     figsize: tuple[float, float] | None = None,
+    position: tuple[int, int] | None = None,
 ) -> tuple[plt.Figure, dict[str, plt.Axes]]:
     """Creates a plot of an :class:`Mccd` object.
 
@@ -1077,6 +1191,10 @@ def plot_frame(
             The width and height of the figure, in inches.
             If None, the default size is used.
 
+        position : tuple[int, int] | None
+            The position of the figure window on the screen, in pixels.
+            If None, the default position is used.
+
     Returns:
         fig : :class:`matplotlib.figure.Figure`
             The Figure object.
@@ -1092,7 +1210,12 @@ def plot_frame(
 
     # Create the figure and axes
     fig, axs = create_figure(
-        cnams=cnams, ncols=ncols, region=region, title=title, figsize=figsize
+        cnams=cnams,
+        ncols=ncols,
+        region=region,
+        title=title,
+        figsize=figsize,
+        position=position,
     )
 
     # Plot each CCD on its axes

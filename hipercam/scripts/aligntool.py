@@ -3,6 +3,7 @@ from __future__ import division, print_function
 
 import os
 import time
+from contextlib import suppress
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -205,12 +206,38 @@ def aligntool(args=None):
            process. Note that some will not work well with the colours used
            to plot annotations.
 
-        width   : (float) [hidden]
-           plot width (inches). Set = 0 to let the program choose.
+        imwidth : float [hidden]
+           image display plot width in inches
+           (0 for default, and note that this will also set the height to its default)
 
-        height  : (float) [hidden]
-           plot height (inches). Set = 0 to let the program choose. BOTH width
-           AND height must be non-zero to have any effect
+        imheight : float [hidden]
+           image display plot height in inches
+           (0 for default, and note that this will also set the height to its default)
+
+        imxpos : int [hidden]
+            image display plot X position in pixels
+
+        imypos : int [hidden]
+            image display plot Y position in pixels
+
+        fwwidth : float [hidden]
+           FWHM display plot width in inches
+           (0 for default, and note that this will also set the height to its default)
+
+        fwheight : float [hidden]
+           FWHM display plot height in inches
+           (0 for default, and note that this will also set the height to its default)
+
+        fwxpos : int [hidden]
+            FWHM display plot X position in pixels
+
+        fwypos : int [hidden]
+            FWHM display plot Y position in pixels
+
+        memory : bool [hidden]
+            stores the plot display dimensions (width, height) and position
+            (xpos, ypos) at the end as defaults for next time.
+            This helps if you are repeatedly re-starting the script.
 
         run     : (string) [if source == 's' or 'l']
            run number to access, e.g. 'run034'
@@ -284,8 +311,15 @@ def aligntool(args=None):
         cl.register("small_spots", Cline.LOCAL, Cline.HIDE)
         cl.register("source", Cline.LOCAL, Cline.HIDE)
         cl.register("cmap", Cline.LOCAL, Cline.HIDE)
-        cl.register("width", Cline.LOCAL, Cline.HIDE)
-        cl.register("height", Cline.LOCAL, Cline.HIDE)
+        cl.register("imwidth", Cline.LOCAL, Cline.HIDE)
+        cl.register("imheight", Cline.LOCAL, Cline.HIDE)
+        cl.register("imxpos", Cline.LOCAL, Cline.HIDE)
+        cl.register("imypos", Cline.LOCAL, Cline.HIDE)
+        cl.register("fwwidth", Cline.LOCAL, Cline.HIDE)
+        cl.register("fwheight", Cline.LOCAL, Cline.HIDE)
+        cl.register("fwxpos", Cline.LOCAL, Cline.HIDE)
+        cl.register("fwypos", Cline.LOCAL, Cline.HIDE)
+        cl.register("memory", Cline.LOCAL, Cline.HIDE)
         cl.register("run", Cline.GLOBAL, Cline.PROMPT)
         cl.register("first", Cline.LOCAL, Cline.PROMPT)
         cl.register("twait", Cline.LOCAL, Cline.HIDE)
@@ -337,8 +371,42 @@ def aligntool(args=None):
             "cmap", "colour map to use ['none' for mpl default]", "Greys"
         )
         cmap = None if cmap == "none" else cmap
-        width = cl.get_value("width", "plot width (inches)", 0.0)
-        height = cl.get_value("height", "plot height (inches)", 0.0)
+
+        imwidth = cl.get_value(
+            "imwidth", "image plot width [inches, 0 for default]", 0.0, 0.0
+        )
+
+        imheight = cl.get_value(
+            "imheight", "image plot height [inches, 0 for default]", 0.0, 0.0
+        )
+
+        imxpos = cl.get_value(
+            "imxpos", "image plot X position [screen pixels]", 0,
+        )
+
+        imypos = cl.get_value(
+            "imypos", "image plot Y position [screen pixels]", 0,
+        )
+
+        fwwidth = cl.get_value(
+            "fwwidth", "FWHM plot width [inches, 0 for default]", 0.0, 0.0
+        )
+
+        fwheight = cl.get_value(
+            "fwheight", "FWHM plot height [inches, 0 for default]", 0.0, 0.0
+        )
+
+        fwxpos = cl.get_value(
+            "fwxpos", "FWHM plot X position [screen pixels]", 0,
+        )
+
+        fwypos = cl.get_value(
+            "fwypos", "FWHM plot Y position [screen pixels]", 0,
+        )
+
+        memory = cl.get_value(
+            "memory", "remember final plot geometry for next time?", True
+        )
 
         if server_or_local:
             resource = cl.get_value("run", "run name", "run005")
@@ -453,13 +521,23 @@ def aligntool(args=None):
         ilim=(plo, phi) if iset == "p" else (ilo, ihi),
         region=(xlo, xhi, ylo, yhi),
         cmap=cmap,
-        figsize=(width, height),
+        figsize=(imwidth, imheight),
+        position=(imxpos, imypos),
+        memory_args=(command, args) if memory else None,
     )
-    fwhmmanager = FwhmManager(fix_fwhm_scale=False)
+    fwhmmanager = FwhmManager(
+        fix_fwhm_scale=False,
+        figsize=(fwwidth, fwheight),
+        position=(fwxpos, fwypos),
+        memory_args=(command, args) if memory else None,
+    )
 
     # Start the main loop
     total_time = 0.0
-    with spooler.data_source(source, resource, first) as spool:
+    with  (
+        suppress(KeyboardInterrupt),  # catch Ctrl-C to exit the loop cleanly
+        spooler.data_source(source, resource, first) as spool
+    ):
         for n, mccd in enumerate(spool):
 
             if server_or_local:
@@ -583,6 +661,8 @@ class ImageManager(hcam.mpl.AnimationManager):
         region,
         cmap,
         figsize,
+        position,
+        memory_args,
     ):
         """Initialises and manages the plot.
 
@@ -616,6 +696,15 @@ class ImageManager(hcam.mpl.AnimationManager):
             The width and height of the figure, in inches.
             If None, the default size is used.
 
+        position : tuple[int, int] | None
+            The position of the figure window on the screen, in pixels.
+            If None, the default position is used.
+
+        memory_args : tuple[str, list] | None
+            If not None, the first element is the command name and the second
+            is the list of arguments. The window geometry will be saved to the
+            command's Cline file on close, and restored on next run.
+
         """
         # create empty figure and axes
         self.fig, self.axs = hcam.mpl.create_figure(
@@ -624,6 +713,7 @@ class ImageManager(hcam.mpl.AnimationManager):
             region=region,
             title="CCD display",
             figsize=figsize,
+            position=position,
         )
 
         # initialise the animation manager with the figure
@@ -637,6 +727,19 @@ class ImageManager(hcam.mpl.AnimationManager):
         self.ilim = ilim
         self.region = region
         self.cmap = cmap
+
+        # save window geometry on close
+        if memory_args:
+            def save_geometry(event):
+                imwidth, imheight, imxpos, imypos = hcam.mpl.store_window(
+                    self.fig, memory_args[0], memory_args[1],
+                )
+                print(
+                    "Image display memory updated [memory=True]:",
+                    f"imwidth={imwidth:.1f}, imheight={imheight:.1f}, "
+                    f"imxpos={imxpos}, imypos={imypos}"
+                )
+            self.fig.canvas.mpl_connect("close_event", save_geometry)
 
         # open the plot
         self.show()
@@ -732,11 +835,46 @@ class ImageManager(hcam.mpl.AnimationManager):
 class FwhmManager(hcam.mpl.AnimationManager):
     """Class to start and control the FWHM history animation."""
 
-    def __init__(self, fix_fwhm_scale=False, bins=20):
-        """Initialises the FWHM history plot."""
+    def __init__(
+        self,
+        fix_fwhm_scale=False,
+        bins=20,
+        figsize=None,
+        position=None,
+        memory_args=None,
+    ):
+        """Initialises the FWHM history plot.
+
+        Arguments:
+
+        fix_fwhm_scale : bool
+            If True, the FWHM axes are fixed to a scale of 1.9 to 2.8 arcsec.
+            If False, the axes are automatically scaled to the data.
+
+        bins : int
+            The number of bins to use for the FWHM histograms.
+
+        figsize : tuple[float, float] | None
+            The width and height of the figure, in inches.
+            If None, the default size is used.
+
+        position : tuple[int, int] | None
+            The position of the figure window on the screen, in pixels.
+            If None, the default position is used.
+
+        memory_args : tuple[str, list] | None
+            If not None, the first element is the command name and the second
+            is the list of arguments. The window geometry will be saved to the
+            command's Cline file on close, and restored on next run.
+
+        """
         # create empty figure
         self.fig = plt.figure()
         self.fig.canvas.manager.set_window_title("FWHM plot")
+        if figsize is not None and figsize[0] > 0 and figsize[1] > 0:
+            self.fig.set_size_inches(figsize)
+        if position is not None:
+            hcam.mpl.set_window_position(self.fig, position[0], position[1])
 
         # initialise the animation manager with the figure
         super().__init__(self.fig)
@@ -782,6 +920,19 @@ class FwhmManager(hcam.mpl.AnimationManager):
         if self.fix_fwhm_scale:
             self.axs['y'].set_xlim(1.9, 2.8)
             self.axs['x'].set_ylim(1.9, 2.8)
+
+        # save window geometry on close
+        if memory_args:
+            def save_geometry(event):
+                fwwidth, fwheight, fwxpos, fwypos = hcam.mpl.store_window(
+                    self.fig, memory_args[0], memory_args[1], prefix="fw",
+                )
+                print(
+                    "FWHM display memory updated [memory=True]:",
+                    f"fwwidth={fwwidth:.1f}, fwheight={fwheight:.1f}, "
+                    f"fwxpos={fwxpos}, fwypos={fwypos}"
+                )
+            self.fig.canvas.mpl_connect("close_event", save_geometry)
 
         # open the plot
         self.show()

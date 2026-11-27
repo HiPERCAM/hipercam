@@ -1,8 +1,7 @@
 import os
-import sys
 import time
+from contextlib import suppress
 
-import matplotlib.pyplot as plt
 import numpy as np
 from astropy.io import fits
 from astropy.table import Table
@@ -34,8 +33,8 @@ __all__ = [
 
 
 def ftargets(args=None):
-    """``ftargets [source width height] (run first [twait tmax] |
-    flist) trim ([ncol nrow]) (ccd (nx)) [pause] thresh fwhm minpix
+    """``ftargets [source imwidth imheight imxpos imypos memory] (run first
+    [twait tmax] | flist) trim ([ncol nrow]) (ccd (nx)) [pause] thresh fwhm minpix
     output bias flat msub iset (ilo ihi | plo phi) xlo xhi ylo yhi``
 
     This script carries out the following steps for each of a series
@@ -82,12 +81,24 @@ def ftargets(args=None):
            Any instruments installed via plugins can be used as a source by
            specifying either ``<instrument>:local`` or ``<instrument>:server``.
 
-        width : float [hidden]
-           plot width (inches). Set = 0 to let the program choose.
+        imwidth : float [hidden]
+            image display plot width in inches
+            (0 for default, and note that this will also set the height to its default)
 
-        height : float [hidden]
-           plot height (inches). Set = 0 to let the program choose. BOTH width
-           AND height must be non-zero to have any effect
+        imheight : float [hidden]
+            image display plot height in inches
+            (0 for default, and note that this will also set the height to its default)
+
+        imxpos : int [hidden]
+            image display plot X position in pixels
+
+        imypos : int [hidden]
+            image display plot Y position in pixels
+
+        memory : bool [hidden]
+            stores the plot display dimensions (width, height) and position
+            (xpos, ypos) at the end as defaults for next time.
+            This helps if you are repeatedly re-starting the script.
 
         run : string [if source ends 's' or 'l']
            run number to access, e.g. 'run034'
@@ -230,8 +241,11 @@ def ftargets(args=None):
         # register parameters
         cl.register("source", Cline.GLOBAL, Cline.HIDE)
         cl.register("cmap", Cline.LOCAL, Cline.HIDE)
-        cl.register("width", Cline.LOCAL, Cline.HIDE)
-        cl.register("height", Cline.LOCAL, Cline.HIDE)
+        cl.register("imwidth", Cline.LOCAL, Cline.HIDE)
+        cl.register("imheight", Cline.LOCAL, Cline.HIDE)
+        cl.register("imxpos", Cline.LOCAL, Cline.HIDE)
+        cl.register("imypos", Cline.LOCAL, Cline.HIDE)
+        cl.register("memory", Cline.LOCAL, Cline.HIDE)
         cl.register("run", Cline.GLOBAL, Cline.PROMPT)
         cl.register("first", Cline.LOCAL, Cline.PROMPT)
         cl.register("trim", Cline.GLOBAL, Cline.PROMPT)
@@ -282,8 +296,26 @@ def ftargets(args=None):
         cmap = cl.get_value(
             "cmap", "colour map to use ['none' for mpl default]", "Greys"
         )
-        width = cl.get_value("width", "plot width (inches)", 0.0)
-        height = cl.get_value("height", "plot height (inches)", 0.0)
+
+        imwidth = cl.get_value(
+            "imwidth", "image plot width [inches, 0 for default]", 0.0, 0.0
+        )
+
+        imheight = cl.get_value(
+            "imheight", "image plot height [inches, 0 for default]", 0.0, 0.0
+        )
+
+        imxpos = cl.get_value(
+            "imxpos", "image plot X position [screen pixels]", 0,
+        )
+
+        imypos = cl.get_value(
+            "imypos", "image plot Y position [screen pixels]", 0,
+        )
+
+        memory = cl.get_value(
+            "memory", "remember final plot geometry for next time?", True
+        )
 
         if server_or_local:
             resource = cl.get_value("run", "run name", "run005")
@@ -454,19 +486,22 @@ def ftargets(args=None):
 
     # Initialise the plot manager
     imanager = ImageManager(
+        rmin=rmin,
         cnams=ccds,
         ncols=nx,
         iset=iset,
         ilim=(plo, phi) if iset == "p" else (ilo, ihi),
         region=(xlo, xhi, ylo, yhi),
         cmap=cmap,
-        figsize=(width, height),
-        rmin=rmin,
+        figsize=(imwidth, imheight),
+        position=(imxpos, imypos),
+        memory_args=(command, args) if memory else None,
     )
 
     # Start the main loop
     total_time = 0.0
     with (
+        suppress(KeyboardInterrupt),  # catch Ctrl-C to exit the loop cleanly
         spooler.data_source(source, resource, first, full=False) as spool,
         fits.open(output) as hdul,
     ):
@@ -856,6 +891,7 @@ class ImageManager(hcam.mpl.AnimationManager):
 
     def __init__(
         self,
+        rmin,
         cnams,
         ncols,
         iset,
@@ -863,11 +899,15 @@ class ImageManager(hcam.mpl.AnimationManager):
         region,
         cmap,
         figsize,
-        rmin,
+        position,
+        memory_args,
     ):
         """Initialises and manages the plot.
 
         Arguments:
+
+        rmin : float
+            Minimum distance to consider a neighbour when selecting objects.
 
         cnams : list of str
             The names of the CCDs to plot.
@@ -897,8 +937,14 @@ class ImageManager(hcam.mpl.AnimationManager):
             The width and height of the figure, in inches.
             If None, the default size is used.
 
-        rmin : float
-            Minimum distance to consider a neighbour when selecting objects.
+        position : tuple[int, int] | None
+            The position of the figure window on the screen, in pixels.
+            If None, the default position is used.
+
+        memory_args : tuple[str, list] | None
+            If not None, the first element is the command name and the second
+            is the list of arguments. The window geometry will be saved to the
+            command's Cline file on close, and restored on next run.
 
         """
         # create empty figure and axes
@@ -908,6 +954,7 @@ class ImageManager(hcam.mpl.AnimationManager):
             region=region,
             title="CCD display",
             figsize=figsize,
+            position=position,
         )
 
         # initialise the animation manager with the figure
@@ -925,6 +972,19 @@ class ImageManager(hcam.mpl.AnimationManager):
 
         # holding dict for object artists
         self.object_artists = {}
+
+        # save window geometry on close
+        if memory_args:
+            def save_geometry(event):
+                imwidth, imheight, imxpos, imypos = hcam.mpl.store_window(
+                    self.fig, memory_args[0], memory_args[1],
+                )
+                print(
+                    "Image display memory updated [memory=True]:",
+                    f"imwidth={imwidth:.1f}, imheight={imheight:.1f}, "
+                    f"imxpos={imxpos}, imypos={imypos}"
+                )
+            self.fig.canvas.mpl_connect("close_event", save_geometry)
 
         # open the plot
         self.show()

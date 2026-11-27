@@ -19,8 +19,8 @@ __all__ = [
 
 
 def setfringe(args=None):
-    """``setfringe fmap fringe ccd [width height] nx msub [cmap nhalf] iset (ilo ihi
-    | plo phi)``
+    """``setfringe fmap fringe ccd [imwidth imheight imxpos imypos memory] nx msub
+    [cmap nhalf] iset (ilo ihi | plo phi)``
 
     Interactive definition of CCD fringe pairs. The idea is to place a large
     number of such pairs at the peaks and valleys of a fringe map file. To
@@ -49,12 +49,24 @@ def setfringe(args=None):
          prompted for the number of panels in the X direction. This parameter
          will not be prompted if there is only one CCD in the file.
 
-      width : float [hidden]
-         plot width (inches). Set = 0 to let the program choose.
+      imwidth : float [hidden]
+         image display plot width in inches
+         (0 for default, and note that this will also set the height to its default)
 
-      height : float [hidden]
-         plot height (inches). Set = 0 to let the program choose. BOTH width
-         AND height must be non-zero to have any effect
+      imheight : float [hidden]
+         image display plot height in inches
+         (0 for default, and note that this will also set the height to its default)
+
+      imxpos : int [hidden]
+         image display plot X position in pixels
+
+      imypos : int [hidden]
+         image display plot Y position in pixels
+
+      memory : bool [hidden]
+         stores the plot display dimensions (width, height) and position
+         (xpos, ypos) at the end as defaults for next time.
+         This helps if you are repeatedly re-starting the script.
 
       nx : int
          number of panels across to display, prompted if more than one CCD is
@@ -103,8 +115,11 @@ def setfringe(args=None):
         cl.register("fmap", Cline.LOCAL, Cline.PROMPT)
         cl.register("fringe", Cline.LOCAL, Cline.PROMPT)
         cl.register("ccd", Cline.LOCAL, Cline.PROMPT)
-        cl.register("width", Cline.LOCAL, Cline.HIDE)
-        cl.register("height", Cline.LOCAL, Cline.HIDE)
+        cl.register("imwidth", Cline.LOCAL, Cline.HIDE)
+        cl.register("imheight", Cline.LOCAL, Cline.HIDE)
+        cl.register("imxpos", Cline.LOCAL, Cline.HIDE)
+        cl.register("imypos", Cline.LOCAL, Cline.HIDE)
+        cl.register("memory", Cline.LOCAL, Cline.HIDE)
         cl.register("nx", Cline.LOCAL, Cline.PROMPT)
         cl.register("msub", Cline.GLOBAL, Cline.PROMPT)
         cl.register("cmap", Cline.LOCAL, Cline.HIDE)
@@ -144,8 +159,25 @@ def setfringe(args=None):
         else:
             ccds = list(mccd.keys())
 
-        width = cl.get_value("width", "plot width (inches)", 0.0)
-        height = cl.get_value("height", "plot height (inches)", 0.0)
+        imwidth = cl.get_value(
+            "imwidth", "image plot width [inches, 0 for default]", 0.0, 0.0
+        )
+
+        imheight = cl.get_value(
+            "imheight", "image plot height [inches, 0 for default]", 0.0, 0.0
+        )
+
+        imxpos = cl.get_value(
+            "imxpos", "image plot X position [screen pixels]", 0,
+        )
+
+        imypos = cl.get_value(
+            "imypos", "image plot Y position [screen pixels]", 0,
+        )
+
+        memory = cl.get_value(
+            "memory", "remember final plot geometry for next time?", True
+        )
 
         nxdef = cl.get_default("nx", 3)
 
@@ -207,7 +239,8 @@ def setfringe(args=None):
         ilim=(plo, phi) if iset == "p" else (ilo, ihi),
         region=(xlo, xhi, ylo, yhi),
         title='setfringe',
-        figsize=(width, height),
+        figsize=(imwidth, imheight),
+        position=(imxpos, imypos),
     )
 
     # add any existing fringe pairs to the plot, storing a reference to the plot objects
@@ -232,6 +265,19 @@ def setfringe(args=None):
     )
     fig.canvas.mpl_connect("key_press_event", picker._keyPressEvent)
     picker.action_prompt(False)
+
+    # save window geometry on close
+    if memory:
+        def save_geometry(event):
+            imwidth, imheight, imxpos, imypos = hcam.mpl.store_window(
+                fig, command, args,
+            )
+            print(
+                "Image display memory updated [memory=True]:",
+                f"imwidth={imwidth:.1f}, imheight={imheight:.1f}, "
+                f"imxpos={imxpos}, imypos={imypos}"
+            )
+        fig.canvas.mpl_connect("close_event", save_geometry)
 
     # finally set up the plot for interactive mode and display
     hcam.mpl.setup_plot(fig)

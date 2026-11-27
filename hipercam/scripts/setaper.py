@@ -1,9 +1,8 @@
 import os
 import sys
 
-import numpy as np
-
 import matplotlib.pyplot as plt
+import numpy as np
 from trm import cline
 
 import hipercam as hcam
@@ -21,9 +20,9 @@ __all__ = [
 
 
 def setaper(args=None):
-    """``setaper mccd aper ccd [linput width height] rtarg rsky1 rsky2 xlo
-    xhi ylo yhi nx msub [cmap] iset (ilo ihi | plo phi) [profit method (beta
-    betafix betamax) fwhm fwfix (fwmin) shbox smooth splot fhbox read
+    """``setaper mccd aper ccd [linput imwidth imheight imxpos imypos memory] rtarg
+    rsky1 rsky2 xlo xhi ylo yhi nx msub [cmap] iset (ilo ihi | plo phi) [profit method
+    (beta betafix betamax) fwhm fwfix (fwmin) shbox smooth splot fhbox read
     gain thresh]``
 
     Interactive definition of photometric extraction apertures. This
@@ -60,12 +59,24 @@ def setaper(args=None):
          Allowed characters are 0-9, a-z, A-Z, no spaces or punctuation, but a
          single '0' on its own is not permitted.
 
-      width  : float [hidden]
-         plot width (inches). Set = 0 to let the program choose.
+      imwidth : float [hidden]
+         image display plot width in inches
+         (0 for default, and note that this will also set the height to its default)
 
-      height : float [hidden]
-         plot height (inches). Set = 0 to let the program choose. BOTH width
-         AND height must be non-zero to have any effect
+      imheight : float [hidden]
+         image display plot height in inches
+         (0 for default, and note that this will also set the height to its default)
+
+      imxpos : int [hidden]
+         image display plot X position in pixels
+
+      imypos : int [hidden]
+         image display plot Y position in pixels
+
+      memory : bool [hidden]
+         stores the plot display dimensions (width, height) and position
+         (xpos, ypos) at the end as defaults for next time.
+         This helps if you are repeatedly re-starting the script.
 
       rtarg  : float [unbinned pixels]
          radius of target aperture. The exact value of this does not matter
@@ -255,8 +266,11 @@ def setaper(args=None):
         cl.register("aper", Cline.LOCAL, Cline.PROMPT)
         cl.register("ccd", Cline.LOCAL, Cline.PROMPT)
         cl.register("linput", Cline.LOCAL, Cline.HIDE)
-        cl.register("width", Cline.LOCAL, Cline.HIDE)
-        cl.register("height", Cline.LOCAL, Cline.HIDE)
+        cl.register("imwidth", Cline.LOCAL, Cline.HIDE)
+        cl.register("imheight", Cline.LOCAL, Cline.HIDE)
+        cl.register("imxpos", Cline.LOCAL, Cline.HIDE)
+        cl.register("imypos", Cline.LOCAL, Cline.HIDE)
+        cl.register("memory", Cline.LOCAL, Cline.HIDE)
         cl.register("rtarg", Cline.LOCAL, Cline.PROMPT)
         cl.register("rsky1", Cline.LOCAL, Cline.PROMPT)
         cl.register("rsky2", Cline.LOCAL, Cline.PROMPT)
@@ -329,8 +343,26 @@ def setaper(args=None):
             "n",
             lvals=("n", "s", "m"),
         )
-        width = cl.get_value("width", "plot width (inches)", 0.0)
-        height = cl.get_value("height", "plot height (inches)", 0.0)
+
+        imwidth = cl.get_value(
+            "imwidth", "image plot width [inches, 0 for default]", 0.0, 0.0
+        )
+
+        imheight = cl.get_value(
+            "imheight", "image plot height [inches, 0 for default]", 0.0, 0.0
+        )
+
+        imxpos = cl.get_value(
+            "imxpos", "image plot X position [screen pixels]", 0,
+        )
+
+        imypos = cl.get_value(
+            "imypos", "image plot Y position [screen pixels]", 0,
+        )
+
+        memory = cl.get_value(
+            "memory", "remember final plot geometry for next time?", True
+        )
 
         # aperture radii
         rtarg = cl.get_value(
@@ -468,7 +500,8 @@ def setaper(args=None):
         ilim=(plo, phi) if iset == "p" else (ilo, ihi),
         region=(xlo, xhi, ylo, yhi),
         title='setaper',
-        figsize=(width, height),
+        figsize=(imwidth, imheight),
+        position=(imxpos, imypos),
     )
 
     # add any existing apertures to the plot, storing a reference to the plot objects
@@ -511,6 +544,19 @@ def setaper(args=None):
     )
     fig.canvas.mpl_connect("key_press_event", picker._keyPressEvent)
     picker.action_prompt(False)
+
+    # save window geometry on close
+    if memory:
+        def save_geometry(event):
+            imwidth, imheight, imxpos, imypos = hcam.mpl.store_window(
+                fig, command, args,
+            )
+            print(
+                "Image display memory updated [memory=True]:",
+                f"imwidth={imwidth:.1f}, imheight={imheight:.1f}, "
+                f"imxpos={imxpos}, imypos={imypos}"
+            )
+        fig.canvas.mpl_connect("close_event", save_geometry)
 
     # finally set up the plot for interactive mode and display
     hcam.mpl.setup_plot(fig)

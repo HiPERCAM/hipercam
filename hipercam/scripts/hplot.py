@@ -16,7 +16,7 @@ from hipercam.scripts.nrtplot import Pfit
 
 def hplot(args=None):
     """``hplot input [device] ccd nx msub ([cmap]) hsbox iset (ilo ihi | plo
-    phi) xlo xhi ylo yhi [width height]``
+    phi) xlo xhi ylo yhi [imwidth imheight imxpos imypos memory]``
 
     Plots a multi-CCD image using matplotlib. The default matplotlib interactive
     window allows one to pan and zoom and to compare the same part of
@@ -93,12 +93,24 @@ def hplot(args=None):
       yhi : float
          top Y-limit. See comments for xlo as well.
 
-      width : float [hidden]
-         plot width (inches). Set = 0 to let the program choose.
+      imwidth : float [hidden]
+         image display plot width in inches
+         (0 for default, and note that this will also set the height to its default)
 
-      height : float [hidden]
-         plot height (inches). Set = 0 to let the program choose. BOTH width
-         AND height must be non-zero to have any effect
+      imheight : float [hidden]
+         image display plot height in inches
+         (0 for default, and note that this will also set the height to its default)
+
+      imxpos : int [hidden]
+         image display plot X position in pixels
+
+      imypos : int [hidden]
+         image display plot Y position in pixels
+
+      memory : bool [hidden]
+         stores the plot display dimensions (width, height) and position
+         (xpos, ypos) at the end as defaults for next time.
+         This helps if you are repeatedly re-starting the script.
 
       method : str [hidden]
           when displaying an interactive window, pressing the space bar will initiate
@@ -188,8 +200,11 @@ def hplot(args=None):
         cl.register("xhi", Cline.GLOBAL, Cline.PROMPT)
         cl.register("ylo", Cline.GLOBAL, Cline.PROMPT)
         cl.register("yhi", Cline.GLOBAL, Cline.PROMPT)
-        cl.register("width", Cline.LOCAL, Cline.HIDE)
-        cl.register("height", Cline.LOCAL, Cline.HIDE)
+        cl.register("imwidth", Cline.LOCAL, Cline.HIDE)
+        cl.register("imheight", Cline.LOCAL, Cline.HIDE)
+        cl.register("imxpos", Cline.LOCAL, Cline.HIDE)
+        cl.register("imypos", Cline.LOCAL, Cline.HIDE)
+        cl.register("memory", Cline.LOCAL, Cline.HIDE)
         cl.register("method", Cline.LOCAL, Cline.HIDE)
         cl.register("beta", Cline.LOCAL, Cline.HIDE)
         cl.register("fwhm", Cline.LOCAL, Cline.HIDE)
@@ -282,8 +297,26 @@ def hplot(args=None):
         xhi = cl.get_value("xhi", "right-hand X value", xmax, xmin, xmax, enforce=False)
         ylo = cl.get_value("ylo", "lower Y value", ymin, ymin, ymax, enforce=False)
         yhi = cl.get_value("yhi", "upper Y value", ymax, ymin, ymax, enforce=False)
-        width = cl.get_value("width", "plot width (inches)", 0.0)
-        height = cl.get_value("height", "plot height (inches)", 0.0)
+
+        imwidth = cl.get_value(
+            "imwidth", "image plot width [inches, 0 for default]", 0.0, 0.0
+        )
+
+        imheight = cl.get_value(
+            "imheight", "image plot height [inches, 0 for default]", 0.0, 0.0
+        )
+
+        imxpos = cl.get_value(
+            "imxpos", "image plot X position [screen pixels]", 0,
+        )
+
+        imypos = cl.get_value(
+            "imypos", "image plot Y position [screen pixels]", 0,
+        )
+
+        memory = cl.get_value(
+            "memory", "remember final plot geometry for next time?", True
+        )
 
         # many parameters for profile fits, although none are
         # requested by default
@@ -339,7 +372,8 @@ def hplot(args=None):
         ilim=(plo, phi) if iset == "p" else (ilo, ihi),
         region=(xlo, xhi, ylo, yhi),
         title=frame,
-        figsize=(width, height),
+        figsize=(imwidth, imheight),
+        position=(imxpos, imypos),
     )
 
     # print the plot ranges for each CCD
@@ -387,6 +421,19 @@ def hplot(args=None):
     )
     fig.canvas.mpl_connect("key_press_event", picker._keyPressEvent)
     fig.canvas.mpl_connect("button_press_event", picker._buttonPressEvent)
+
+    # save window geometry on close
+    if memory:
+        def save_geometry(event):
+            imwidth, imheight, imxpos, imypos = hcam.mpl.store_window(
+                fig, command, args,
+            )
+            print(
+                "Image display memory updated [memory=True]:",
+                f"imwidth={imwidth:.1f}, imheight={imheight:.1f}, "
+                f"imxpos={imxpos}, imypos={imypos}"
+            )
+        fig.canvas.mpl_connect("close_event", save_geometry)
 
     # finally set up the plot for interactive mode and display
     hcam.mpl.setup_plot(fig, disable_shortcuts=False)

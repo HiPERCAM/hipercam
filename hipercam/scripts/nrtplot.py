@@ -1,10 +1,9 @@
 import os
 import socket
-import sys
 import time
 import warnings
 from collections import deque
-from signal import SIGINT, signal
+from contextlib import suppress
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -39,11 +38,11 @@ __all__ = [
 
 def nrtplot(args=None):
     """``nrtplot [source] (run first [twait tmax] | flist) trim ([ncol
-    nrow]) (ccd (nx)) [imwidth pause tupdate plotall] bias [lowlevel
+    nrow]) (ccd (nx)) [pause tupdate plotall] bias [lowlevel
     highlevel] dark flat fmap (fpair [nhalf rmin rmax]) defect setup
-    [drurl cmap imwidth imheight memory] msub iset (ilo ihi | plo phi)
+    [drurl cmap imwidth imheight imxpos imypos memory] msub iset (ilo ihi | plo phi)
     xlo xhi ylo yhi profit [method beta fwhm fwhm_min shbox smooth
-    fhbox hmin read gain thresh (fwnmax fwymax fwwidth fwheight)]
+    fhbox hmin read gain thresh (fwnmax fwymax fwwidth fwheight fwxpos fwypos)]
     [fcosmic] (contrast crthresh nbthresh sathresh readout)``
 
     This is 'nrtplot' "new" rtplot, a matplotlib-based replacement for
@@ -231,17 +230,23 @@ def nrtplot(args=None):
            to plot annotations.
 
         imwidth : float [hidden]
-           image display plot width in inches (0 for default, and note
-           that this will also make the height go to its default)
+           image display plot width in inches
+           (0 for default, and note that this will also set the height to its default)
 
         imheight : float [hidden]
-           image display plot height in inches (0 for default, and note
-           that this will also make the width go to its default)
+           image display plot height in inches
+           (0 for default, and note that this will also set the height to its default)
+
+        imxpos : int [hidden]
+           image display plot X position in pixels
+
+        imypos : int [hidden]
+           image display plot Y position in pixels
 
         memory : bool [hidden]
-           stores the image display dimensions at the end as defaults for
-           imwidth and imheight next time (or not). This helps when you are
-           repeatedly re-starting nrtplot for the same sort of display.
+           stores the plot display dimensions (width, height) and position
+           (xpos, ypos) at the end as defaults for next time.
+           This helps if you are repeatedly re-starting the script.
 
         msub : bool
            subtract the median from each window before scaling for the
@@ -370,13 +375,19 @@ def nrtplot(args=None):
            possible to alter the value of the fly by zooming and panning
            the plot.
 
-        fwwidth : float [if profit; hidden]
-           FWHM display plot width in inches (0 for default, which will
-           also cause the height to go to its default value)
+        fwwidth : float [hidden]
+           FWHM display plot width in inches
+           (0 for default, and note that this will also set the height to its default)
 
-        fwheight : float [if profit; hidden]
-           FWHM display plot height in inches (0 for default, which will
-           also cause the width to go to its default value)
+        fwheight : float [hidden]
+           FWHM display plot height in inches
+           (0 for default, and note that this will also set the height to its default)
+
+        fwxpos : int [hidden]
+            FWHM display plot X position in pixels
+
+        fwypos : int [hidden]
+            FWHM display plot Y position in pixels
 
         fcosmic : bool [hidden, defaults to False]
            True to identify cosmic rays using L.A.cosmic (van Dokkum 2001,
@@ -452,6 +463,8 @@ def nrtplot(args=None):
         cl.register("cmap", Cline.LOCAL, Cline.HIDE)
         cl.register("imwidth", Cline.LOCAL, Cline.HIDE)
         cl.register("imheight", Cline.LOCAL, Cline.HIDE)
+        cl.register("imxpos", Cline.LOCAL, Cline.HIDE)
+        cl.register("imypos", Cline.LOCAL, Cline.HIDE)
         cl.register("memory", Cline.LOCAL, Cline.HIDE)
         cl.register("msub", Cline.GLOBAL, Cline.PROMPT)
         cl.register("iset", Cline.GLOBAL, Cline.PROMPT)
@@ -479,6 +492,8 @@ def nrtplot(args=None):
         cl.register("fwnmax", Cline.LOCAL, Cline.HIDE)
         cl.register("fwymax", Cline.LOCAL, Cline.HIDE)
         cl.register("fwwidth", Cline.LOCAL, Cline.HIDE)
+        cl.register("fwxpos", Cline.LOCAL, Cline.HIDE)
+        cl.register("fwypos", Cline.LOCAL, Cline.HIDE)
         cl.register("fwheight", Cline.LOCAL, Cline.HIDE)
         cl.register("fcosmic", Cline.LOCAL, Cline.HIDE)
         cl.register("crthresh", Cline.LOCAL, Cline.PROMPT)
@@ -663,8 +678,16 @@ def nrtplot(args=None):
             "imheight", "image plot height [inches, 0 for default]", 0.0, 0.0
         )
 
+        imxpos = cl.get_value(
+            "imxpos", "image plot X position [screen pixels]", 0,
+        )
+
+        imypos = cl.get_value(
+            "imypos", "image plot Y position [screen pixels]", 0,
+        )
+
         memory = cl.get_value(
-            "memory", "remember finaly plot dimensions for next time?", True
+            "memory", "remember final plot geometry for next time?", True
         )
 
         # define the display intensities
@@ -774,6 +797,14 @@ def nrtplot(args=None):
             "fwheight", "FWHM plot height [inches, 0 for default]", 0.0, 0.0
         )
 
+        fwxpos = cl.get_value(
+            "fwxpos", "FWHM plot X position [screen pixels]", 0,
+        )
+
+        fwypos = cl.get_value(
+            "fwypos", "FWHM plot Y position [screen pixels]", 0,
+        )
+
         cl.set_default("fcosmic", False)
         fcosmic = cl.get_value("fcosmic", "find cosmic rays", False)
         # disable if lacosmic is not available
@@ -809,7 +840,10 @@ def nrtplot(args=None):
 
     # Start the main loop
     total_time = 0.0
-    with spooler.data_source(source, resource, first, full=False) as spool:
+    with (
+        suppress(KeyboardInterrupt),  # catch Ctrl-C to exit the loop cleanly
+        spooler.data_source(source, resource, first, full=False) as spool
+    ):
         for n, mccd in enumerate(spool):
             if server_or_local:
                 # Handle the waiting game ...
@@ -995,6 +1029,7 @@ def nrtplot(args=None):
                     region=(xlo, xhi, ylo, yhi),
                     title="Profile fit selection",
                     figsize=(imwidth, imheight),
+                    position=(imxpos, imypos),
                 )
 
                 # print out instructions for the user
@@ -1021,6 +1056,19 @@ def nrtplot(args=None):
                     thresh,
                 )
                 fig.canvas.mpl_connect("key_press_event", picker._keyPressEvent)
+
+                # save window geometry on close
+                if memory:
+                    def save_geometry(event):
+                        imwidth, imheight, imxpos, imypos = hcam.mpl.store_window(
+                            fig, command, args,
+                        )
+                        print(
+                            "Image display memory updated [memory=True]:",
+                            f"imwidth={imwidth:.1f}, imheight={imheight:.1f}, "
+                            f"imxpos={imxpos}, imypos={imypos}"
+                        )
+                    fig.canvas.mpl_connect("close_event", save_geometry)
 
                 # finally set up the plot for interactive mode and display
                 hcam.mpl.setup_plot(fig)
@@ -1093,6 +1141,8 @@ def nrtplot(args=None):
                     region=(xlo, xhi, ylo, yhi),
                     cmap=cmap,
                     figsize=(imwidth, imheight),
+                    position=(imxpos, imypos),
+                    memory_args=(command, args) if memory else None,
                     shbox=shbox,
                     fwhm=fwhm,
                     beta=beta,
@@ -1106,13 +1156,6 @@ def nrtplot(args=None):
                     thresh=thresh,
                 )
 
-                if memory:
-                    # define object to handle adjusting the figure size
-                    cleanup = CleanUp(
-                        "HIPERCAM_ENV", ".hipercam", command, args, imanager.fig
-                    )
-                    signal(SIGINT, cleanup)
-
             # Update the image plot
             imanager.update(mccd, plot_pfits, defects, swindows)
 
@@ -1124,6 +1167,8 @@ def nrtplot(args=None):
                         xhi=nframe + fwnmax + 1,
                         fwmax=fwymax,
                         figsize=(fwwidth, fwheight),
+                        position=(fwxpos, fwypos),
+                        memory_args=(command, args) if memory else None,
                     )
                 fwhmmanager.update(pfit_fwhms)
 
@@ -1198,39 +1243,6 @@ def nrtplot(args=None):
     # so block this by asking the user to confirm
     input("\nHit carriage return to close the plot(s): ")
 
-    if memory:
-        cleanup.finish()
-
-
-class CleanUp:
-    """
-    Handle adjusting plot width defaults in a way that can be used
-    as a handler for signal
-    """
-
-    def __init__(self, hipenv, hipconf, command, args, fig):
-        self.hipenv = hipenv
-        self.hipconf = hipconf
-        self.command = command
-        self.args = args
-        self.fig = fig
-
-    def __call__(self, signal_recieved, frame):
-        self.finish()
-        sys.exit(1)
-
-    def finish(self):
-        with Cline(self.hipenv, self.hipconf, self.command, self.args) as cl:
-            width = self.fig.get_figwidth()
-            height = self.fig.get_figheight()
-            cl.register("imwidth", Cline.LOCAL, Cline.HIDE)
-            cl.register("imheight", Cline.LOCAL, Cline.HIDE)
-            cl.set_default("imwidth", width)
-            cl.set_default("imheight", height)
-            print(
-                f"\nImage display size updated to width, height = {width}, {height} [memory=True]"
-            )
-
 
 class ImageManager(hcam.mpl.AnimationManager):
     """Class to control the image animation.
@@ -1251,6 +1263,8 @@ class ImageManager(hcam.mpl.AnimationManager):
         region,
         cmap,
         figsize,
+        position,
+        memory_args,
         shbox,
         fwhm,
         beta,
@@ -1298,6 +1312,15 @@ class ImageManager(hcam.mpl.AnimationManager):
             The width and height of the figure, in inches.
             If None, the default size is used.
 
+        position : tuple[int, int] | None
+            The position of the figure window on the screen, in pixels.
+            If None, the default position is used.
+
+        memory_args : tuple[str, list] | None
+            If not None, the first element is the command name and the second
+            is the list of arguments. The window geometry will be saved to the
+            command's Cline file on close, and restored on next run.
+
         shbox, fwhm, beta, method, smooth, fhbox, hmin, fwhm_min, read,
         gain, thresh are profile fitting parameters described elsewhere.
         They are sent to a cursor selection routine.
@@ -1310,6 +1333,7 @@ class ImageManager(hcam.mpl.AnimationManager):
             region=region,
             title="CCD display",
             figsize=figsize,
+            position=position,
         )
 
         # initialise the animation manager with the figure
@@ -1333,6 +1357,19 @@ class ImageManager(hcam.mpl.AnimationManager):
         self.defect_artists = {}
         self.swindow_artists = {}
         self.targ_artists = {}
+
+        # save window geometry on close
+        if memory_args:
+            def save_geometry(event):
+                imwidth, imheight, imxpos, imypos = hcam.mpl.store_window(
+                    self.fig, memory_args[0], memory_args[1],
+                )
+                print(
+                    "Image display memory updated [memory=True]:",
+                    f"imwidth={imwidth:.1f}, imheight={imheight:.1f}, "
+                    f"imxpos={imxpos}, imypos={imypos}"
+                )
+            self.fig.canvas.mpl_connect("close_event", save_geometry)
 
         # create the picker class and connect it to the figure
         self.picker = PickProfit(
@@ -1544,9 +1581,7 @@ class ImageManager(hcam.mpl.AnimationManager):
                 circ.set_center((pfit.x, pfit.y))
                 circ.set_radius(pfit.fwhm)
                 xlo, xhi, ylo, yhi = pfit.region()
-                sbox.set_data(
-                    [xlo, xhi, xhi, xlo, xlo], [ylo, ylo, yhi, yhi, ylo]
-                )
+                sbox.set_data([xlo, xhi, xhi, xlo, xlo], [ylo, ylo, yhi, yhi, ylo])
                 self.targ_artists[ntarg] = (dot, circ, sbox)
 
     def get_ilim(self, cnam):
@@ -1560,7 +1595,8 @@ class ImageManager(hcam.mpl.AnimationManager):
 class FwhmManager(hcam.mpl.AnimationManager):
     """Class to start and control the FWHM history animation."""
 
-    def __init__(self, xlo, xhi, fwmax, figsize=None):
+
+    def __init__(self, xlo, xhi, fwmax, figsize=None, position=None, memory_args=None):
         """
         Initialises the FWHM history plot.
 
@@ -1579,6 +1615,15 @@ class FwhmManager(hcam.mpl.AnimationManager):
             The width and height of the figure, in inches.
             If None, the default size is used.
 
+        position : tuple[int, int] | None
+            The position of the figure window on the screen, in pixels.
+            If None, the default position is used.
+
+        memory_args : tuple[str, list] | None
+            If not None, the first element is the command name and the second
+            is the list of arguments. The window geometry will be saved to the
+            command's Cline file on close, and restored on next run.
+
         """
         # create empty figure and axes
         # note the axes have animated=True for updating the x-range
@@ -1586,6 +1631,8 @@ class FwhmManager(hcam.mpl.AnimationManager):
         self.fig.canvas.manager.set_window_title("FWHM vs frame number")
         if figsize is not None and figsize[0] > 0 and figsize[1] > 0:
             self.fig.set_size_inches(figsize)
+        if position is not None:
+            hcam.mpl.set_window_position(self.fig, position[0], position[1])
         self.ax = self.fig.add_subplot(animated=True)
 
         # initialise the animation manager with the figure
@@ -1603,6 +1650,19 @@ class FwhmManager(hcam.mpl.AnimationManager):
         # plot formatting
         self.ax.set_xlabel("Frame number")
         self.ax.set_ylabel("FWHM [unbinned pixels]")
+
+        # save window geometry on close
+        if memory_args:
+            def save_geometry(event):
+                fwwidth, fwheight, fwxpos, fwypos = hcam.mpl.store_window(
+                    self.fig, memory_args[0], memory_args[1], prefix="fw",
+                )
+                print(
+                    "FWHM display memory updated [memory=True]:",
+                    f"fwwidth={fwwidth:.1f}, fwheight={fwheight:.1f}, "
+                    f"fwxpos={fwxpos}, fwypos={fwypos}"
+                )
+            self.fig.canvas.mpl_connect("close_event", save_geometry)
 
         # open the plot
         self.show()

@@ -61,8 +61,9 @@ NaN = float("NaN")
 ################################################
 def reduce(args=None):
     """``reduce [source] rfile (run first last [twait tmax]| flist) trim
-    ([ncol nrow]) log lcplot implot psfplot [tupdate plotall] (ccd nx [cmap] msub
-    xlo xhi ylo yhi iset (ilo ihi | plo phi))``
+    ([ncol nrow]) log lcplot implot [imwidth imheight imxpos imypos]
+    psfplot [psfwidth psfheight psfxpos psfypos] [memory tupdate plotall]
+    (ccd nx [cmap] msub xlo xhi ylo yhi iset (ilo ihi | plo phi))``
 
     Reduces a sequence of multi-CCD images, plotting lightcurves as
     images come in. It can extract with either simple aperture
@@ -174,9 +175,42 @@ def reduce(args=None):
         implot : bool
            flag to indicate you want to plot images.
 
+        imwidth : float [hidden]
+            image display plot width in inches
+            (0 for default, and note that this will also set the height to its default)
+
+        imheight : float [hidden]
+            image display plot height in inches
+            (0 for default, and note that this will also set the height to its default)
+
+        imxpos : int [hidden]
+            image display plot X position in pixels
+
+        imypos : int [hidden]
+            image display plot Y position in pixels
+
         psfplot : bool
            flag to indicate you want to plot images after subtraction of PSF model.
            only valid if 'use_psf' is set to 'yes' in the reduce file.
+
+        psfwidth : float [hidden]
+            psf display plot width in inches
+            (0 for default, and note that this will also set the height to its default)
+
+        psfheight : float [hidden]
+            psf display plot height in inches
+            (0 for default, and note that this will also set the height to its default)
+
+        psfxpos : int [hidden]
+            psf display plot X position in pixels
+
+        psfypos : int [hidden]
+            psf display plot Y position in pixels
+
+        memory : bool [hidden]
+            stores the plot display dimensions (width, height) and position
+            (xpos, ypos) at the end as defaults for next time.
+            This helps if you are repeatedly re-starting the script.
 
         tupdate : float [hidden]
            target number of seconds between plot updates. This is to
@@ -269,7 +303,16 @@ def reduce(args=None):
         cl.register("tkeep", Cline.GLOBAL, Cline.PROMPT)
         cl.register("lcplot", Cline.LOCAL, Cline.PROMPT)
         cl.register("implot", Cline.LOCAL, Cline.PROMPT)
+        cl.register("imwidth", Cline.LOCAL, Cline.HIDE)
+        cl.register("imheight", Cline.LOCAL, Cline.HIDE)
+        cl.register("imxpos", Cline.LOCAL, Cline.HIDE)
+        cl.register("imypos", Cline.LOCAL, Cline.HIDE)
         cl.register("psfplot", Cline.LOCAL, Cline.PROMPT)
+        cl.register("psfwidth", Cline.LOCAL, Cline.HIDE)
+        cl.register("psfheight", Cline.LOCAL, Cline.HIDE)
+        cl.register("psfxpos", Cline.LOCAL, Cline.HIDE)
+        cl.register("psfypos", Cline.LOCAL, Cline.HIDE)
+        cl.register("memory", Cline.LOCAL, Cline.HIDE)
         cl.register("tupdate", Cline.LOCAL, Cline.HIDE)
         cl.register("plotall", Cline.LOCAL, Cline.HIDE)
         cl.register("ccd", Cline.LOCAL, Cline.PROMPT)
@@ -367,17 +410,55 @@ def reduce(args=None):
 
         implot = cl.get_value("implot", "do you want to plot images?", True)
 
+        imwidth = cl.get_value(
+            "imwidth", "image plot width [inches, 0 for default]", 0.0, 0.0
+        )
+
+        imheight = cl.get_value(
+            "imheight", "image plot height [inches, 0 for default]", 0.0, 0.0
+        )
+
+        imxpos = cl.get_value(
+            "imxpos", "image plot X position [screen pixels]", 0,
+        )
+
+        imypos = cl.get_value(
+            "imypos", "image plot Y position [screen pixels]", 0,
+        )
+
         use_psf = rfile["psf_photom"].get("use_psf", "no").lower().strip() != "no"
         if use_psf:
             if not HAS_PSF_OPTION:
                 raise ValueError(
                     "'use_psf' is set to 'yes', but photutils not installed"
                 )
+
             psfplot = cl.get_value(
                 "psfplot", "do you want to plot residual of PSF model?", True
             )
+
+            psfwidth = cl.get_value(
+                "psfwidth", "PSF plot width [inches, 0 for default]", 0.0, 0.0
+            )
+
+            psfheight = cl.get_value(
+                "psfheight", "PSF plot height [inches, 0 for default]", 0.0, 0.0
+            )
+
+            psfxpos = cl.get_value(
+                "psfxpos", "PSF plot X position [screen pixels]", 0,
+            )
+
+            psfypos = cl.get_value(
+                "psfypos", "PSF plot Y position [screen pixels]", 0,
+            )
+
         else:
             psfplot = False
+
+        memory = cl.get_value(
+            "memory", "remember final plot geometry for next time?", True
+        )
 
         tupdate = cl.get_value(
             "tupdate", "target time between plot updates [secs]", 0.2, 0.01
@@ -520,9 +601,9 @@ def reduce(args=None):
             region=(xlo, xhi, ylo, yhi),
             msub=msub,
             cmap=cmap,
-            figsize=(  # these are the only plot params in the reduce file
-                rfile["general"]["iwidth"], rfile["general"]["iheight"]
-            ),
+            figsize=(imwidth, imheight),
+            position=(imxpos, imypos),
+            memory_args=(command, args) if memory else None,
         )
     if psfplot:
         psfmanager = ImageManager(
@@ -535,9 +616,9 @@ def reduce(args=None):
             region=(xlo, xhi, ylo, yhi),
             msub=msub,
             cmap=cmap,
-            figsize=(  # these are the only plot params in the reduce file
-                rfile["general"]["iwidth"], rfile["general"]["iheight"]
-            ),
+            figsize=(psfwidth, psfheight),
+            position=(psfxpos, psfypos),
+            memory_args=(command, args) if memory else None,
         )
 
     # Start the main loop
@@ -812,9 +893,6 @@ def reduce(args=None):
         # At the end the plots will close automatically,
         # so block this by asking the user to confirm
         input("\nHit carriage return to close the plot(s): ")
-
-    # Done
-    print("reduce finished")
 
 
 class Panel:
@@ -2127,6 +2205,8 @@ class ImageManager(hcam.mpl.AnimationManager):
         msub,
         cmap,
         figsize,
+        position,
+        memory_args,
     ):
         """Initialises and manages the plot.
 
@@ -2173,6 +2253,15 @@ class ImageManager(hcam.mpl.AnimationManager):
             The width and height of the figure, in inches.
             If None, the default size is used.
 
+        position : tuple[int, int] | None
+            The position of the figure window on the screen, in pixels.
+            If None, the default position is used.
+
+        memory_args : tuple[str, list] | None
+            If not None, the first element is the command name and the second
+            is the list of arguments. The window geometry will be saved to the
+            command's Cline file on close, and restored on next run.
+
         """
         # create empty figure and axes
         self.fig, self.axs = hcam.mpl.create_figure(
@@ -2181,6 +2270,7 @@ class ImageManager(hcam.mpl.AnimationManager):
             region=region,
             title="CCD display" if not plot_psf_residuals else "PSF residuals",
             figsize=figsize,
+            position=position,
         )
 
         # initialise the animation manager with the figure
@@ -2198,6 +2288,21 @@ class ImageManager(hcam.mpl.AnimationManager):
 
         # holding dict for aperture artists
         self.aper_artists = {}
+
+        # save window geometry on close
+        if memory_args:
+            def save_geometry(event):
+                prefix = "psf" if self.plot_psf_residuals else "im"
+                imwidth, imheight, imxpos, imypos = hcam.mpl.store_window(
+                    self.fig, memory_args[0], memory_args[1], prefix=prefix
+                )
+                print(
+                    f"{'Image' if not self.plot_psf_residuals else 'PSF residuals'}"
+                    " display memory updated [memory=True]:",
+                    f"{prefix}width={imwidth:.1f}, {prefix}height={imheight:.1f}, "
+                    f"{prefix}xpos={imxpos}, {prefix}ypos={imypos}"
+                )
+            self.fig.canvas.mpl_connect("close_event", save_geometry)
 
         # open the plot
         self.show()
