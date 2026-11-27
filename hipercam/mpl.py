@@ -186,6 +186,7 @@ def pWind(ax, wind, vmin, vmax, label="", cmap="Greys", animated=False, artists=
                 origin="lower",
                 cmap=cmap,
                 interpolation="nearest",
+                interpolation_stage="data",
                 vmin=vmin,
                 vmax=vmax,
                 animated=animated,
