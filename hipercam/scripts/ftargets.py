@@ -599,6 +599,9 @@ def ftargets(args=None):
 
             # Update the image plot
             imanager.update(mccd, object_data)
+            if not imanager.is_open:
+                # user has closed the image plot window, exit the loop
+                break
 
             # Save objects to file
             for cnam in ccds:
@@ -684,15 +687,15 @@ def ftargets(args=None):
                     nupdate = int(pause / tupdate)
                     for _ in range(nupdate):
                         time.sleep(pause / nupdate)
-                        if imanager is not None:
-                            imanager.refresh()
+                        imanager.refresh()
                 else:
                     # just pause because the updates will come
                     time.sleep(pause)
 
     # At then end the plots will close automatically,
     # so block this by asking the user to confirm
-    input("\nHit carriage return to close the plot(s): ")
+    if imanager.is_open:
+        input("\nHit carriage return to close the plot(s): ")
 
 
 def remove_field_names(a, names):

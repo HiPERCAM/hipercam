@@ -1331,6 +1331,11 @@ class AnimationManager(ABC):
         plt.show(block=False)
         plt.pause(0.1)
 
+    @property
+    def is_open(self):
+        """Check if the figure is still open."""
+        return plt.fignum_exists(self.fig.number)
+
 
 def setup_plot(fig, disable_shortcuts=True):
     """Set up the plot for interactive use.

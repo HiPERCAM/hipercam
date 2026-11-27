@@ -1175,6 +1175,9 @@ def nrtplot(args=None):
 
             # Update the image plot
             imanager.update(mccd, plot_pfits, defects, swindows)
+            if not imanager.is_open:
+                # user has closed the image plot window, exit the loop
+                break
 
             # Plot change in FWHM over time for any targets
             if pfit_fwhms and fwnmax > 1:
@@ -1248,17 +1251,19 @@ def nrtplot(args=None):
                     nupdate = int(pause / tupdate)
                     for _ in range(nupdate):
                         time.sleep(pause / nupdate)
-                        if imanager is not None:
-                            imanager.refresh()
-                        if fwhmmanager is not None:
-                            fwhmmanager.refresh()
+                        imanager.refresh()
+                        fwhmmanager.refresh()
                 else:
                     # just pause because the updates will come
                     time.sleep(pause)
 
     # At the end the plots will close automatically,
     # so block this by asking the user to confirm
-    input("\nHit carriage return to close the plot(s): ")
+    if (
+        (imanager is not None and imanager.is_open)
+        or (fwhmmanager is not None and fwhmmanager.is_open)
+    ):
+        input("\nHit carriage return to close the plot(s): ")
 
 
 class ImageManager(hcam.mpl.AnimationManager):

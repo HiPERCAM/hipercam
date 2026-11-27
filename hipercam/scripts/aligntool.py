@@ -573,6 +573,9 @@ def aligntool(args=None):
 
             # Update the image plot
             imanager.update(ccd)
+            if not imanager.is_open:
+                # user has closed the image plot window, exit the loop
+                break
 
             # Now print progress indicators
             nframe = mccd.head.get("NFRAME", n)
@@ -631,17 +634,16 @@ def aligntool(args=None):
                     nupdate = int(pause / tupdate)
                     for _ in range(nupdate):
                         time.sleep(pause / nupdate)
-                        if imanager is not None:
-                            imanager.refresh()
-                        if fwhmmanager is not None:
-                            fwhmmanager.refresh()
+                        imanager.refresh()
+                        fwhmmanager.refresh()
                 else:
                     # just pause because the updates will come
                     time.sleep(pause)
 
     # At then end the plots will close automatically,
     # so block this by asking the user to confirm
-    input("\nHit carriage return to close the plot(s): ")
+    if imanager.is_open or fwhmmanager.is_open:
+        input("\nHit carriage return to close the plot(s): ")
 
 
 class ImageManager(hcam.mpl.AnimationManager):

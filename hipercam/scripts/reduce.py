@@ -832,6 +832,9 @@ def reduce(args=None):
                 # Update the image plot
                 # (note plotting the processed data)
                 imanager.update(pccd, results)
+                if not imanager.is_open:
+                    # user has closed the image plot window, exit the loop
+                    break
 
                 # Get statistics to print out
                 message = f"exp= {mccd.head['EXPTIME']:.4f}"
@@ -921,7 +924,7 @@ def reduce(args=None):
                     sbuffer,
                 )
 
-    if implot or psfplot or lcplot:
+    if ((implot and imanager.is_open) or (psfplot and psfmanager.is_open)):
         # At the end the plots will close automatically,
         # so block this by asking the user to confirm
         input("\nHit carriage return to close the plot(s): ")
