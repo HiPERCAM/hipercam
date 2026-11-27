@@ -57,3 +57,20 @@ class Cline(Cline):
         except KeyboardInterrupt:
             print("\nExiting...")
             sys.exit(0)
+
+    def retrieve_value(self, param):
+        # A nice minimal way to just get a stored value, without the chance of
+        # triggering a user prompt.
+        # Used for restoring window geometry after profit plot in nrtplot.py
+        if param not in self._rpars:
+            raise ClineError(
+                f'parameter = "{param.upper()}" has not been registered.'
+            )
+        if self._rpars[param]["g_or_l"] == Cline.GLOBAL and param in self._gpars:
+            return self._gpars[param]
+        if self._rpars[param]["g_or_l"] == Cline.LOCAL and param in self._lpars:
+            return self._lpars[param]
+
+        raise ClineError(
+            f'parameter = "{param.upper()}" not found.'
+        )

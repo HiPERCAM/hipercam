@@ -1074,6 +1074,23 @@ def nrtplot(args=None):
                 hcam.mpl.setup_plot(fig)
                 plt.show()
 
+                if memory:
+                    # extract any updated geometry so it applies to the main plot too
+                    with Cline("HIPERCAM_ENV", ".hipercam", command, args) as cl:
+                        # TODO: I hate that Cline's interface is so clunky that
+                        # we have to re-register all the parameters first...
+                        cl.register("imwidth", Cline.LOCAL, Cline.HIDE)
+                        cl.register("imheight", Cline.LOCAL, Cline.HIDE)
+                        cl.register("imxpos", Cline.LOCAL, Cline.HIDE)
+                        cl.register("imypos", Cline.LOCAL, Cline.HIDE)
+                        # We also can't just use cl.get_value(), even for hidden
+                        # parameters, because if the user started with `prompt` it
+                        # would re-trigger the user input.
+                        imwidth = cl.retrieve_value("imwidth")
+                        imheight = cl.retrieve_value("imheight")
+                        imxpos = cl.retrieve_value("imxpos")
+                        imypos = cl.retrieve_value("imypos")
+
                 # once we return, targets should be selected, if any
                 if len(picker.targets) > 0:
                     # create a dict of targets, with each assigned a number
